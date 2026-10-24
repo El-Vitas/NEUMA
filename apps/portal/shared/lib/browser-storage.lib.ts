@@ -9,6 +9,36 @@ export const readStoredNumber = (key: string): number | null => {
   }
 };
 
+export const readStoredText = (key: string): string | null => {
+  if (globalThis.window === undefined) return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+export const removeStoredValue = (key: string): void => {
+  if (globalThis.window === undefined) return;
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    return;
+  }
+};
+
+export const removeStoredKeysWhere = (shouldRemove: (key: string) => boolean): void => {
+  if (globalThis.window === undefined) return;
+  try {
+    const keys = Array.from({ length: localStorage.length }, (_unused, index) => localStorage.key(index));
+    for (const key of keys) {
+      if (key !== null && shouldRemove(key)) localStorage.removeItem(key);
+    }
+  } catch {
+    return;
+  }
+};
+
 export const writeStoredValue = (key: string, value: unknown): void => {
   if (globalThis.window === undefined) return;
   try {

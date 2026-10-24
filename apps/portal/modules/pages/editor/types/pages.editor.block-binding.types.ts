@@ -16,9 +16,13 @@ export interface PagesEditorBlockBindingOptions {
   readonly fallbackSaveState: PagesAutosaveDisplayState;
   /** The blocks the server rendered the page from; the binding is off while there are none. */
   readonly initialBlocks: readonly SyncedBlock[] | null | undefined;
-  /** Whether the person can write in the page; a page that is only read opens no channel. */
+  /** Whether the person can write in the page; a page that is only read still follows the channel, but never writes. */
   readonly isEnabled: boolean;
   readonly localUserId: string | null | undefined;
+  /** Called when the channel says who may do what on this page changed. */
+  readonly onAccessChanged?: () => void;
+  /** Called when the channel says a discussion of this page changed. */
+  readonly onDiscussionChanged?: () => void;
   readonly pageId: string;
   readonly personOptions: readonly PagePersonOption[];
   readonly readContent: () => PageContent;

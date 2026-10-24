@@ -1,0 +1,40 @@
+id: FEA-NTF
+name: Bandeja de avisos
+purpose: Que cada persona se entere de lo que le concierne sin tener que recorrer las páginas.
+scope: avisos
+rules:
+  - id: BR-e8bca02
+    status: active
+    title: Los avisos llegan al momento y se leen una vez
+    rule: >-
+      Cada persona tiene una bandeja con los avisos de menciones y de respuestas en las conversaciones donde participa,
+      del más nuevo al más viejo, con lo leído y lo no leído. Un aviso nuevo aparece al instante en todas las ventanas
+      abiertas de esa persona, con el conteo de no leídos. Se marca como leído uno por uno o todos a la vez. Cada aviso
+      lleva al bloque del que habla.
+    why: >-
+      Una mención que se entera horas después, o que obliga a recorrer páginas para encontrarla, no cumple para lo que
+      se escribió.
+    context: >-
+      La lista es acotada y se pide por tramos. El conteo de no leídos solo cuenta avisos de bloques que la persona
+      todavía puede leer, y llega a mostrar 99+. Existe un tipo de aviso reservado para los cambios en páginas seguidas,
+      que todavía no se crea.
+    scenarios:
+      - title: Aviso en vivo
+        given: Luis tiene la aplicación abierta
+        when: Ana lo nombra en un comentario
+        then: La campana de Luis suma uno sin que él haga nada
+  - id: BR-ea7f878
+    status: active
+    title: Un aviso no leído nunca se borra
+    rule: >-
+      Un aviso que nadie leyó se conserva sin límite de tiempo. Uno leído se borra noventa días después de haberse
+      leído.
+    why: >-
+      Borrar un aviso pendiente es perder lo que alguien tenía que atender. Los leídos no le sirven a nadie pasado un
+      tiempo y harían crecer la bandeja sin fin.
+    context: El borrado de leídos corre en el servidor, de tanto en tanto, sin un proceso aparte.
+    scenarios:
+      - title: Retención
+        given: Un aviso leído hace noventa y un días y otro que nunca se leyó
+        when: Corre la limpieza
+        then: Se borra el leído y se conserva el no leído

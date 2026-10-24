@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { listMcpBlockComments, readMcpBlockInContext, takeMcpPagePart } from '@/modules/mcp/lib/mcp.blocks.lib';
+import { readMcpBlockInContext, takeMcpPagePart } from '@/modules/mcp/lib/mcp.blocks.lib';
 
 const paragraph = (id: string, words: string) => ({
   attrs: { id },
@@ -31,29 +31,6 @@ describe('readMcpBlockInContext', () => {
 
   it('says nothing of a block that is not there', () => {
     expect(readMcpBlockInContext(nodes, 'gone')).toBeNull();
-  });
-});
-
-describe('listMcpBlockComments', () => {
-  it('lists what was said on each block, with the block it was said on, however deep', () => {
-    const comment = { author: 'Ana', body: 'Revisar la fecha', createdAt: '2026-09-01T10:00:00.000Z', id: 'c1' };
-    const withComments = [
-      { ...paragraph('a', 'Uno'), attrs: { comments: [comment], id: 'a' } },
-      {
-        attrs: { id: 'quote' },
-        content: [{ ...paragraph('b', 'Dos'), attrs: { comments: [{ ...comment, id: 'c2' }], id: 'b' } }],
-        type: 'blockquote',
-      },
-    ];
-
-    expect(listMcpBlockComments(withComments)).toEqual([
-      { author: 'Ana', blockId: 'a', body: 'Revisar la fecha', createdAt: '2026-09-01T10:00:00.000Z', id: 'c1' },
-      { author: 'Ana', blockId: 'b', body: 'Revisar la fecha', createdAt: '2026-09-01T10:00:00.000Z', id: 'c2' },
-    ]);
-  });
-
-  it('skips a comment that is not shaped like one', () => {
-    expect(listMcpBlockComments([{ ...paragraph('a', 'Uno'), attrs: { comments: ['suelto'], id: 'a' } }])).toEqual([]);
   });
 });
 

@@ -1,66 +1,78 @@
-import type { PageBlockComment } from '@neuma/shared';
-import type { Command, EditorState } from 'prosemirror-state';
-import { PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE } from '../constants/pages.editor.blocks.constants';
-import { readPageEditorBlockRequest } from './pages.editor.block-menu.lib';
-import { findSelectedPageBlocks } from './pages.editor.block-range.lib';
+import type { Command, EditorState, Transaction } from 'prosemirror-state';
+import type { DiscussionsSummary } from '../../../discussions/types/pages.discussions.types';
+import { pageEditorBlockMenuKey, pageEditorDiscussionsKey } from '../../lib/pages.editor.plugin-keys.lib';
+import type { PageEditorFragment } from '../types/pages.editor.block-request.types';
+import { getPageEditorBlockId } from './pages.editor.block-id.lib';
 
-const isPageBlockComment = (value: unknown): value is PageBlockComment =>
-  typeof value === 'object' && value !== null && 'body' in value && 'author' in value;
+export const readPageEditorDiscussions = (state: EditorState): DiscussionsSummary | undefined =>
+  pageEditorDiscussionsKey.getState(state);
 
-const readBlockComments = (attrs: Record<string, unknown>): readonly PageBlockComment[] => {
-  const comments = attrs[PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE];
-  return Array.isArray(comments) ? comments.filter(isPageBlockComment) : [];
+/** Dispatched from the page when its discussions are read or change, so the editor can show where they are. */
+export const summarizePageEditorDiscussions = (state: EditorState, summary: DiscussionsSummary): Transaction =>
+  state.tr.setMeta(pageEditorDiscussionsKey, summary).setMeta('addToHistory', false);
+
+export const readPageEditorFragmentText = (state: EditorState, fragment: PageEditorFragment): string =>
+  state.doc.textBetween(fragment.from, fragment.to, ' ').trim();
+
+/** A change of the document drops the open request; marking words must not close the discussions being read. */
+const keepTheRequest = (state: EditorState, transaction: Transaction): Transaction => {
+  const request = pageEditorBlockMenuKey.getState(state);
+  return request === null || request === undefined ? transaction : transaction.setMeta(pageEditorBlockMenuKey, request);
 };
 
-export const readPageEditorBlockComments = (state: EditorState): readonly PageBlockComment[] => {
-  const range = findSelectedPageBlocks(state);
-  if (range === null) return [];
-  return readBlockComments(range.parent.child(range.startIndex).attrs);
+/** The block a request is about, by the id its node carries; null when the node has none. */
+export const readPageEditorRequestedBlockId = (state: EditorState, blockStart: number): string | null => {
+  const node = blockStart < 0 || blockStart > state.doc.content.size ? null : state.doc.nodeAt(blockStart);
+  return node === null ? null : getPageEditorBlockId(node);
 };
 
-/** Comments are stored on the block; a fragment comment also marks its text with the comment id. */
-export const createPageEditorBlockCommentCommand =
-  (comment: PageBlockComment): Command =>
+/** The words get the id of their discussion as a mark, which is how a click on them finds it. */
+export const createPageEditorCommentMarkCommand =
+  (discussionId: string, fragment: PageEditorFragment): Command =>
   (state, dispatch) => {
-    const range = findSelectedPageBlocks(state);
-    if (range === null || comment.body.trim().length === 0) return false;
-    if (dispatch === undefined) return true;
-
-    const block = range.parent.child(range.startIndex);
-    const comments = [...readBlockComments(block.attrs), comment];
-    const transaction = state.tr;
-    const fragment = readPageEditorBlockRequest(state)?.fragment;
     const commentMark = state.schema.marks.comment;
-    if (fragment !== undefined && commentMark !== undefined) {
-      transaction.addMark(fragment.from, fragment.to, commentMark.create({ id: comment.id }));
+    if (commentMark === undefined || fragment.from >= fragment.to || fragment.to > state.doc.content.size) return false;
+    if (dispatch !== undefined) {
+      dispatch(
+        keepTheRequest(state, state.tr.addMark(fragment.from, fragment.to, commentMark.create({ id: discussionId }))),
+      );
     }
-    dispatch(transaction.setNodeAttribute(range.start, PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE, comments));
     return true;
   };
 
-/** Also unmarks the fragment pointing at the comment, so no text stays underlined. */
-export const createPageEditorBlockCommentRemovalCommand =
-  (commentId: string): Command =>
+/** Takes the mark off every stretch that carries it, so no text stays underlined for a discussion that is gone. */
+export const createPageEditorCommentUnmarkCommand =
+  (discussionId: string): Command =>
   (state, dispatch) => {
-    const range = findSelectedPageBlocks(state);
-    if (range === null) return false;
-
-    const block = range.parent.child(range.startIndex);
-    const remaining = readBlockComments(block.attrs).filter((comment) => comment.id !== commentId);
-    if (remaining.length === readBlockComments(block.attrs).length) return false;
-    if (dispatch === undefined) return true;
-
-    const transaction = state.tr;
     const commentMark = state.schema.marks.comment;
-    if (commentMark !== undefined) {
-      transaction.removeMark(range.start, range.end, commentMark.create({ id: commentId }));
+    if (commentMark === undefined) return false;
+    if (dispatch !== undefined) {
+      dispatch(
+        keepTheRequest(state, state.tr.removeMark(0, state.doc.content.size, commentMark.create({ id: discussionId }))),
+      );
     }
-    dispatch(
-      transaction.setNodeAttribute(
-        range.start,
-        PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE,
-        remaining.length === 0 ? null : remaining,
-      ),
-    );
+    return true;
+  };
+
+/** Opens the discussions of a block by its id, for a link that names one; false when the block is not here. */
+export const createPageEditorOpenDiscussionsCommand =
+  (blockId: string, discussionId: string | null): Command =>
+  (state, dispatch) => {
+    let blockStart: number | null = null;
+    state.doc.descendants((node, position) => {
+      if (blockStart !== null) return false;
+      if (getPageEditorBlockId(node) === blockId) blockStart = position;
+      return blockStart === null;
+    });
+    if (blockStart === null) return false;
+    if (dispatch !== undefined) {
+      dispatch(
+        state.tr.setMeta(pageEditorBlockMenuKey, {
+          blockStart,
+          ...(discussionId === null ? {} : { discussionId }),
+          kind: 'comments',
+        }),
+      );
+    }
     return true;
   };

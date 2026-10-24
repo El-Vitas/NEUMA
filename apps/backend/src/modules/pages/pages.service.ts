@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DatabasePropertyType, type JsonValue, PageLifecycle } from '@neuma/db';
 import {
   givePageBlocksTheirIds,
+  isValidPageTimeZone,
   type PageContent,
   Result,
   USER_ROLE,
@@ -12,6 +13,7 @@ import {
 import { Logger } from 'nestjs-pino';
 import { STORAGE_PROVIDER } from '../../common/constants/storage.constants';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '../../common/domain/schema.domain.types';
+import { withoutServerValues } from '../../common/domain/schema-property.domain';
 import type { IStorageProvider } from '../../common/types/storage.types';
 import { mapWithBoundedConcurrency } from '../../common/utils/concurrency.utils';
 import {
@@ -22,6 +24,7 @@ import {
   PAGE_PURGE_BATCH_SIZE,
   PAGE_PURGE_DELAY_DAYS,
   PAGE_PURGE_REPOSITORY,
+  PAGE_QUERY_DEFAULT_TIME_ZONE,
   PAGE_REPOSITORY,
   PAGE_RESTORE_VERSION_OUTCOME,
   PAGE_SCHEMA_REPOSITORY,
@@ -43,19 +46,30 @@ import {
   PageParentError,
   PagePropertyConformanceError,
   PagePropertyValidationError,
+  PageTemplateNotFoundError,
   PageVersionNotFoundError,
 } from './domain/page.error';
+import { buildValueListOperation } from './domain/page.operation.domain';
 import { canDeletePagesForever, computeDaysBefore, computePurgeAfter } from './domain/page.purge.domain';
 import { validatePageCover } from './domain/page-cover.domain';
-import { fitsInOneExport, readExportableContent, selectPagesForExport } from './domain/page-export.domain';
+import {
+  fitsInOneExport,
+  keepReferencedAssets,
+  readExportableContent,
+  selectPagesForExport,
+} from './domain/page-export.domain';
 import type { PageExportScope } from './domain/page-export.domain.types';
 import { validatePageIcon } from './domain/page-icon.domain';
 import { extractMentionTargetPageIds, redactUnreadableMentions } from './domain/page-mention.domain';
 import {
+  checkValuesAreWritableHere,
   keepWhatThePageSchemaKnows,
+  listFileIds,
   mergePagePropertyValues,
   validatePageProperties,
 } from './domain/page-schema.domain';
+import { applyRowTemplate } from './domain/page-template.domain';
+import { applyValueListChanges } from './domain/page-value-list.domain';
 import type {
   CarriedAttachment,
   CreatePageInput,
@@ -66,17 +80,21 @@ import type {
   PageContentWriter,
   PageDescendantsPreview,
   PageLogger,
-  PageMoveDestinations,
+  PageMoveRequest,
   PagePurgeRepositoryContract,
   PagePurgeSchedule,
   PageRepositoryContract,
   PageRestoreOutcome,
   PageSummary,
+  PageVersionListing,
   PageVersionRetentionRepositoryContract,
-  TrashedPageSummary,
+  PageVersionSnapshot,
+  TrashedPageListing,
   UpdatePagePropertiesInput,
 } from './types/page.types';
+import type { PageOutlineWindow } from './types/page-outline.types';
 import type { PageSchemaRepositoryContract } from './types/page-schema.types';
+import type { PageRowStart, PageRowStartFailure } from './types/page-template.types';
 
 @Injectable()
 export class PagesService {
@@ -116,18 +134,23 @@ export class PagesService {
     const chosen = selectPagesForExport(pages, scope);
     if (chosen.length === 0) return Result.fail(new PageAccessDeniedError());
 
-    const assets = await this.pageAttachmentsCleanupRepository.listAssetsForPages(chosen.map((page) => page.id));
+    const documents = chosen.map((page) => ({
+      content: readExportableContent(page.content),
+      id: page.id,
+      path: page.path,
+      title: page.title,
+    }));
+    const owned = await this.pageAttachmentsCleanupRepository.listAssetsForPages(chosen.map((page) => page.id));
+    const assets = keepReferencedAssets(
+      owned,
+      documents.map((document) => document.content),
+    );
     if (!fitsInOneExport(assets, EXPORT_MAX_ATTACHMENT_MEGABYTES)) {
       return Result.fail(new PageExportTooLargeError(EXPORT_MAX_ATTACHMENT_MEGABYTES));
     }
     const carried = await this.gatherAttachments(assets);
     const written = writePagesAsMarkdownFiles(
-      chosen.map((page) => ({
-        content: readExportableContent(page.content),
-        id: page.id,
-        path: page.path,
-        title: page.title,
-      })),
+      documents,
       untitledLabel,
       new Map(carried.map((asset) => [asset.id, asset.path])),
     );
@@ -166,7 +189,11 @@ export class PagesService {
   ): Promise<
     Result<
       PageSummary,
-      PageAccessDeniedError | PageContentValidationError | PagePropertyValidationError | PageParentError
+      | PageAccessDeniedError
+      | PageContentValidationError
+      | PagePropertyValidationError
+      | PageParentError
+      | PageTemplateNotFoundError
     >
   > {
     const content = this.validateWritableContent(role, input.content);
@@ -174,19 +201,30 @@ export class PagesService {
     if (input.parentId !== null && !(await this.pageRepository.parentBelongsToSpace(input.parentId, input.spaceId))) {
       return Result.fail(new PageParentError());
     }
+    const start = await this.startFromTemplate(input, content.getValue());
+    if (start.isFail()) return Result.fail(start.getError());
+    const { title } = start.getValue();
+    const startValues = start.getValue().propertyValues;
     const propertyValues = await this.resolvePropertyValuesForWrite(
       input.parentId,
       input.workspaceId,
-      input.title,
-      input.propertyValues,
+      title,
+      startValues,
+      { pageId: null, userId: input.userId },
     );
     if (propertyValues.isFail()) return Result.fail(propertyValues.getError());
     const page = await this.pageRepository.create({
       ...input,
-      content: givePageBlocksTheirIds(content.getValue(), randomUUID),
+      content: givePageBlocksTheirIds(start.getValue().content, randomUUID),
       propertyValues: propertyValues.getValue(),
+      title,
     });
-    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+    if (page === null) return Result.fail(new PageAccessDeniedError());
+    await this.pageSchemaRepository.attachFilesToPage(
+      page.id,
+      listFileIds(await this.pageSchemaRepository.resolveSchemaProperties(input.parentId), startValues ?? {}),
+    );
+    return Result.ok(page);
   }
 
   /** Applies the rewrite to the document the page has now; the page keeps every block the rewrite leaves alone. */
@@ -201,6 +239,35 @@ export class PagesService {
   /** For whoever closes a stretch of editing the blocks module does not see: one history entry per stretch. */
   recordVersion(pageId: string, authorId: string): Promise<void> {
     return this.pageRepository.recordVersion(pageId, authorId);
+  }
+
+  /** History is an editing tool: a reader who may only read has no use for what the page said before. */
+  async listVersions(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+    cursor: null | number,
+    limit: number,
+  ): Promise<Result<PageVersionListing, PageAccessDeniedError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const listing = await this.pageRepository.listVersions(pageId, workspaceId, userId, role, cursor, limit);
+    return listing === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(listing);
+  }
+
+  /** The version as a document, with the blocks closed to this reader already left out. */
+  async readVersion(
+    pageId: string,
+    version: number,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<Result<PageVersionSnapshot, PageAccessDeniedError | PageVersionNotFoundError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const page = await this.pageRepository.getAccessible(pageId, workspaceId, userId, role);
+    if (page === null) return Result.fail(new PageAccessDeniedError());
+    const snapshot = await this.pageRepository.findVersion(pageId, version, workspaceId, userId, role);
+    return snapshot === null ? Result.fail(new PageVersionNotFoundError()) : Result.ok(snapshot);
   }
 
   /** Puts the page back as one of its versions said: its content and its title. */
@@ -254,25 +321,61 @@ export class PagesService {
     if (existing.lockedAt !== null) return Result.fail(new PageLockedError());
 
     const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(existing.parentId);
+    const listChanges = input.listChanges ?? {};
+    const extraOperations = [
+      ...(input.extraOperations ?? []),
+      ...Object.entries(listChanges).map(([property, change]) =>
+        buildValueListOperation(input.pageId, property, change),
+      ),
+    ];
+    const writable = checkValuesAreWritableHere(schemaProperties, input.propertyValues);
+    if (writable.isFail()) return Result.fail(writable.getError());
+    const files = await this.checkFilesCanBeAttached(schemaProperties, input.propertyValues, {
+      pageId: input.pageId,
+      userId: input.updatedById,
+      workspaceId: input.workspaceId,
+    });
+    if (files.isFail()) return Result.fail(files.getError());
     const personIds = await this.resolvePersonIdsIfNeeded(schemaProperties, input.workspaceId);
     const title = input.title ?? existing.title;
     const page = await this.pageRepository.updatePropertyValues(
       {
+        ...(extraOperations.length === 0 ? {} : { extraOperations }),
+        ...(input.expectedVersion === undefined ? {} : { expectedVersion: input.expectedVersion }),
         pageId: input.pageId,
         role: input.role,
         ...(input.title === undefined ? {} : { title: input.title }),
         updatedById: input.updatedById,
         workspaceId: input.workspaceId,
       },
-      (current) =>
-        validatePageProperties(
+      (current) => {
+        const outcome = validatePageProperties(
           schemaProperties,
           title,
           keepWhatThePageSchemaKnows(schemaProperties, mergePagePropertyValues(current, input.propertyValues)),
-          personIds,
-        ),
+          { personIds, written: Object.keys(input.propertyValues) },
+        );
+        if (outcome.isFail() || Object.keys(listChanges).length === 0) return outcome;
+        const afterLists = validatePageProperties(
+          schemaProperties,
+          title,
+          keepWhatThePageSchemaKnows(
+            schemaProperties,
+            mergePagePropertyValues(applyValueListChanges(current, listChanges), input.propertyValues),
+          ),
+          { personIds, written: [...Object.keys(input.propertyValues), ...Object.keys(listChanges)] },
+        );
+        return afterLists.isFail() ? afterLists : outcome;
+      },
     );
-    return page ?? Result.fail(new PageAccessDeniedError());
+    if (page === null) return Result.fail(new PageAccessDeniedError());
+    if (page.isOk()) {
+      await this.pageSchemaRepository.attachFilesToPage(
+        input.pageId,
+        listFileIds(schemaProperties, input.propertyValues),
+      );
+    }
+    return page;
   }
 
   /** Cuts no version: renaming does not change content. */
@@ -394,17 +497,6 @@ export class PagesService {
     });
   }
 
-  async listMoveDestinations(
-    pageId: string,
-    workspaceId: string,
-    userId: string,
-    role: UserRole,
-  ): Promise<Result<PageMoveDestinations, PageAccessDeniedError>> {
-    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const destinations = await this.pageRepository.listMoveDestinations(pageId, workspaceId, userId, role);
-    return destinations === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(destinations);
-  }
-
   async reorderAmongSiblings(
     pageId: string,
     beforePageId: null | string,
@@ -418,16 +510,11 @@ export class PagesService {
   }
 
   async move(
-    pageId: string,
-    parentId: null | string,
-    targetSpaceId: null | string,
-    userId: string,
-    workspaceId: string,
-    mutationId: string,
-    role: UserRole,
+    request: PageMoveRequest,
   ): Promise<
     Result<PageSummary, PageAccessDeniedError | PageCycleError | PageParentError | PagePropertyConformanceError>
   > {
+    const { pageId, parentId, role, targetSpaceId, userId, workspaceId } = request;
     if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
     const context = await this.pageRepository.findMoveContext(pageId, targetSpaceId, workspaceId, userId, role);
     if (context === null) return Result.fail(new PageAccessDeniedError());
@@ -441,15 +528,7 @@ export class PagesService {
       context.propertyValues,
     );
     if (conformance.isFail()) return Result.fail(new PagePropertyConformanceError(conformance.getError().details));
-    const page = await this.pageRepository.move(
-      pageId,
-      parentId,
-      destinationSpaceId,
-      userId,
-      workspaceId,
-      role,
-      mutationId,
-    );
+    const page = await this.pageRepository.move({ ...request, targetSpaceId: destinationSpaceId });
     return this.toAccessiblePageResult(page, workspaceId, userId, role);
   }
 
@@ -509,8 +588,9 @@ export class PagesService {
     role: UserRole,
     spaceId: null | string,
     search: null | string,
-  ): Promise<readonly TrashedPageSummary[]> {
-    return this.pageRepository.listTrashed(workspaceId, userId, role, spaceId, search);
+    window: PageOutlineWindow | null,
+  ): Promise<TrashedPageListing> {
+    return this.pageRepository.listTrashed(workspaceId, userId, role, spaceId, search, window);
   }
 
   /** Schedules the deletion; the page and its attachments stay until the delay passes (ADR 017). */
@@ -569,6 +649,37 @@ export class PagesService {
       : Result.fail(new PageCycleError());
   }
 
+  /** A row of a collection starts from its template: the one named, or the default one when none is named. */
+  private async startFromTemplate(
+    input: CreatePageInput,
+    content: PageContent,
+  ): Promise<Result<PageRowStart, PageRowStartFailure>> {
+    const start: PageRowStart = { content, propertyValues: input.propertyValues, title: input.title };
+    if (input.parentId === null) return Result.ok(start);
+    const started = await this.copyTemplate(input, input.parentId, start);
+    if (started.isFail() || input.defaultValues === undefined) return started;
+    const given = started.getValue();
+    return Result.ok({ ...given, propertyValues: { ...input.defaultValues, ...given.propertyValues } });
+  }
+
+  private async copyTemplate(
+    input: CreatePageInput,
+    collectionId: string,
+    start: PageRowStart,
+  ): Promise<Result<PageRowStart, PageRowStartFailure>> {
+    if (input.templateId === null) return Result.ok(start);
+    const timeZone = input.timeZone ?? PAGE_QUERY_DEFAULT_TIME_ZONE;
+    if (!isValidPageTimeZone(timeZone)) {
+      return Result.fail(new PagePropertyValidationError(`${timeZone} is not a time zone`));
+    }
+    const actor = { role: input.role, userId: input.userId, workspaceId: input.workspaceId };
+    const template = await this.pageRepository.readRowTemplate(collectionId, input.templateId, actor);
+    if (template === null) return Result.ok(start);
+    if (template === 'NOT_FOUND') return Result.fail(new PageTemplateNotFoundError());
+    const columns = await this.pageSchemaRepository.resolveSchemaProperties(collectionId);
+    return applyRowTemplate(start, template, columns, { now: Date.now(), timeZone, viewerId: input.userId });
+  }
+
   private validateWritableContent(
     role: UserRole,
     content: JsonValue | PageContent,
@@ -622,15 +733,41 @@ export class PagesService {
     }
   }
 
+  /** A row is created or moved into a collection: every required property is asked for; relations are not written. */
   private async resolvePropertyValuesForWrite(
     parentId: null | string,
     workspaceId: string,
     title: string,
     propertyValues: Readonly<Record<string, unknown>> | null,
+    attaching: { readonly pageId: null | string; readonly userId: string } | null = null,
   ): Promise<Result<SchemaPropertyValues | null, PagePropertyValidationError>> {
     const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(parentId);
+    if (attaching !== null) {
+      const writable = checkValuesAreWritableHere(schemaProperties, propertyValues ?? {});
+      if (writable.isFail()) return Result.fail(writable.getError());
+      const files = await this.checkFilesCanBeAttached(schemaProperties, propertyValues ?? {}, {
+        ...attaching,
+        workspaceId,
+      });
+      if (files.isFail()) return Result.fail(files.getError());
+    }
     const personIds = await this.resolvePersonIdsIfNeeded(schemaProperties, workspaceId);
-    return validatePageProperties(schemaProperties, title, propertyValues, personIds);
+    const values = attaching === null ? withoutServerValues(schemaProperties, propertyValues) : propertyValues;
+    return validatePageProperties(schemaProperties, title, values, { personIds });
+  }
+
+  /** The files named must exist, be active and be the writer's or the row's already: an id alone grants nothing. */
+  private async checkFilesCanBeAttached(
+    schemaProperties: readonly SchemaPropertyDefinition[],
+    propertyValues: Readonly<Record<string, unknown>>,
+    scope: { readonly pageId: null | string; readonly userId: string; readonly workspaceId: string },
+  ): Promise<Result<void, PagePropertyValidationError>> {
+    const wanted = listFileIds(schemaProperties, propertyValues);
+    const usable = await this.pageSchemaRepository.findAttachableFileIds(wanted, scope);
+    const refused = wanted.find((fileId) => !usable.has(fileId));
+    return refused === undefined
+      ? Result.ok(undefined)
+      : Result.fail(new PagePropertyValidationError(`The file ${refused} cannot be attached`));
   }
 
   private async resolvePersonIdsIfNeeded(

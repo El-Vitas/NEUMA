@@ -7,6 +7,7 @@ import {
   BLOCK_ROLE_VALUES,
 } from './block.constants.js';
 import type {
+  BlockAccessHolder,
   BlockAncestorPermissions,
   BlockPermissionEntry,
   BlockRole,
@@ -53,6 +54,27 @@ export const canReadBlock = (role: BlockRole): boolean => hasAtLeast(role, BLOCK
 export const canEditBlock = (role: BlockRole): boolean => hasAtLeast(role, BLOCK_ROLE.editor);
 
 export const canManageBlockPermissions = (role: BlockRole): boolean => hasAtLeast(role, BLOCK_ROLE.full);
+
+const DECLARING_BLOCK_ID = 'declaring-block';
+
+/** Whether the person would hold full access under this declaration; null means none, so the space decides. */
+export const holdsFullBlockAccess = (
+  holder: BlockAccessHolder,
+  permissions: readonly BlockPermissionEntry[] | null,
+): boolean =>
+  canManageBlockPermissions(
+    resolveBlockRole({
+      canReadSpace: holder.canReadSpace,
+      chain: [{ id: DECLARING_BLOCK_ID, permissions: permissions === null ? null : [...permissions] }],
+      viewer: { userId: holder.id, workspaceRole: holder.workspaceRole },
+    }),
+  );
+
+/** False when nobody could change who has access: such a block could never be opened up again. */
+export const isBlockManageable = (
+  holders: readonly BlockAccessHolder[],
+  permissions: readonly BlockPermissionEntry[] | null,
+): boolean => holders.some((holder) => holdsFullBlockAccess(holder, permissions));
 
 export const filterVisibleBlockIds = (children: readonly BlockWithRole[]): string[] =>
   children.filter((child) => canReadBlock(child.role)).map((child) => child.id);

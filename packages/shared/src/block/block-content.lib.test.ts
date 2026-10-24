@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { PAGE_DOCUMENT_NODES } from '../page-document/page-document.structure.js';
 import {
-  PAGE_CONTENT_NODE_TYPES,
-  maximumTableColumnWidth,
   maximumTableColumns,
+  maximumTableColumnWidth,
   maximumToggleSummaryLength,
+  PAGE_CONTENT_NODE_TYPES,
 } from '../schemas/page-content.schema.js';
 import { PAGE_TITLE_MAX_LENGTH } from '../types/page.types.js';
-import { BLOCK_CONTENT_SCHEMAS, blockContentSchema } from './block-content.schemas.js';
 import { parseBlockContent, readBlockText } from './block-content.lib.js';
+import { BLOCK_CONTENT_SCHEMAS, blockContentSchema } from './block-content.schemas.js';
 import type { BlockType } from './block-content.types.js';
 import {
   BLOCK_CONTENT_ERROR_CODE,
@@ -23,7 +23,6 @@ const USER_ID = '0192f3a0-7c1e-7d2a-9b4e-3f5a6b7c8d9e';
 
 const annotations = {
   backgroundColor: 'yellow',
-  comments: [{ author: 'Ana', body: 'Revisar', createdAt: '2026-10-19T10:00:00Z', id: 'comment-1' }],
   textColor: 'red',
 };
 
@@ -101,8 +100,9 @@ const SAMPLES: Readonly<Record<BlockType, Sample>> = {
 
 describe('block types', () => {
   test('has a schema and a sample for every type', () => {
-    expect(Object.keys(BLOCK_CONTENT_SCHEMAS).sort()).toEqual([...BLOCK_TYPE_VALUES].sort());
-    expect(Object.keys(SAMPLES).sort()).toEqual([...BLOCK_TYPE_VALUES].sort());
+    const byName = (first: string, second: string): number => first.localeCompare(second);
+    expect(Object.keys(BLOCK_CONTENT_SCHEMAS).sort(byName)).toEqual([...BLOCK_TYPE_VALUES].sort(byName));
+    expect(Object.keys(SAMPLES).sort(byName)).toEqual([...BLOCK_TYPE_VALUES].sort(byName));
     expect(blockContentSchema.options).toHaveLength(BLOCK_TYPE_VALUES.length);
   });
 

@@ -2,20 +2,26 @@
 
 import { PAGE_COLLECTION_TITLE_PROPERTY_KEY } from '@neuma/shared';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Table, TableHeader, TableRow } from '@/shared/components/ui/table';
+import { PAGE_ROW_ORDERING_CONTEXT } from '../constants/pages.row-context.constants';
+import { usePagesRowOrdering } from '../hooks/use.pages.row-ordering';
 import { usePagesTableColumns } from '../hooks/use.pages.table-columns';
 import {
   listTableColumnKeys,
+  readColumnLabel,
   readTableColumnLabelId,
   readTableColumnOffsets,
   readTableColumnWidth,
   readTableFrozenCellProps,
 } from '../lib/pages.table-columns.lib';
-import type { PagePersonOption, PagePropertyValues, PageSchema, PageSchemaProperty } from '../types/pages.schema.types';
-import { PagesCollectionSearchProvider } from './pages.collection.search.provider';
-import { PagesCollectionSearchEmpty } from './pages.collection.search-empty';
-import { PagesCollectionSearchField } from './pages.collection.search-field';
+import type {
+  PagePersonOption,
+  PagePropertyValues,
+  PageSchema,
+  PageSchemaProperty,
+  PageViewAggregates,
+} from '../types/pages.schema.types';
 import { PagesCollectionSelectionProvider } from './pages.collection.selection.provider';
 import { PagesCollectionSelectionBar } from './pages.collection.selection-bar';
 import { PagesCollectionTableAppearance } from './pages.collection.table.appearance';
@@ -24,16 +30,19 @@ import { PagesCollectionTableSelectAll } from './pages.collection.table.select-a
 
 interface IProps {
   readonly activeViewName: string;
+  readonly aggregates: Promise<PageViewAggregates | null>;
   readonly canEdit: boolean;
   readonly children: ReactNode;
+  /** Whether the rows can be put in another place by hand: the view follows its own order and the reader may edit. */
+  readonly isOrderable: boolean;
   readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
   readonly rowIds: readonly string[];
-  readonly searchTexts: readonly string[];
   readonly schema: PageSchema;
   readonly spaceId: string;
   readonly titleLabel: string;
   readonly valuesByRow: Readonly<Record<string, PagePropertyValues>>;
+  readonly viewId: string;
 }
 
 /**
@@ -42,21 +51,24 @@ interface IProps {
  */
 export const PagesCollectionTableHeader = ({
   activeViewName,
+  aggregates,
   canEdit,
   children,
+  isOrderable,
   personOptions,
   properties,
   rowIds,
   schema,
-  searchTexts,
   spaceId,
   titleLabel,
   valuesByRow,
+  viewId,
 }: IProps) => {
   const columnKeys = listTableColumnKeys(properties.map((property) => property.key));
   const columns = usePagesTableColumns(schema, activeViewName, columnKeys.slice(1), spaceId);
+  const ordering = usePagesRowOrdering(schema.pageId, spaceId, viewId);
   const [stretching, setStretching] = useState<null | { readonly columnKey: string; readonly width: number }>(null);
-  const [carried, setCarried] = useState<null | string>(null);
+  const carried = useRef<null | string>(null);
 
   /** The width being dragged wins over the saved one so the edge follows the pointer. */
   const widthOf = (columnKey: string): number =>
@@ -66,26 +78,28 @@ export const PagesCollectionTableHeader = ({
   const offsets = readTableColumnOffsets(columnKeys, columns.widths);
 
   const dropOn = (beforeKey: null | string): void => {
-    const taken = carried;
-    setCarried(null);
+    const taken = carried.current;
+    carried.current = null;
     if (taken !== null && taken !== beforeKey) columns.moveColumn(taken, beforeKey);
   };
 
   const total = columnKeys.reduce((sum, columnKey) => sum + widthOf(columnKey), 0);
 
   return (
-    <PagesCollectionSearchProvider searchTexts={searchTexts}>
-      <PagesCollectionSelectionProvider>
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <PagesCollectionSearchField />
+    <PagesCollectionSelectionProvider>
+      <PAGE_ROW_ORDERING_CONTEXT value={isOrderable ? ordering : null}>
+        <div className="mb-1 flex items-center justify-end gap-2">
           {canEdit && <PagesCollectionTableAppearance columns={columns} />}
         </div>
         {canEdit && (
           <PagesCollectionSelectionBar
+            aggregates={aggregates}
+            pageId={schema.pageId}
             personOptions={personOptions}
             properties={properties}
             spaceId={spaceId}
             valuesByRow={valuesByRow}
+            viewId={viewId}
           />
         )}
         <Table className="table-fixed" data-testid="collection-table" style={{ width: total }}>
@@ -106,7 +120,7 @@ export const PagesCollectionTableHeader = ({
                   label={
                     columnKey === PAGE_COLLECTION_TITLE_PROPERTY_KEY
                       ? titleLabel
-                      : (properties[position - 1]?.label ?? columnKey)
+                      : readColumnLabel(properties[position - 1], columnKey)
                   }
                   leading={
                     canEdit && columnKey === PAGE_COLLECTION_TITLE_PROPERTY_KEY ? (
@@ -114,9 +128,13 @@ export const PagesCollectionTableHeader = ({
                     ) : null
                   }
                   movable={columnKey !== PAGE_COLLECTION_TITLE_PROPERTY_KEY}
-                  onDragEnd={() => setCarried(null)}
+                  onDragEnd={() => {
+                    carried.current = null;
+                  }}
                   onDragOver={() => undefined}
-                  onDragStart={() => setCarried(columnKey)}
+                  onDragStart={() => {
+                    carried.current = columnKey;
+                  }}
                   onDrop={() => dropOn(columnKey)}
                   onResize={(width) => setStretching({ columnKey, width })}
                   onResizeEnd={(width) => {
@@ -131,8 +149,7 @@ export const PagesCollectionTableHeader = ({
           </TableHeader>
           {children}
         </Table>
-        <PagesCollectionSearchEmpty />
-      </PagesCollectionSelectionProvider>
-    </PagesCollectionSearchProvider>
+      </PAGE_ROW_ORDERING_CONTEXT>
+    </PagesCollectionSelectionProvider>
   );
 };

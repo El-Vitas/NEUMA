@@ -2,6 +2,7 @@ import type { BlockRichText, PageContent } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { Selection } from 'prosemirror-state';
 import type { z } from 'zod';
+import type { Outbox, StoredTextPreview } from '../../local-cache/types/local-cache.types';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
 import type { CollaborationStatus, PageCollaborationParticipant } from '../../types/pages.collaboration.types';
 import type { BLOCK_SYNC_BAG, BLOCK_SYNC_COMMAND } from '../constants/block-sync.constants';
@@ -24,6 +25,8 @@ export type BlockSnapshotMap = ReadonlyMap<string, BlockSnapshot>;
 /** A block as the server sends it, with the Yjs state of its text as base64. */
 export interface SyncedBlock extends BlockSnapshot {
   readonly alive: boolean;
+  /** True when the block declares its own access; who is on it is told only to those with full access. */
+  readonly hasOwnPermissions?: boolean;
   readonly role: string;
   readonly spaceId: string;
   readonly textState: string | null;
@@ -108,6 +111,7 @@ export interface BlockStore {
   readonly mergeBlocks: (response: BlockSyncResponse) => readonly string[];
   readonly readRole: (blockId: string) => string | null;
   readonly readSnapshots: () => BlockSnapshotMap;
+  readonly readSnapshotsOf: (ids: Iterable<string>) => BlockSnapshotMap;
   readonly readVersion: (blockId: string) => number | undefined;
   readonly replacePage: (blocks: readonly SyncedBlock[]) => readonly string[];
   readonly textWriter: BlockTextWriter;
@@ -131,6 +135,32 @@ export interface BlockLiveSocketHandlers {
   readonly onOpen: () => void;
 }
 
+export interface LiveSocketLoop {
+  readonly connect: () => Promise<void>;
+  readonly destroy: () => void;
+  /** Opens the socket again at once the first time, and after the usual growing pause when it keeps being asked. */
+  readonly reconnectForced: () => void;
+  readonly reconnectLater: (minimumDelayMs?: number) => void;
+  readonly send: (message: Record<string, unknown>) => void;
+  /** The server accepted the subscription: the pause starts over and the pings begin. */
+  readonly markReady: () => void;
+  readonly stopPing: () => void;
+}
+
+export interface LiveSocketLoopOptions {
+  /** Called before each connection starts, with the attempts made since the last one that worked. */
+  readonly onConnectStart?: (attempts: number) => void;
+  /** Called after the socket closed and its ping stopped; the session decides whether and when to open again. */
+  readonly onClosed: (code: number, loop: LiveSocketLoop) => void;
+  readonly onMessage: (text: string) => void;
+  readonly onReconnectScheduled?: () => void;
+  readonly onSocketOpened?: () => void;
+  readonly openSocket: (url: string) => BlockLiveSocket;
+  readonly pingIntervalMs: number;
+  readonly requestToken: () => Promise<string | null>;
+  readonly url: string;
+}
+
 export type BlockLiveRequestMessage =
   | { readonly transactions: readonly BlockTransaction[]; readonly type: 'transactions' }
   | { readonly pageId: string; readonly type: 'sync' }
@@ -150,8 +180,21 @@ export interface BlockLiveSessionHandlers {
   readonly onVersions: (blocks: readonly BlockVersion[]) => void;
 }
 
+/** What the server says about a collection the session follows. */
+export type BlockCollectionMessage = Extract<
+  BlockLiveServerMessage,
+  { type: 'collection-changes' | 'collection-resync' | 'collection-revoked' }
+>;
+
 export interface BlockLiveSessionOptions {
+  /** Who may do what on the page changed, on it or above it; the page reads what the viewer may now do. */
+  readonly onAccessChanged?: () => void;
+  /** The session follows this collection instead of the page: the rows and views that change, not the blocks. */
+  readonly collectionId?: string;
   readonly handlers: BlockLiveSessionHandlers;
+  readonly onCollectionMessage?: (message: BlockCollectionMessage) => void;
+  /** A discussion of a block of this page changed; the page reads its discussions again. */
+  readonly onDiscussionChanged?: () => void;
   readonly openSocket: (url: string) => BlockLiveSocket;
   readonly pageId: string;
   readonly requestToken: () => Promise<string | null>;
@@ -172,8 +215,50 @@ export interface BlockTransactionQueueHandlers {
 
 export type BlockQueueState = 'backOnline' | 'idle' | 'offline' | 'saving';
 
+/**
+ * Where a queue keeps what the server has not answered yet, so it survives closing the tab (ADR 029). Every call
+ * reports its own failures: a queue never waits on a disk that is broken.
+ */
+export interface BlockQueuePersistence {
+  /** The server answered it. */
+  readonly drop: (transactionId: string) => Promise<void>;
+  /** It is on disk before it is sent. */
+  readonly keep: (transaction: BlockTransaction) => Promise<void>;
+  /** The server refused it: it stays, apart, until the person decides. */
+  readonly setAside: (transaction: BlockTransaction, error: BlockTransactionError) => Promise<void>;
+}
+
+/** The queue of one page on disk: what to keep, and what an earlier visit left that has to be sent now. */
+export interface BlockSyncOutbox {
+  /** The server answered it. */
+  readonly drop: (transactionId: string) => Promise<void>;
+  /** On disk before it is sent, with the words it holds so a refusal can still show them. */
+  readonly keep: (transaction: BlockTransaction, previews: readonly StoredTextPreview[]) => Promise<void>;
+  /** Transactions of this page that were kept and never answered, in the order they were made. */
+  readonly restore: () => Promise<readonly BlockTransaction[]>;
+  /** The server refused it: it stays, apart, until the person decides. */
+  readonly setAside: (transaction: BlockTransaction, error: BlockTransactionError) => Promise<void>;
+}
+
+export interface BlockSyncOutboxOptions {
+  readonly outbox: Outbox;
+  /** Something was set aside: whoever shows the changes that were not applied should read them again. */
+  readonly onSetAside?: () => void;
+  /** The tab that sends what it keeps. */
+  readonly ownerId: string;
+  readonly pageId: string;
+  /** Every failure of the disk is reported here; a broken disk never stops a transaction from being sent. */
+  readonly report: (message: string, error?: unknown) => void;
+}
+
+export interface BlockSyncDeferredOutboxOptions extends Omit<BlockSyncOutboxOptions, 'outbox'> {
+  /** The local cache of the person, which takes a moment to open. */
+  readonly opening: Promise<Outbox>;
+}
+
 export interface BlockTransactionQueueOptions {
   readonly handlers: BlockTransactionQueueHandlers;
+  readonly persistence?: BlockQueuePersistence;
   readonly send: (transaction: BlockTransaction) => Promise<BlockTransactionOutcome>;
 }
 
@@ -182,7 +267,11 @@ export interface BlockTransactionQueue {
   readonly destroy: () => void;
   readonly enqueue: (transaction: BlockTransaction) => void;
   readonly list: () => readonly BlockTransaction[];
+  /** Puts transactions read back from disk in front of what was queued since; they are not kept again. */
+  readonly restore: (transactions: readonly BlockTransaction[]) => void;
   readonly resume: () => void;
+  /** Empties the queue but keeps each waiting transaction on disk as refused, so nothing typed is lost silently. */
+  readonly setAsideAll: (error: BlockTransactionError) => void;
   readonly size: () => number;
 }
 
@@ -205,7 +294,11 @@ export interface BlockSyncEngineOptions {
   readonly createId: () => string;
   readonly createSession: (handlers: BlockLiveSessionHandlers) => BlockLiveSession;
   readonly initialBlocks: readonly SyncedBlock[];
+  /** A viewer receives what others do, and never sends a transaction or a cursor. */
+  readonly isViewer?: boolean;
   readonly localUserId: string | null;
+  /** Where the queue keeps what is not answered yet; without it the queue lives only as long as the tab. */
+  readonly outbox?: BlockSyncOutbox;
   readonly pageId: string;
   readonly resolveParticipant: (userId: string) => PageCollaborationParticipantIdentity;
   readonly spaceId: string;

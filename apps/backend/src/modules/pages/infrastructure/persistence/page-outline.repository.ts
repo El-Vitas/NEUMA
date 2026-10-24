@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { readBlockTitle } from '../../../../common/domain/block-access.domain';
-import { PrismaService } from '../../../../prisma/prisma.service';
 import { readPageValues } from '../../domain/page.block.domain';
+import { orderBySiblingPosition } from '../../domain/page.sibling-order.domain';
 import { isPageInTokenScope } from '../../domain/page.token-scope.domain';
 import type { PageViewer } from '../../types/page.block.types';
 import type { StoredPageBlock } from '../../types/page.types';
@@ -21,16 +21,10 @@ const toViewer = (reader: PageOutlineReader): PageViewer => ({
   workspaceId: reader.workspaceId,
 });
 
-const compareByCreation = (first: StoredPageBlock, second: StoredPageBlock): number =>
-  first.createdAt.getTime() - second.createdAt.getTime() || first.id.localeCompare(second.id);
-
 /** Page tree without content, so walking a space stays cheap. Children the reader cannot see are not counted either. */
 @Injectable()
 export class PageOutlineRepository implements PageOutlineRepositoryContract {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly blockReader: PageBlockReader,
-  ) {}
+  constructor(private readonly blockReader: PageBlockReader) {}
 
   async listChildren(
     spaceId: string,
@@ -42,15 +36,16 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
     const ordered = await this.sortSiblings(candidates, spaceId, parentId);
     const readable = await this.keepReadable(ordered, reader);
     const shown = readable.slice(window.skip, window.skip + window.take);
-    const [childCounts, collectionIds] = await Promise.all([
-      this.countReadableChildren(
+    const [parentsWithChildren, collectionIds] = await Promise.all([
+      this.blockReader.findParentsWithReadableChildren(
         shown.map((page) => page.id),
-        reader,
+        toViewer(reader),
+        (pageId) => isPageInTokenScope({ id: pageId, spaceId }, reader.tokenScope),
       ),
-      this.findCollectionIds(shown.map((page) => page.id)),
+      this.blockReader.findCollectionIds(shown.map((page) => page.id)),
     ]);
     const entries = shown.map((page) => ({
-      childCount: childCounts.get(page.id) ?? 0,
+      hasChildren: parentsWithChildren.has(page.id),
       id: page.id,
       isCollection: collectionIds.has(page.id),
       propertyValues: readPageValues(page.properties),
@@ -94,12 +89,7 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
     spaceId: string,
     parentId: null | string,
   ): Promise<StoredPageBlock[]> {
-    const listed = await this.blockReader.readSiblingIds(spaceId, parentId);
-    const positions = new Map(listed.map((id, position) => [id, position]));
-    const positionOf = (page: StoredPageBlock): number => positions.get(page.id) ?? positions.size;
-    return siblings.toSorted(
-      (first, second) => positionOf(first) - positionOf(second) || compareByCreation(first, second),
-    );
+    return orderBySiblingPosition(siblings, await this.blockReader.readSiblingIds(spaceId, parentId));
   }
 
   /** Active pages the reader can see, narrowed to the token scope when there is one. */
@@ -112,25 +102,5 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
       .filter(({ access }) => !access.isInTrash)
       .map(({ block }) => block)
       .filter((block) => isPageInTokenScope(block, reader.tokenScope));
-  }
-
-  private async countReadableChildren(
-    parentIds: readonly string[],
-    reader: PageOutlineReader,
-  ): Promise<ReadonlyMap<string, number>> {
-    const children = await this.keepReadable(await this.blockReader.readPagesUnder(parentIds), reader);
-    const counts = new Map<string, number>();
-    for (const child of children) {
-      if (child.parentId !== null) counts.set(child.parentId, (counts.get(child.parentId) ?? 0) + 1);
-    }
-    return counts;
-  }
-
-  private async findCollectionIds(pageIds: readonly string[]): Promise<ReadonlySet<string>> {
-    if (pageIds.length === 0) return new Set();
-    const properties = await this.prisma.models.PageSchemaProperty.select('pageId')
-      .where((property) => property.pageId.in([...pageIds]))
-      .all();
-    return new Set(properties.map((property) => property.pageId));
   }
 }

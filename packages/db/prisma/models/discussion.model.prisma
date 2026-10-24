@@ -1,0 +1,22 @@
+// use prisma-8
+
+/// A conversation about a block, or about a stretch of its text (ADR 023). Permissions are those of the block.
+/// `anchorMarkId` is the id carried by the inline `comment` mark; it is the discussion id itself, null for a block-wide thread.
+model Discussion {
+  id           String            @id(map: "Discussion_pkey") @default(uuid(7))
+  blockId      String
+  spaceId      String
+  anchorMarkId String?
+  quote        String?
+  resolvedAt   TimestamptzJsDate?
+  resolvedById String?
+  createdById  String
+  createdAt    TimestamptzJsDate @default(now())
+  block        Block             @relation(fields: [blockId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Discussion_blockId_fkey", index: "Discussion_blockId_createdAt_idx")
+
+  comments      Comment[]
+  notifications Notification[]
+
+  @@index([blockId, createdAt], map: "Discussion_blockId_createdAt_idx")
+  @@index([spaceId], map: "Discussion_spaceId_idx")
+}

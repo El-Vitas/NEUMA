@@ -7,6 +7,7 @@ import type {
   LiveSubscription,
 } from '@/modules/blocks/domain/block.live.domain.types';
 import {
+  listSubscriptionsInOtherSpace,
   planPresenceDeliveries,
   planResync,
   planVersionDeliveries,
@@ -36,6 +37,7 @@ const buildContext = (rows: readonly BlockChainRow[], userIds: readonly string[]
   const readableSpaceIds = new Set([SPACE_ID]);
   return {
     maxDepth: MAX_DEPTH,
+    readableSpaceIdsByUserId: new Map(userIds.map((userId) => [userId, readableSpaceIds])),
     rolesByUserId: new Map(
       userIds.map((userId) => [
         userId,
@@ -182,6 +184,25 @@ describe('planVersionDeliveries', () => {
     expect(deliveries).toEqual([{ connectionId: 'connection-alice', message: { pageId: 'page-a', type: 'resync' } }]);
   });
 
+  it('tells a subscriber that what they may do changed when access changed on the page or above it', () => {
+    const rows = [
+      buildRow({ id: 'space-root', type: 'page' }),
+      buildRow({ id: 'page-a', parentId: 'space-root', type: 'page' }),
+      buildRow({ id: 'page-b', type: 'page' }),
+    ];
+    const context = buildContext(rows, [ALICE]);
+    const plan = (changedId: string, pageId: string) =>
+      planVersionDeliveries({
+        blocks: [{ hasAccessChange: true, id: changedId, version: 3 }],
+        context,
+        subscriptions: [subscribe('connection-alice', ALICE, pageId)],
+      }).map((delivery) => delivery.message.type);
+
+    expect(plan('page-a', 'page-a')).toContain('access-changed');
+    expect(plan('space-root', 'page-a')).toContain('access-changed');
+    expect(plan('page-b', 'page-a')).not.toContain('access-changed');
+  });
+
   it('tells a subscriber who lost the page that it was revoked, and sends no versions with it', () => {
     const rows = [
       buildRow({ id: 'page-a', permissions: onlyFor(BOB), type: 'page' }),
@@ -320,5 +341,25 @@ describe('planPresenceDeliveries', () => {
 
     const message = deliveries[0]?.message;
     expect(message?.type === 'presence' ? message.users.map((user) => user.blockId) : []).toEqual([null, null, null]);
+  });
+});
+
+describe('listSubscriptionsInOtherSpace', () => {
+  const context = buildContext(
+    [buildRow({ id: 'page-a', spaceId: 'space-2', type: 'page' }), buildRow({ id: 'page-b', type: 'page' })],
+    [ALICE],
+  );
+
+  it('lists the subscriptions to a page that now lives in another space than the one they are filed under', () => {
+    const moved = subscribe('connection-alice', ALICE, 'page-a');
+    const staying = subscribe('connection-alice', ALICE, 'page-b');
+
+    expect(listSubscriptionsInOtherSpace([moved, staying], context)).toEqual([
+      { connectionId: 'connection-alice', pageId: 'page-a', spaceId: 'space-2' },
+    ]);
+  });
+
+  it('leaves out a page the context does not know', () => {
+    expect(listSubscriptionsInOtherSpace([subscribe('connection-alice', ALICE, 'page-gone')], context)).toEqual([]);
   });
 });

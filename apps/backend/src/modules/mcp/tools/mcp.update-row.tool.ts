@@ -4,8 +4,9 @@ import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { formatMcpRowText } from '../lib/mcp.collection-output.lib';
 import { describeMcpRowAsSeen, openMcpRow } from '../lib/mcp.collections.lib';
-import { normalizeMcpCellValues } from '../lib/mcp.columns.lib';
+import { normalizeMcpCellValues, readMcpRelationRequests } from '../lib/mcp.columns.lib';
 import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
+import { applyMcpRowRelations, planMcpRowRelations, withLinkedRows } from '../lib/mcp.relations.lib';
 import { rowOutputSchema, updateRowInputSchema } from '../schemas/mcp.collections.schemas';
 import type {
   McpCollectionShape,
@@ -14,7 +15,13 @@ import type {
   McpUpdateRowInput,
   McpWrittenRow,
 } from '../types/mcp.collections.types';
-import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+import type {
+  McpAssignablePerson,
+  McpCall,
+  McpServerDependencies,
+  McpToolDefinition,
+  McpWriteSession,
+} from '../types/mcp.types';
 
 /** Properties and the title go in one write: both apply or neither. */
 const writeProperties = async (
@@ -50,21 +57,26 @@ const renameRow = async (
   );
 };
 
-const writeRowChanges = (
+/** Links go first and all at once: if one is refused nothing else was written, so the row is as it was. */
+const writeRowChanges = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   target: { readonly listNames: McpNameLister; readonly row: McpWrittenRow; readonly shape: McpCollectionShape },
-  people: readonly McpPerson[],
+  people: readonly McpAssignablePerson[],
   input: McpUpdateRowInput,
 ): Promise<McpWrittenRow> => {
-  if (input.properties !== undefined) {
-    const values = requireMcpInput(
-      normalizeMcpCellValues(target.shape.properties, input.properties, people, target.listNames),
-    );
-    return writeProperties(dependencies, call, target.row, values, input.title);
+  if (input.properties === undefined) {
+    if (input.title === undefined) throw new McpToolError(MCP_NOTHING_TO_CHANGE_MESSAGE);
+    return renameRow(dependencies, call, target.row, input.title);
   }
-  if (input.title === undefined) throw new McpToolError(MCP_NOTHING_TO_CHANGE_MESSAGE);
-  return renameRow(dependencies, call, target.row, input.title);
+  const { listNames, row, shape } = target;
+  const values = requireMcpInput(normalizeMcpCellValues(shape.properties, input.properties, people, listNames));
+  const requests = requireMcpInput(readMcpRelationRequests(shape.properties, input.properties, listNames));
+  const changes = await planMcpRowRelations(dependencies, call, requests, row.propertyValues);
+  await applyMcpRowRelations(dependencies, call, row, changes);
+  const hasOtherChanges = Object.keys(values).length > 0 || input.title !== undefined;
+  if (!hasOtherChanges) return withLinkedRows(row, changes);
+  return withLinkedRows(await writeProperties(dependencies, call, row, values, input.title), changes);
 };
 
 const updateRow = async (
@@ -94,7 +106,7 @@ export const updateRowTool: McpToolDefinition = {
       MCP_TOOL_NAMES.updateRow,
       {
         description:
-          'Change a row of a collection: its title or some of its properties. Moving a task to another column of a board is changing its status here. Only the properties you name change; null empties one. Name columns, options and people as get_collection shows them.',
+          'Change a row of a collection: its title or some of its properties. Moving a task to another column of a board is changing its status here. Only the properties you name change; null empties one (a status cannot be emptied). Name columns and options as get_collection shows them (an option may also be given by its id). The properties field says what each column type takes: people by name, email or id, dates and ranges, percents, links, emails, phones, file ids, and relations, whose rows you link and unlink with { add, remove } by page id or title, or replace with a list. Links are applied first and all together: if one is refused (for instance the token cannot edit the row on the other side of a two-way relation) nothing is changed.',
         inputSchema: updateRowInputSchema,
         outputSchema: rowOutputSchema,
       },

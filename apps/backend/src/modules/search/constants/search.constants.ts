@@ -28,6 +28,21 @@ export const SEARCH_OVERFETCH_FACTOR = 2;
 /** Rounds a page may take when many fetched rows turn out to be unreadable. */
 export const SEARCH_MAX_ROUNDS = 4;
 
+/**
+ * Matches ranked and looked at per statement, as a multiple of the rows wanted: only these have their ancestors
+ * walked. A term found everywhere then costs the same as a rare one. When too few survive, the window grows.
+ */
+export const SEARCH_WINDOW_FACTOR = 8;
+
+/** The least a retry window grows by, as a multiple of the one before. */
+export const SEARCH_WINDOW_GROWTH = 4;
+
+/** Extra room, over what the survival rate of the last window predicts, so a retry rarely needs another. */
+export const SEARCH_WINDOW_ROOM = 1.5;
+
+/** Keeps a window within what the database accepts as a row limit. */
+export const SEARCH_MAX_WINDOW = 100_000_000;
+
 /** Stops a corrupt parent cycle from recursing forever in the ancestor chain. */
 export const SEARCH_ANCESTOR_DEPTH_LIMIT = 64;
 

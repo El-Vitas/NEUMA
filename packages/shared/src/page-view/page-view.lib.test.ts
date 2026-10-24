@@ -29,6 +29,12 @@ describe('page view registry', () => {
     expect(inconsistentTypes).toEqual([]);
   });
 
+  test('a timeline and a calendar are placed by dates, so neither groups', () => {
+    expect(pageViewSupportsGrouping(PAGE_VIEW_TYPE.TIMELINE)).toBe(false);
+    expect(pageViewSupportsGrouping(PAGE_VIEW_TYPE.CALENDAR)).toBe(false);
+    expect(getPageViewShape(PAGE_VIEW_TYPE.TIMELINE)).toBe(PAGE_VIEW_SHAPE.FLAT);
+  });
+
   test('a table reads its rows in a row, and a board in groups', () => {
     expect(getPageViewShape(PAGE_VIEW_TYPE.TABLE)).toBe(PAGE_VIEW_SHAPE.FLAT);
     expect(getPageViewShape(PAGE_VIEW_TYPE.BOARD)).toBe(PAGE_VIEW_SHAPE.GROUPED);

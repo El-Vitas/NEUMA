@@ -20,7 +20,7 @@ const member = { email: 'editor@test.com', id: 'user-a', name: 'Editor One' };
 const createRepository = (overrides: Partial<SpaceRepositoryContract> = {}): SpaceRepositoryContract => ({
   addMember: () => Promise.resolve('shared'),
   countMembersLosingAccess: () => Promise.resolve(0),
-  create: () => Promise.resolve(space),
+  create: () => Promise.resolve<SpaceSummary | null>(space),
   listAccessible: () => Promise.resolve([space]),
   listAssignableMembers: () => Promise.resolve([member]),
   listSharedWithMe: () => Promise.resolve([]),

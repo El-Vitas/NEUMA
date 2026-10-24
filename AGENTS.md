@@ -6,6 +6,21 @@ Caution is preferred over speed. Clarity is preferred over cleverness. Simplicit
 
 ---
 
+## Product Principle: Agent First
+
+Neuma is **Neural Enterprise Unified Memory & Agents**: the company brain, designed for AI agents first and for people second. The portal exists and people use it, but the product is a memory that agents think with.
+
+Agent first is a design stance, not a checklist. Do not stop at mirroring the portal for agents: invent what only makes sense for an agent — tools, algorithms, data structures, ranking, context assembly, change feeds, ways to remember and to act. Ask "what would make an agent excellent at its job here?", not only "can the agent also do what a person does?".
+
+- **Agents can do everything.** What a person does in the portal, an agent can do too (today through the MCP). That is the floor, not the goal.
+- **Built for how agents work.** Agents have a context budget, act in loops, need to cite, and must not guess. Give them precise, compact, citable context with stable ids and provenance; let them read and write at block level; make operations idempotent and previewable; tell them what changed since they last looked.
+- **Same rules.** Agents get exactly the permissions of the person who owns their token. No agent bypass around validation, versions or audit.
+- **Self-describing.** How an agent should use Neuma lives in Neuma itself (MCP instructions and tool descriptions), never in repository docs the agent does not read.
+
+When a change makes the portal better and the agent experience worse, rethink it. Ideas waiting for their turn live in `docs/scope/agent-first-ideas.md`.
+
+---
+
 ## Setup Commands
 
 - Install dependencies: `bun install`

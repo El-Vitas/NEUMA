@@ -1,4 +1,5 @@
-import type { BlockPermissions, UserRole } from '@neuma/shared';
+import type { BlockPermissions, BlockRole, UserRole } from '@neuma/shared';
+import type { DeclaringAncestor } from '../domain/block-access.domain.types';
 
 export interface BlockAccessViewer {
   readonly role: UserRole;
@@ -20,6 +21,15 @@ export interface ReadableBlocksInput {
   readonly readableSpaceIds: ReadonlySet<string>;
   readonly rows: readonly BlockAccessChainRow[];
   readonly viewer: BlockAccessViewer;
+}
+
+/** What one viewer holds on one block, and the block whose declaration decides it. */
+export interface BlockStanding {
+  readonly declaring: DeclaringAncestor;
+  /** The nearest declaring block strictly above this one: what it follows once it stops declaring its own. */
+  readonly inheritedDeclaring: DeclaringAncestor;
+  readonly role: BlockRole;
+  readonly spaceId: string;
 }
 
 export interface ReadablePage {

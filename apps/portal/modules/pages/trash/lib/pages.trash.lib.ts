@@ -7,10 +7,11 @@ export const buildPageTrashUrl = (search: string): string => {
   return `${ROUTES.PORTAL_TRASH}?search=${encodeURIComponent(trimmedSearch)}`;
 };
 
-export const buildPageTrashListQuerySuffix = (spaceId?: string, search?: string): string => {
+export const buildPageTrashListQuerySuffix = (spaceId?: string, search?: string, skip?: number): string => {
   const query = new URLSearchParams();
   if (spaceId !== undefined) query.set('spaceId', spaceId);
   if (search !== undefined && search.length > 0) query.set('search', search);
+  if (skip !== undefined && skip > 0) query.set('skip', String(skip));
   const serialized = query.toString();
   return serialized.length > 0 ? `?${serialized}` : '';
 };

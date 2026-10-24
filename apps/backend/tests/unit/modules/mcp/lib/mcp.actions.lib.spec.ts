@@ -20,12 +20,8 @@ const call: McpCall = {
     userId: 'user-1',
     workspaceId: 'workspace-1',
   },
-  viewer: {
-    role: USER_ROLE.WORKER,
-    tokenScope: { allowedPageIds: [], closedPageIds: [], closedSpaceIds: [], openSpaceIds: [], readsEverywhere: false },
-    userId: 'user-1',
-    workspaceId: 'workspace-1',
-  },
+  readOutlineViewer: () => Promise.reject(new Error('Not used in this test')),
+  viewer: { role: USER_ROLE.WORKER, userId: 'user-1', workspaceId: 'workspace-1' },
   workspace: { id: 'workspace-1', name: 'Neuma' },
 };
 

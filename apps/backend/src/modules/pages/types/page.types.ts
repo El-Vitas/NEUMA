@@ -1,7 +1,8 @@
 import type { JsonValue, PageLifecycle } from '@neuma/db';
-import type { PageContent, PageCoverValue, PageIcon, Result, UserRole } from '@neuma/shared';
+import type { PageContent, PageCoverValue, PageIcon, PageTemplateMarker, Result, UserRole } from '@neuma/shared';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
 import { PAGE_DELETE_FOREVER_OUTCOMES, PAGE_RESTORE_VERSION_OUTCOME } from '../constants/pages.constants';
+import type { PageBlockOperation } from '../domain/page.block.domain.types';
 import type { PageParentReference } from '../domain/page.domain.types';
 import type {
   PageAccessDeniedError,
@@ -9,15 +10,12 @@ import type {
   PageLifecycleError,
   PageLockedError,
 } from '../domain/page.error';
+import type { PageValueListChanges } from '../domain/page-value-list.domain.types';
+import type { PageViewer } from './page.block.types';
+import type { PageOutlineWindow } from './page-outline.types';
+import type { PageRowTemplate } from './page-template.types';
 
 export type PageDeleteForeverOutcome = (typeof PAGE_DELETE_FOREVER_OUTCOMES)[number];
-
-export interface PageHierarchyRow extends PageParentReference {
-  readonly lifecycle: PageLifecycle;
-  readonly title: string;
-  readonly trashedAt: Date | null;
-  readonly updatedById: string;
-}
 
 /** A page block as the database holds it, before its title, icon and values are read out of its JSON. */
 export interface StoredPageBlock {
@@ -40,15 +38,25 @@ export interface StoredPageBlock {
   readonly verificationExpiresAt: Date | null;
   readonly verifiedAt: Date | null;
   readonly verifiedById: null | string;
+  /** The version the database keeps on the block itself, which grows with every change to it. */
+  readonly version: number;
 }
 
 export interface CreatePageInput {
   readonly content: JsonValue | PageContent;
   readonly createdById: string;
+  /** What a column starts with when nothing else says: under the template and under `propertyValues`. */
+  readonly defaultValues?: SchemaPropertyValues;
+  /** The id the page takes; a page already made under it is returned and no other is made. */
+  readonly pageId?: string;
   readonly parentId: null | string;
   readonly propertyValues: SchemaPropertyValues | null;
   readonly role: UserRole;
   readonly spaceId: string;
+  /** Undefined takes the default template of the collection; null asks for none. */
+  readonly templateId?: null | string;
+  /** The zone `@today` is read in when a template leaves a date to be filled; UTC when left out. */
+  readonly timeZone?: string;
   readonly title: string;
   readonly userId: string;
   readonly workspaceId: string;
@@ -57,9 +65,15 @@ export interface CreatePageInput {
 /** A page to write: the content is already a document, and every block of it has an id. */
 export interface NewPageInput extends Omit<CreatePageInput, 'content'> {
   readonly content: PageContent;
+  /** Set when the page is a template of its collection and not a row of it (ADR 027). */
+  readonly template?: PageTemplateMarker;
 }
 
 export interface UpdatePagePropertyValuesInput {
+  /** The write is refused inside the locked write when the page is not at this version. */
+  readonly expectedVersion?: number;
+  /** Operations in the wire shape that land in the same transaction as the values, such as placing a card in a view. */
+  readonly extraOperations?: readonly PageBlockOperation[];
   readonly pageId: string;
   readonly role: UserRole;
   /** Saved in the same write; omitted leaves the title untouched. */
@@ -108,6 +122,12 @@ export interface PageContentWriter {
 }
 
 export interface UpdatePagePropertiesInput {
+  /** Operations in the wire shape that land in the same transaction as the values. */
+  readonly extraOperations?: readonly PageBlockOperation[];
+  /** The version of the row the caller read; when it differs from the row's now, nothing is written. */
+  readonly expectedVersion?: number;
+  /** Lists that change by what leaves and what enters, so two people never undo each other. */
+  readonly listChanges?: PageValueListChanges;
   readonly pageId: string;
   readonly propertyValues: Readonly<Record<string, unknown>>;
   readonly role: UserRole;
@@ -119,10 +139,14 @@ export interface UpdatePagePropertiesInput {
 }
 
 export interface PageSummary {
+  /** True when the viewer's role on the page is the one the write path asks for; lock and trash are shown apart. */
+  readonly canEdit: boolean;
   readonly content: JsonValue;
   readonly cover?: PageCoverValue | null;
   readonly createdAt: Date;
   readonly createdBy: null | { readonly id: string; readonly name: string };
+  /** True when the page declares its own permissions instead of following an ancestor or the space. */
+  readonly hasOwnPermissions: boolean;
   readonly icon?: PageIcon | null;
   readonly id: string;
   readonly lifecycle: PageLifecycle;
@@ -143,6 +167,20 @@ export interface PageSummary {
   readonly version: number;
 }
 
+/** A null `targetSpaceId` keeps the page in the space it already lives in; a null `expectedVersion` skips the check. */
+export interface PageMoveRequest {
+  readonly expectedVersion: null | number;
+  readonly mutationId: string;
+  readonly pageId: string;
+  readonly parentId: null | string;
+  readonly role: UserRole;
+  readonly targetSpaceId: null | string;
+  readonly userId: string;
+  readonly workspaceId: string;
+}
+
+export type PageMoveInput = Omit<PageMoveRequest, 'targetSpaceId'> & { readonly targetSpaceId: string };
+
 export interface PageMoveContext {
   readonly pageId: string;
   readonly pages: readonly PageParentReference[];
@@ -151,10 +189,23 @@ export interface PageMoveContext {
   readonly title: string;
 }
 
+export interface PageMoveCandidate {
+  readonly id: string;
+  readonly spaceId: string;
+  readonly title: string;
+}
+
 /** Excludes the page's own branch, since a page cannot be moved under its descendants. */
 export interface PageMoveDestinations {
-  readonly pages: readonly { readonly id: string; readonly spaceId: string; readonly title: string }[];
+  readonly pages: readonly PageMoveCandidate[];
+  /** Title of the page it hangs from now, to name where it is; null at the top of a space or when unreadable. */
+  readonly parentTitle: string | null;
   readonly spaces: readonly { readonly id: string; readonly name: string }[];
+}
+
+export interface PageMoveOrigin {
+  readonly parentId: string | null;
+  readonly spaces: PageMoveDestinations['spaces'];
 }
 
 export interface DuplicatePageInput {
@@ -225,12 +276,20 @@ export interface PagePurgeSchedule {
   readonly scheduledCount: number;
 }
 
+export interface TrashedPageListing {
+  readonly items: readonly TrashedPageSummary[];
+  /** Everything the reader can see in the trash for the search, whatever the window shows. */
+  readonly total: number;
+}
+
 export interface TrashedPageSummary {
   readonly deletedAt: Date;
   /** Null until someone deletes it forever; then the moment it goes. */
   readonly purgeAfter: Date | null;
   readonly deletedBy: null | { readonly id: string; readonly name: string };
   readonly id: string;
+  /** A template of its collection (its parent), not a row of it: restoring puts it back among the templates. */
+  readonly isTemplate: boolean;
   readonly parentId: null | string;
   readonly spaceId: string;
   readonly title: string;
@@ -242,6 +301,25 @@ export interface PageVersionSnapshot {
   readonly content: PageContent;
   readonly title: string;
   readonly version: number;
+}
+
+/** One entry of a page's history: who started the stretch and when, never the content. */
+export interface PageVersionSummary {
+  readonly author: null | { readonly id: string; readonly name: string };
+  readonly createdAt: Date;
+  readonly title: string;
+  readonly version: number;
+}
+
+/** `fold: false` cuts a version of its own even when the author is still in the stretch of the latest one. */
+export interface PageVersionRecordOptions {
+  readonly fold: boolean;
+}
+
+/** Newest first; `nextCursor` is the version to pass to get the entries after the last one, or null at the end. */
+export interface PageVersionListing {
+  readonly items: readonly PageVersionSummary[];
+  readonly nextCursor: null | number;
 }
 
 export type PageRestoreVersionOutcome =
@@ -258,6 +336,12 @@ export interface PageRepositoryContract {
     role: UserRole,
   ) => Promise<null | number>;
   readonly create: (input: NewPageInput) => Promise<PageSummary | null>;
+  /** What a new row of the collection copies: the template named, the default one when undefined, none when null. */
+  readonly readRowTemplate: (
+    collectionId: string,
+    templateId: null | string | undefined,
+    viewer: PageViewer,
+  ) => Promise<PageRowTemplate | 'NOT_FOUND' | null>;
   readonly duplicate: (input: DuplicatePageInput) => Promise<PageSummary | null>;
   readonly deleteForever: (
     pageId: string,
@@ -285,6 +369,13 @@ export interface PageRepositoryContract {
     userId: string,
     role: UserRole,
   ) => Promise<PageSummary | null>;
+  /** The page only when the viewer may change it, by the same role the block pipeline resolves for a write. */
+  readonly getEditable: (
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<PageSummary | null>;
   readonly findMoveContext: (
     pageId: string,
     targetSpaceId: null | string,
@@ -293,28 +384,22 @@ export interface PageRepositoryContract {
     role: UserRole,
   ) => Promise<PageMoveContext | null>;
   readonly listWithProperties: (workspaceId: string, userId: string, role: UserRole) => Promise<readonly PageSummary[]>;
-  readonly listMoveDestinations: (
+  readonly readMoveOrigin: (
     pageId: string,
     workspaceId: string,
     userId: string,
     role: UserRole,
-  ) => Promise<PageMoveDestinations | null>;
+  ) => Promise<PageMoveOrigin | null>;
+  /** The latest trashed first; a null window lists them all. */
   readonly listTrashed: (
     workspaceId: string,
     userId: string,
     role: UserRole,
     spaceId: null | string,
     search: null | string,
-  ) => Promise<readonly TrashedPageSummary[]>;
-  readonly move: (
-    pageId: string,
-    parentId: null | string,
-    targetSpaceId: string,
-    userId: string,
-    workspaceId: string,
-    role: UserRole,
-    mutationId: string,
-  ) => Promise<PageSummary | null>;
+    window: PageOutlineWindow | null,
+  ) => Promise<TrashedPageListing>;
+  readonly move: (input: PageMoveInput) => Promise<PageSummary | null>;
   /** A null `beforePageId` places the page last among its siblings. */
   readonly reorderAmongSiblings: (
     pageId: string,
@@ -330,6 +415,14 @@ export interface PageRepositoryContract {
     userId: string,
     role: UserRole,
     includeTrashed: boolean,
+  ) => Promise<readonly PageSummary[]>;
+  /** Only the named pages of the space that the reader may open and that are not in the trash, in sibling order. */
+  readonly listAccessibleAmong: (
+    spaceId: string,
+    pageIds: readonly string[],
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
   ) => Promise<readonly PageSummary[]>;
   readonly restoreCascade: (
     pageId: string,
@@ -356,6 +449,15 @@ export interface PageRepositoryContract {
     userId: string,
     role: UserRole,
   ) => Promise<PageVersionSnapshot | null>;
+  /** Null when the page is not there for this reader. `cursor` is exclusive: only versions below it are listed. */
+  readonly listVersions: (
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+    cursor: null | number,
+    limit: number,
+  ) => Promise<null | PageVersionListing>;
   /** Cuts a version when the page now says something other than its latest one, or folds into it (same stretch). */
   readonly recordVersion: (pageId: string, authorId: string) => Promise<void>;
   readonly restoreVersion: (
@@ -380,6 +482,13 @@ export interface PageRepositoryContract {
   readonly setLocked: (
     pageId: string,
     locked: boolean,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ) => Promise<PageSummary | null>;
+  readonly setDefaultTemplate: (
+    collectionId: string,
+    templateId: null | string,
     userId: string,
     workspaceId: string,
     role: UserRole,

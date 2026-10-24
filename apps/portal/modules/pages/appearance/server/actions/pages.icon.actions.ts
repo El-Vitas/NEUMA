@@ -3,6 +3,7 @@
 import 'server-only';
 
 import { updateTag } from 'next/cache';
+import { logger } from '@/lib/logger';
 import { actionClient } from '@/lib/safe-action';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
@@ -24,7 +25,14 @@ const uploadPageIconImageAsset = (pageId: string, file: File, accessToken: strin
 
 const removePreviousIconAsset = async (previousAssetId: string | undefined): Promise<void> => {
   if (previousAssetId === undefined) return;
-  await deletePageAttachmentAction({ attachmentId: previousAssetId });
+  const result = await deletePageAttachmentAction({ attachmentId: previousAssetId });
+  if (result?.serverError === undefined && result?.validationErrors === undefined) return;
+  logger.error({
+    action: 'removePreviousIconAsset',
+    attachmentId: previousAssetId,
+    error: 'The previous icon image could not be deleted',
+    stack: new Error('The previous icon image could not be deleted').stack,
+  });
 };
 
 export const setPageIconEmojiAction = actionClient
@@ -72,8 +80,8 @@ export const uploadPageIconImageAction = actionClient
           icon: { assetId, kind: 'image' },
         },
       );
-      await removePreviousIconAsset(parsedInput.previousAssetId);
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+      await removePreviousIconAsset(parsedInput.previousAssetId);
       return pageSummarySchema.parse(updated);
     }),
   );
@@ -83,8 +91,8 @@ export const removePageIconAction = actionClient.inputSchema(pageIconRemoveSchem
     const updated = await authenticatedRequest(PAGE_ICON_API_ROUTE(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
       icon: null,
     });
-    await removePreviousIconAsset(parsedInput.previousAssetId);
     updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+    await removePreviousIconAsset(parsedInput.previousAssetId);
     return pageSummarySchema.parse(updated);
   }),
 );

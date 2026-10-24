@@ -1,4 +1,3 @@
-import type { PageBlockComment } from '@neuma/shared';
 import type { PageEditorBlockColors } from '../../blocks/types/pages.editor.block-color.types';
 import type { PageEditorBlockRequest } from '../../blocks/types/pages.editor.block-request.types';
 import type { PageEditorBlockConversion } from '../../blocks/types/pages.editor.convert.types';
@@ -33,9 +32,11 @@ export interface PageEditorSurfaceState {
   readonly textColors: PageEditorBlockColors;
   readonly marksInUse: readonly string[];
   readonly blockId: string | null;
+  /** The block an open comment request is about, and the words it quotes; null when no one is commenting. */
+  readonly commentBlockId: string | null;
+  readonly commentQuote: string | null;
   readonly calloutIcon: PageEditorCalloutIconChoice | null;
   readonly colors: PageEditorBlockColors;
-  readonly comments: readonly PageBlockComment[];
   readonly conversions: readonly PageEditorBlockConversion[];
   readonly foldState: { readonly isFolded: boolean } | null;
   readonly blockAlign: { readonly chosen: string | null } | null;

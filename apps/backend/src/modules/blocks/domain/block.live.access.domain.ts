@@ -12,6 +12,16 @@ const isRowReadable = (row: BlockChainRow, access: ViewerAccess): boolean => {
   return role !== undefined && canReadBlock(role);
 };
 
+/** What a viewer may do with a page depends on its permissions and those above it, so a change there concerns them. */
+export const hasAccessChangeAbove = (
+  pageId: string,
+  blocks: readonly { readonly hasAccessChange?: true | undefined; readonly id: string }[],
+  context: LiveAccessContext,
+): boolean => {
+  const chainIds = new Set(walkChain(pageId, context.rowsById, context.maxDepth).map((row) => row.id));
+  return blocks.some((block) => block.hasAccessChange === true && chainIds.has(block.id));
+};
+
 /** A page is read through its own role, and only while it exists. */
 export const isPageReadable = (pageId: string, access: ViewerAccess): boolean => {
   const page = access.rowsById.get(pageId);

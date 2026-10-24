@@ -21,6 +21,14 @@ describe('buildLogOptions', () => {
     expect(line).not.toContain('cbk_secret');
   });
 
+  it('keeps what people search for out of the logged request address', () => {
+    const line = writtenLine({ req: { method: 'GET', url: '/api/v1/search?query=salary+of+ana&cursor=abc' } });
+
+    expect(line).toContain('/api/v1/search');
+    expect(line).not.toContain('salary');
+    expect(line).not.toContain('cursor');
+  });
+
   it('hides a secret written one level down, inside another object', () => {
     const line = writtenLine({
       user: { email: 'ana@example.com', password: 'hunter2' },

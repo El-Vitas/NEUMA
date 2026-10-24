@@ -2,7 +2,6 @@
 
 import 'server-only';
 
-import { PAGE_LIFECYCLE } from '@neuma/shared';
 import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
@@ -10,6 +9,7 @@ import { apiRequest } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
+import { readRequestTimeZone } from '@/shared/server/lib/time-zone.server';
 import { PAGE_API_ROUTES } from '../../constants/pages.constants';
 import type { PageDestination } from '../../editor/menus/types/pages.editor.destination.types';
 import type { PageMoveDestinations } from '../../navigation/types/pages.move.types';
@@ -19,6 +19,7 @@ import {
   pageDuplicateSchema,
   pageLocatorSchema,
   pageLockSchema,
+  pageMoveDestinationsInputSchema,
   pageMoveDestinationsSchema,
   pageMoveSchema,
   pageMutationSchema,
@@ -30,16 +31,21 @@ import {
 import { PAGE_TRASH_CACHE_TAG } from '../../trash/constants/pages.trash.constants';
 import { trashRestoreOutcomeSchema } from '../../trash/schemas/pages.trash.schemas';
 import type { TrashRestoreOutcome } from '../../trash/types/pages.trash.types';
-import { readPagesThatCanBeRead } from '../lib/pages.reading.server';
+import { readPageDestinations } from '../lib/pages.destinations.server';
 
 export const createPageAction = actionClient
   .inputSchema(pageMutationSchema.extend({ parentId: pageMoveSchema.shape.parentId.optional() }))
   .action(async ({ parsedInput }) =>
     withAction({ action: 'createPage' }, async () => {
+      const timeZone = await readRequestTimeZone();
       const createdPage = await authenticatedRequest(PAGE_API_ROUTES.list(parsedInput.spaceId), 'POST', {
         content: parsedInput.content,
+        defaultValues: parsedInput.defaultValues,
+        id: parsedInput.id,
         parentId: parsedInput.parentId,
         propertyValues: parsedInput.propertyValues,
+        templateId: parsedInput.templateId,
+        ...(timeZone === null ? {} : { timeZone }),
         title: parsedInput.title,
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
@@ -102,26 +108,27 @@ export const movePageAction = actionClient.inputSchema(pageMoveSchema).action(as
 
 /** Spans every space the reader reaches and excludes the page's own branch. */
 export const listPageMoveDestinationsAction = actionClient
-  .inputSchema(pageLocatorSchema)
+  .inputSchema(pageMoveDestinationsInputSchema)
   .action(async ({ parsedInput }) =>
     withAction({ action: 'listMoveDestinations' }, async (): Promise<PageMoveDestinations> => {
       const accessToken = await requireAccessTokenCookie();
-      const response = await apiRequest<unknown>(PAGE_API_ROUTES.moveDestinations(parsedInput.pageId), accessToken);
+      const response = await apiRequest<unknown>(
+        PAGE_API_ROUTES.moveDestinations(parsedInput.pageId, parsedInput.query),
+        accessToken,
+      );
       return pageMoveDestinationsSchema.parse(response);
     }),
   );
 
-/** Reads the space directly instead of the search index, so a new page is a valid destination immediately. */
+/** The top of the space while nothing is written, and the search of the space once it is (ADR 030). */
 export const listPageDestinationsAction = actionClient
   .inputSchema(pageDestinationsSchema)
   .action(async ({ parsedInput }) =>
-    withAction({ action: 'listDestinations' }, async (): Promise<readonly PageDestination[]> => {
-      const accessToken = await requireAccessTokenCookie();
-      const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(parsedInput.spaceId), accessToken);
-      return readPagesThatCanBeRead(response, 'listDestinations')
-        .filter((page) => page.lifecycle === PAGE_LIFECYCLE.ACTIVE && page.id !== parsedInput.exceptPageId)
-        .map((page) => ({ id: page.id, label: page.title, spaceId: page.spaceId }));
-    }),
+    withAction(
+      { action: 'listDestinations' },
+      async (): Promise<readonly PageDestination[]> =>
+        readPageDestinations(parsedInput.spaceId, parsedInput.query, parsedInput.exceptPageId),
+    ),
   );
 
 /** Appended by the server inside the live document; read-modify-write here would lose concurrent edits. */

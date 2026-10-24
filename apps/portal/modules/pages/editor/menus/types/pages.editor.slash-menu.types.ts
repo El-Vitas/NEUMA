@@ -1,7 +1,7 @@
 import type { Command } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import type { RefObject } from 'react';
-import type { PageEditorCommandGroup, PageSummary } from '../../../types/pages.types';
+import type { PageEditorCommandGroup, PageReference } from '../../../types/pages.types';
 import type { PageEditorSpot } from './pages.editor.surface.types';
 
 export type PagesEditorTriggerKind = 'emoji' | 'mention' | 'slash';
@@ -31,7 +31,7 @@ export interface PagesEditorTriggerMenuParameters {
   readonly canMakeAPage: boolean;
   readonly editorViewRef: RefObject<EditorView | null>;
   readonly onEscapeWithSelection: (editorView: EditorView) => void;
-  readonly pagesAtHand: readonly PageSummary[];
+  readonly pagesAtHand: readonly PageReference[];
   readonly spaceId: string;
   readonly surfaceRef: RefObject<HTMLDivElement | null>;
 }

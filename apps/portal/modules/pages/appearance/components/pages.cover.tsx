@@ -51,6 +51,11 @@ export const PagesCover = ({ controller }: IProps) => {
     dragStateRef.current = null;
   };
 
+  /** A cancelled pointer (scroll, app switch) has already lost its capture, so only the drag state is cleared. */
+  const handlePointerCancel = (): void => {
+    dragStateRef.current = null;
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (!isRepositioning || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
     event.preventDefault();
@@ -91,6 +96,7 @@ export const PagesCover = ({ controller }: IProps) => {
           aria-valuenow={shownPosition}
           className="size-full cursor-grab touch-none active:cursor-grabbing"
           onKeyDown={handleKeyDown}
+          onPointerCancel={handlePointerCancel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}

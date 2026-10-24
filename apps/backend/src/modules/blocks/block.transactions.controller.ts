@@ -1,11 +1,11 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
+import { BlockWriteThrottlerGuard } from '../../common/infrastructure/guards/block-write-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { BlockTransactionsService } from './block.transactions.service';
 import { ApplyBlockTransactionsDto } from './dto/block.transactions.dto';
-import { BlockWriteThrottlerGuard } from './infrastructure/guards/block-write-throttler.guard';
 import type { BlockTransactionsResponse } from './types/block.transaction.types';
 
 /** Throttled per user for live typing; the size of one request is bounded by the DTO. */

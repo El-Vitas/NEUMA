@@ -1,5 +1,41 @@
 import { describe, expect, it } from 'bun:test';
-import { orderPagesForExport, readExportScope, selectPagesForExport } from '@/modules/pages/domain/page-export.domain';
+import {
+  keepReferencedAssets,
+  orderPagesForExport,
+  readExportScope,
+  selectPagesForExport,
+} from '@/modules/pages/domain/page-export.domain';
+
+describe('keepReferencedAssets', () => {
+  const assets = [
+    { id: 'seen-image', originalFilename: 'a.png', size: 1, storageKey: 'k1' },
+    { id: 'seen-nested', originalFilename: 'b.pdf', size: 1, storageKey: 'k2' },
+    { id: 'hidden-upload', originalFilename: 'c.png', size: 1, storageKey: 'k3' },
+  ];
+
+  it('keeps only the files the exported documents name, however deep, and drops the ones of hidden blocks', () => {
+    const documents = [
+      {
+        content: [
+          { attrs: { assetId: 'seen-image' }, type: 'image' },
+          {
+            content: [{ content: [{ attrs: { assetId: 'seen-nested' }, type: 'file' }], type: 'toggle' }],
+            type: 'column',
+          },
+        ],
+        type: 'doc',
+      },
+    ];
+
+    const kept = keepReferencedAssets(assets, documents);
+
+    expect(kept.map((asset) => asset.id)).toEqual(['seen-image', 'seen-nested']);
+  });
+
+  it('keeps nothing when no document names a file', () => {
+    expect(keepReferencedAssets(assets, [{ content: [], type: 'doc' }])).toEqual([]);
+  });
+});
 
 const pages = [
   { id: 'root-a', order: 0, parentId: null, title: 'Madre' },

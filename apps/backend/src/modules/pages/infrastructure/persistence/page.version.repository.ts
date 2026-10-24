@@ -8,7 +8,7 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { buildPageDocument } from '../../domain/page.document.domain';
 import { isSameEditingStretch } from '../../domain/page.version.domain';
 import { pageStoredJsonSchema } from '../../schemas/page.block.schemas';
-import type { PageVersionSnapshot } from '../../types/page.types';
+import type { PageVersionListing, PageVersionRecordOptions, PageVersionSnapshot } from '../../types/page.types';
 import { PageBlockReader } from './page.block.reader';
 
 /** The history of a page: a photo of its blocks as a document, taken where the page's content changes. */
@@ -25,7 +25,7 @@ export class PageVersionRepository {
    * comparing, so concurrent saves cut no duplicate and unchanged content cuts none. Saves by the same person within
    * a few minutes fold into the version they started; its number still moves forward.
    */
-  async record(pageId: string, authorId: string): Promise<void> {
+  async record(pageId: string, authorId: string, options: PageVersionRecordOptions = { fold: true }): Promise<void> {
     await this.prisma.transaction(async (transaction) => {
       const page = await this.blockReader.lockPageBlock(pageId, transaction);
       if (page === null) return;
@@ -51,12 +51,33 @@ export class PageVersionRepository {
         title,
         version: (latest?.version ?? 0) + 1,
       };
-      if (latest !== null && isSameEditingStretch(latest, authorId, new Date())) {
+      if (options.fold && latest !== null && isSameEditingStretch(latest, authorId, new Date())) {
         requireRow(await versions.where({ id: latest.id }).update(version), `PageVersion ${latest.id}`);
         return;
       }
       await versions.create({ ...version, createdById: authorId, pageId });
     });
+  }
+
+  /** Newest first, without the content; reads one entry past `limit` to know whether there are more. */
+  async list(pageId: string, cursor: null | number, limit: number): Promise<PageVersionListing> {
+    const stored = await this.prisma.models.PageVersion.select('createdAt', 'createdById', 'title', 'version')
+      .where({ pageId })
+      .where((entry) => (cursor === null ? entry.version.gt(0) : entry.version.lt(cursor)))
+      .orderBy((entry) => entry.version.desc())
+      .limit(limit + 1)
+      .all();
+    const shown = stored.slice(0, limit);
+    const authors = await this.blockReader.readUsers(shown.map((entry) => entry.createdById));
+    return {
+      items: shown.map((entry) => ({
+        author: authors.get(entry.createdById) ?? null,
+        createdAt: entry.createdAt,
+        title: entry.title,
+        version: entry.version,
+      })),
+      nextCursor: stored.length > limit ? (shown.at(-1)?.version ?? null) : null,
+    };
   }
 
   async find(pageId: string, version: number): Promise<PageVersionSnapshot | null> {

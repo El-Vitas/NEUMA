@@ -20,7 +20,7 @@ export default async function Page({ searchParams }: IProps) {
   return (
     <PagesTrashView
       canDeleteForever={canManageWorkspace(user?.role ?? USER_ROLE.CLIENT)}
-      items={result.isOk() ? result.getValue() : null}
+      listing={result.isOk() ? result.getValue() : null}
       search={search}
     />
   );

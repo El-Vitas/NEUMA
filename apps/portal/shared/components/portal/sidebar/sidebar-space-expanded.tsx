@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { usePagesExport } from '@/modules/pages/export/hooks/use.pages.export';
-import { getVisiblePortalSidebarPages } from '@/modules/portal/lib/portal.sidebar.lib';
+import { usePagesTreeSpace } from '@/modules/pages/tree/hooks/use.pages.tree';
 import type { PortalLayoutSpace } from '@/modules/portal/types/portal.types';
 import {
   DropdownMenu,
@@ -54,7 +54,8 @@ export const SidebarSpaceExpanded = ({
   const spaceDrop = useSidebarSpaceDrop();
   const [isIconDialogOpen, setIsIconDialogOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
-  const hasPages = getVisiblePortalSidebarPages(space.pages).length > 0;
+  const treeView = usePagesTreeSpace(space.id);
+  const hasPages = treeView.entries.length > 0;
   const childrenId = `sidebar-space-pages-${space.id}`;
 
   return (
@@ -148,7 +149,7 @@ export const SidebarSpaceExpanded = ({
         )}
       </div>
       {hasPages && isExpanded && (
-        <SidebarPageTree id={childrenId} onNavigate={onNavigate} pages={space.pages} role={role} spaceId={space.id} />
+        <SidebarPageTree id={childrenId} onNavigate={onNavigate} role={role} spaceId={space.id} treeView={treeView} />
       )}
       {isIconDialogOpen && (
         <SidebarSpaceIconDialog

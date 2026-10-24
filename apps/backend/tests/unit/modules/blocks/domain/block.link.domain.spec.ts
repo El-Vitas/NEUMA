@@ -73,6 +73,24 @@ describe('buildVersionNotification', () => {
     expect(payload).toEqual({ blocks: [{ id: 'b1', version: 3 }], spaceId: 's1', transactionId: 't1' });
   });
 
+  it('carries the views a transaction touched and the moves and permission changes of its blocks', () => {
+    const payload: unknown = JSON.parse(
+      buildVersionNotification(
+        't1',
+        's1',
+        [{ hasAccessChange: true, id: 'b1', previousParentId: 'old', version: 3 }],
+        [{ id: 'v1', pageId: 'p1', version: 2 }],
+      ),
+    );
+
+    expect(payload).toEqual({
+      blocks: [{ hasAccessChange: true, id: 'b1', previousParentId: 'old', version: 3 }],
+      spaceId: 's1',
+      transactionId: 't1',
+      views: [{ id: 'v1', pageId: 'p1', version: 2 }],
+    });
+  });
+
   it('says it was cut instead of exceeding what Postgres allows', () => {
     const many = Array.from({ length: 400 }, (_, index) => ({
       id: `block-${String(index).padStart(36, '0')}`,

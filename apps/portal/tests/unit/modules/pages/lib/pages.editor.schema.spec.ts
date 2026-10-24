@@ -16,7 +16,7 @@ import {
   structuredToggleNodeFixture,
 } from './pages.content.fixture';
 
-const BLOCK_ATTRS = { backgroundColor: null, comments: null, id: null, textColor: null };
+const BLOCK_ATTRS = { backgroundColor: null, id: null, textColor: null };
 
 const parseLink = (href: string) => {
   const documentElement = document.createElement('div');

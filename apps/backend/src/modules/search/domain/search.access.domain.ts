@@ -16,4 +16,4 @@ const nestUnder = (outline: readonly HeadingEntry[], heading: HeadingEntry): Hea
 
 /** From the headings that come before a block among its siblings, in order, the ones that enclose it. */
 export const buildHeadingPath = (headings: readonly HeadingEntry[]): string[] =>
-  headings.reduce<HeadingEntry[]>(nestUnder, []).map((heading) => heading.text);
+  headings.reduce<HeadingEntry[]>((outline, heading) => nestUnder(outline, heading), []).map((heading) => heading.text);

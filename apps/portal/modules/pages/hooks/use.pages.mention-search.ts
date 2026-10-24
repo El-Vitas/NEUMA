@@ -6,12 +6,12 @@ import { PAGE_MENTION_SEARCH_LIMIT } from '../links/constants/pages.mentions.con
 import { gatherThePagesNamed } from '../links/lib/pages.mentions.lib';
 import { searchPageMentionCandidatesAction } from '../links/server/actions/pages.mentions.actions';
 import type { PageMentionCandidate, PagesMentionSearchResult } from '../links/types/pages.mentions.types';
-import type { PageSummary } from '../types/pages.types';
+import type { PageReference } from '../types/pages.types';
 
 /** Pages already loaded answer immediately; the search adds pages this space does not hold. */
 export const usePagesMentionSearch = (
   query: string | null,
-  pagesAtHand: readonly PageSummary[],
+  pagesAtHand: readonly PageReference[],
 ): PagesMentionSearchResult => {
   const ask = useCallback((asked: string) => searchPageMentionCandidatesAction({ query: asked }), []);
   const { candidates, isLoading } = useDebouncedSearch<PageMentionCandidate>(query, ask);

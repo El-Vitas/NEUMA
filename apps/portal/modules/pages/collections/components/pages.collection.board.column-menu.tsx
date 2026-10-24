@@ -2,7 +2,16 @@
 
 import type { PageOptionColor } from '@neuma/shared';
 import { PAGE_OPTION_COLOR_VALUES } from '@neuma/shared';
-import { Check, ChevronsLeftRight, ChevronsRightLeft, Gauge, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import {
+  Check,
+  ChevronsLeftRight,
+  ChevronsRightLeft,
+  EyeOff,
+  Gauge,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/shared/components/ui/button';
@@ -105,6 +114,10 @@ export const PagesCollectionBoardColumnMenu = ({
         <DropdownMenuItem onSelect={onLimitStart}>
           <Gauge aria-hidden="true" className="size-4" />
           {t('columnLimit')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => columns.toggleHidden(value)}>
+          <EyeOff aria-hidden="true" className="size-4" />
+          {t('hideGroup')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onRemoveAsk} variant="destructive">

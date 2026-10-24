@@ -1,8 +1,19 @@
 import { z } from 'zod';
 import { PAGE_PROPERTY_KEY_MAX_LENGTH } from '../page-property/page-property.key.constants.js';
+import { PAGE_TEMPLATE_VARIABLE_VALUES } from '../page-template/page-template.constants.js';
+import type { PageContentUnknownNode } from '../schemas/page-content.schema.js';
 import {
+  isAllowedPageEmbedUrl,
+  maximumHeadingLevel,
+  maximumOrderedListOrder,
+  maximumPageContentNodes,
+  maximumPageTextLength,
+  maximumTableColumns,
+  maximumTableColumnWidth,
+  maximumTableRows,
+  maximumToggleSummaryLength,
+  minimumHeadingLevel,
   PAGE_BLOCK_COLORS,
-  PAGE_BLOCK_COMMENTS_MOST,
   PAGE_BUTTON_DEEDS,
   PAGE_BUTTON_PLACES,
   PAGE_CALLOUT_ICONS,
@@ -13,18 +24,7 @@ import {
   PAGE_DIAGRAM_FRAME_HEIGHT_MOST,
   PAGE_DIAGRAM_VIEWS,
   PAGE_FILE_DISPLAYS,
-  isAllowedPageEmbedUrl,
-  maximumHeadingLevel,
-  maximumOrderedListOrder,
-  maximumPageContentNodes,
-  maximumPageTextLength,
-  maximumTableColumnWidth,
-  maximumTableColumns,
-  maximumTableRows,
-  maximumToggleSummaryLength,
-  minimumHeadingLevel,
   pageAssetAttrsSchema,
-  pageBlockCommentSchema,
   pageBlockIdSchema,
   pageBookmarkAttrsSchema,
   pageButtonAttrsSchema,
@@ -36,26 +36,22 @@ import {
   pageSubpageAttrsSchema,
   pageSyncedAttrsSchema,
 } from '../schemas/page-content.schema.js';
-import type { PageContentUnknownNode } from '../schemas/page-content.schema.js';
 import { pageCoverValueSchema } from '../schemas/page-cover.schema.js';
 import { pageIconSchema } from '../schemas/page-icon.schema.js';
 import { PAGE_TITLE_MAX_LENGTH } from '../types/page.types.js';
-import { blockPlainTextSchema, blockRichTextSchema } from './block-text.schemas.js';
 import { extractPlainText } from './block-text.lib.js';
+import { blockPlainTextSchema, blockRichTextSchema } from './block-text.schemas.js';
 import { BLOCK_NESTED_LAYERS_MOST, BLOCK_TYPE } from './block-type.constants.js';
 
 const emptySchema = z.object({}).strict();
 
-const colorAndCommentShape = {
+const colorShape = {
   backgroundColor: z.enum(PAGE_BLOCK_COLORS).optional(),
-  comments: z.array(pageBlockCommentSchema).max(PAGE_BLOCK_COMMENTS_MOST).optional(),
   textColor: z.enum(PAGE_BLOCK_COLORS).optional(),
 };
 
-/** What a document wrapper that dissolved into a block still said: its id, colors and comments. */
-export const blockWrapperAttributesSchema = z
-  .object({ ...colorAndCommentShape, id: pageBlockIdSchema.optional() })
-  .strict();
+/** What a document wrapper that dissolved into a block still said: its id and colors. */
+export const blockWrapperAttributesSchema = z.object({ ...colorShape, id: pageBlockIdSchema.optional() }).strict();
 
 /**
  * A nested_block that dissolved into the block it wraps. `from` is how many of the host children existed before the
@@ -72,7 +68,7 @@ export const blockNestedLayerSchema = z
 export const blockNestedLayersSchema = z.array(blockNestedLayerSchema).min(1).max(BLOCK_NESTED_LAYERS_MOST);
 
 const annotationShape = {
-  ...colorAndCommentShape,
+  ...colorShape,
   nested: blockNestedLayersSchema.optional(),
 };
 
@@ -94,7 +90,7 @@ export const blockFormatMarkersSchema = z.object({
   start: listStartSchema.optional(),
 });
 
-/** Every block can be colored and commented, as every node of the document was. */
+/** Every block can be colored, as every node of the document was. Its conversations are discussions, not format. */
 const withAnnotations = <Shape extends z.ZodRawShape>(shape: Shape) =>
   z.object({ ...annotationShape, ...shape }).strict();
 
@@ -116,12 +112,27 @@ const unsupportedNodeSchema = z.custom<PageContentUnknownNode>(isPreservableUnkn
   message: 'The node must keep the shape an unknown node has in a page document',
 });
 
+const pageDateValueSchema = z
+  .object({ end: z.string().max(maximumPageTextLength).optional(), start: z.string().max(maximumPageTextLength) })
+  .strict();
+
 const pagePropertyValueSchema = z.union([
   z.string().max(maximumPageTextLength),
   z.number(),
   z.boolean(),
   z.array(z.string().max(maximumPageTextLength)),
+  pageDateValueSchema,
 ]);
+
+const PAGE_BLOCK_ID_MAX_LENGTH = 64;
+
+const pageTemplateMarkerSchema = z
+  .object({
+    variables: z
+      .record(z.string().min(1).max(PAGE_PROPERTY_KEY_MAX_LENGTH), z.enum(PAGE_TEMPLATE_VARIABLE_VALUES))
+      .optional(),
+  })
+  .strict();
 
 const pageTitleIsShortEnough = (properties: { readonly title: z.infer<typeof blockPlainTextSchema> }): boolean =>
   extractPlainText(properties.title).length <= PAGE_TITLE_MAX_LENGTH;
@@ -162,6 +173,8 @@ export const BLOCK_CONTENT_SCHEMAS = {
     format: z.object({ cover: pageCoverValueSchema.optional(), icon: pageIconSchema.optional() }).strict(),
     properties: z
       .object({
+        defaultTemplateId: z.string().min(1).max(PAGE_BLOCK_ID_MAX_LENGTH).optional(),
+        template: pageTemplateMarkerSchema.optional(),
         title: blockPlainTextSchema,
         values: z.record(z.string().min(1).max(PAGE_PROPERTY_KEY_MAX_LENGTH), pagePropertyValueSchema).optional(),
       })
@@ -254,6 +267,7 @@ export const BLOCK_CONTENT_SCHEMAS = {
         pageId: pageButtonAttrsSchema.shape.pageId,
         place: z.enum(PAGE_BUTTON_PLACES).optional(),
         spaceId: pageButtonAttrsSchema.shape.spaceId,
+        templateId: pageButtonAttrsSchema.shape.templateId,
       })
       .strict(),
   },

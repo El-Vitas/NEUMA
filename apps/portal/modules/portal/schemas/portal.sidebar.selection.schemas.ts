@@ -1,15 +1,19 @@
 import { z } from 'zod';
+import { PAGE_IDS_MAX_COUNT } from '@/shared/constants/path-segment.constants';
+import { pathSegmentSchema } from '@/shared/schemas/path-segment.schemas';
+
+const pageIdsSchema = z.array(pathSegmentSchema).min(1).max(PAGE_IDS_MAX_COUNT);
 
 export const portalPageBatchTrashSchema = z.object({
-  pageIds: z.array(z.string().min(1)).min(1),
-  spaceId: z.string().min(1),
+  pageIds: pageIdsSchema,
+  spaceId: pathSegmentSchema,
 });
 
 export const portalPageBatchMoveSchema = z.object({
-  pageIds: z.array(z.string().min(1)).min(1),
-  parentId: z.string().min(1).nullable(),
-  spaceId: z.string().min(1),
-  targetSpaceId: z.string().min(1).optional(),
+  pageIds: pageIdsSchema,
+  parentId: pathSegmentSchema.nullable(),
+  spaceId: pathSegmentSchema,
+  targetSpaceId: pathSegmentSchema.optional(),
 });
 
 export const portalPageBatchOutcomeSchema = z.object({

@@ -11,6 +11,8 @@ export interface PageMoveCandidatePage {
 
 export interface PageMoveDestinations {
   readonly pages: readonly PageMoveCandidatePage[];
+  /** Title of the page the moved page hangs from now; null at the top of a space. */
+  readonly parentTitle: string | null;
   readonly spaces: readonly PageMoveSpace[];
 }
 

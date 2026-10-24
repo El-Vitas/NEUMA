@@ -26,6 +26,23 @@ const mergeValues = (block: WorkingBlock, changes: BlockJsonObject): BlockJsonOb
   return Object.fromEntries(Object.entries(merged).filter(([, value]) => value !== null));
 };
 
+/** Out first, then in after the entries that stay, never twice; an emptied list leaves no key behind. */
+const changeList = (
+  block: WorkingBlock,
+  operation: Extract<BlockPageOperation, { command: 'changeValueList' }>,
+): BlockJsonObject => {
+  const current = isRecord(block.properties.values) ? block.properties.values : {};
+  const held = current[operation.property];
+  const entries = Array.isArray(held) ? held.filter((entry): entry is string => typeof entry === 'string') : [];
+  const kept = entries.filter((entry) => !operation.remove.includes(entry));
+  const next = [
+    ...kept,
+    ...operation.add.filter((entry, position, all) => !kept.includes(entry) && all.indexOf(entry) === position),
+  ];
+  const { [operation.property]: _previous, ...others } = current;
+  return next.length === 0 ? others : { ...others, [operation.property]: next };
+};
+
 const setLifecycle = (
   block: WorkingBlock,
   operation: Extract<BlockPageOperation, { command: 'setLifecycle' }>,
@@ -64,6 +81,8 @@ export const applyPageOperation = (
     case 'mergePageValues':
     case 'rewritePageValues':
       return Result.ok({ ...block, properties: { ...block.properties, values: mergeValues(block, operation.values) } });
+    case 'changeValueList':
+      return Result.ok({ ...block, properties: { ...block.properties, values: changeList(block, operation) } });
     case 'moveToSpaceRoot':
       return Result.ok({ ...block, parentId: null, spaceId: operation.spaceId });
     case 'followToSpace':
@@ -80,6 +99,7 @@ export const isPageOperation = (operation: BlockOperation): operation is BlockPa
     case 'setVerification':
     case 'setOwner':
     case 'mergePageValues':
+    case 'changeValueList':
     case 'rewritePageValues':
     case 'moveToSpaceRoot':
     case 'followToSpace':

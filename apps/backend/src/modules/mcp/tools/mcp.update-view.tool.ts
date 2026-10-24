@@ -1,5 +1,10 @@
 import type { JsonObject } from '@neuma/db';
-import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
+import {
+  ACCESS_TOKEN_PERMISSIONS,
+  diffPageViewConfigurations,
+  readPageViewConfiguration,
+  toPageViewEnvelope,
+} from '@neuma/shared';
 import { MCP_NOTHING_TO_CHANGE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { runMcpWrite } from '../lib/mcp.actions.lib';
@@ -21,18 +26,38 @@ import type {
   McpUpdateViewInput,
   McpView,
 } from '../types/mcp.collections.types';
-import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+import type {
+  McpAssignablePerson,
+  McpCall,
+  McpServerDependencies,
+  McpToolDefinition,
+  McpWriteSession,
+} from '../types/mcp.types';
 
 const asksForAnyChange = (input: McpUpdateViewInput): boolean =>
-  [input.groupBy, input.makeDefault, input.name, input.sort, input.visibleColumns, input.where].some(
-    (change) => change !== undefined,
-  );
+  [
+    input.cardSize,
+    input.coverColumn,
+    input.dateColumn,
+    input.endDateColumn,
+    input.groupBy,
+    input.makeDefault,
+    input.name,
+    input.scale,
+    input.sort,
+    input.subGroupBy,
+    input.visibleColumns,
+    input.where,
+  ].some((change) => change !== undefined);
 
 const changesOnlyWhatItShows = (input: McpUpdateViewInput): boolean =>
   input.name === undefined && input.makeDefault !== true;
 
-/** Saving the whole collection for a filter could overwrite someone else's concurrent change. */
-const setViewConfiguration = async (
+/**
+ * Only what changed is sent, as operations on the view: saving the whole collection or the whole configuration for
+ * a filter would overwrite what someone else changed meanwhile.
+ */
+const applyViewChanges = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
@@ -40,24 +65,37 @@ const setViewConfiguration = async (
   configuration: JsonObject,
 ): Promise<McpOpenCollection> => {
   const { principal, workspace } = call;
-  const saved = requireMcpSuccess(
-    await dependencies.collections.setViewConfiguration({
-      configuration,
+  if (view.id === undefined) throw new McpToolError(`The view "${view.name}" was not saved yet.`);
+  const viewId = view.id;
+  const operations = diffPageViewConfigurations(
+    readPageViewConfiguration(view.configuration),
+    readPageViewConfiguration(configuration),
+  ).map((operation) => {
+    const { args, command, path } = toPageViewEnvelope(viewId, operation);
+    return { args, command, path: [...path] };
+  });
+  if (operations.length === 0) return collection;
+  const changed = requireMcpSuccess(
+    await dependencies.collections.applyViewOperations({
+      operations,
       pageId: collection.id,
       role: principal.role,
       userId: principal.userId,
-      viewName: view.name,
+      viewId,
       workspaceId: workspace.id,
     }),
   );
-  return { ...collection, shape: { properties: saved.properties, views: saved.views } };
+  const views = collection.shape.views.map((candidate) =>
+    candidate.id === changed.id ? { ...candidate, configuration: changed.configuration } : candidate,
+  );
+  return { ...collection, shape: { properties: collection.shape.properties, views } };
 };
 
 const changeView = (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
-  people: readonly McpPerson[],
+  people: readonly McpAssignablePerson[],
   input: McpUpdateViewInput,
 ): Promise<McpOpenCollection> => {
   const { properties, views } = collection.shape;
@@ -65,7 +103,7 @@ const changeView = (
   const configuration = requireMcpInput(
     buildMcpViewConfiguration(readMcpColumnsInHand(collection), input, people, view.configuration),
   );
-  if (changesOnlyWhatItShows(input)) return setViewConfiguration(dependencies, call, collection, view, configuration);
+  if (changesOnlyWhatItShows(input)) return applyViewChanges(dependencies, call, collection, view, configuration);
   const changed = requireMcpInput(
     changeMcpView(views, view, { configuration, makeDefault: input.makeDefault, name: input.name }),
   );
@@ -101,7 +139,7 @@ export const updateViewTool: McpToolDefinition = {
       MCP_TOOL_NAMES.updateView,
       {
         description:
-          'Change a view of a collection: its name, what it filters, how it sorts, what it groups by, which columns it shows, or whether the collection opens with it. What you leave out stays as it was; where and sort given here replace the view’s own. Name the view, columns, options and people as get_collection shows them.',
+          'Change a view of a collection: its name, what it filters, how it sorts, what it groups by, which columns it shows, or whether the collection opens with it. For a calendar or a timeline also the date column that places each row (dateColumn), where a timeline row ends (endDateColumn) and the scale (day, week or month); for a gallery or a board the cover column and the card size; for a board the second grouping that makes bands (subGroupBy). What you leave out stays as it was; where and sort given here replace the view’s own. Name the view, columns, options and people as get_collection shows them.',
         inputSchema: updateViewInputSchema,
         outputSchema: collectionOutputSchema,
       },

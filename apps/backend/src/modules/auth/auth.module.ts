@@ -11,6 +11,8 @@ import { AuthService } from './auth.service';
 import { PasswordAdapter } from './infrastructure/adapters/password.adapter';
 import { TokenAdapter } from './infrastructure/adapters/token.adapter';
 import { AuthRepository } from './infrastructure/persistence/auth.repository';
+import { RefreshSessionRepository } from './infrastructure/persistence/refresh-session.repository';
+import { RefreshSessionRetentionScheduler } from './infrastructure/schedulers/refresh-session.retention.scheduler';
 
 @Global()
 @Module({
@@ -18,6 +20,7 @@ import { AuthRepository } from './infrastructure/persistence/auth.repository';
   exports: [
     AuthService,
     AuthRepository,
+    RefreshSessionRetentionScheduler,
     PasswordAdapter,
     TokenAdapter,
     JwtAuthGuard,
@@ -37,6 +40,8 @@ import { AuthRepository } from './infrastructure/persistence/auth.repository';
   providers: [
     AuthService,
     AuthRepository,
+    RefreshSessionRepository,
+    RefreshSessionRetentionScheduler,
     PasswordAdapter,
     TokenAdapter,
     JwtAuthGuard,

@@ -1,6 +1,6 @@
 'use client';
 
-import { UNASSIGNED_GROUP_KEY } from '@neuma/shared';
+import { readPageViewConfiguration, UNASSIGNED_GROUP_KEY } from '@neuma/shared';
 import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -11,20 +11,36 @@ import { usePagesBoardColumns } from '../hooks/use.pages.board-columns';
 import { usePagesBoardDrag } from '../hooks/use.pages.board-drag';
 import { usePagesEdgeScrolling } from '../hooks/use.pages.edge-scrolling';
 import { usePagesRowCreation } from '../hooks/use.pages.row-creation';
+import { usePagesViewLive } from '../hooks/use.pages.view-live';
 import { readPageOptionDotClass } from '../lib/pages.option-color.lib';
 import type { PagesBoardColumns } from '../types/pages.board-columns.types';
 import type { PageBoardColumnDrag, PageBoardNamingCell } from '../types/pages.board-drag.types';
-import type { PagePersonOption, PageSchema, PageSchemaProperty, PageViewBand } from '../types/pages.schema.types';
+import type {
+  PagePersonOption,
+  PageSchema,
+  PageSchemaProperty,
+  PageSchemaView,
+  PageViewAggregates,
+  PageViewBand,
+} from '../types/pages.schema.types';
 import { PagesCollectionBoardColumn } from './pages.collection.board.column';
 import { PagesCollectionBoardNewColumn } from './pages.collection.board.new-column';
+import { PagesCollectionBoardToolbar } from './pages.collection.board.toolbar';
+import { PagesCollectionGroupCount } from './pages.collection.group-count';
 
 interface IProps {
   /** Owner of the folded columns and limits. */
   readonly activeViewName: string;
+  /** The counts of each column, which arrive after the cards. */
+  readonly aggregates: Promise<PageViewAggregates | null>;
   /** A single unnamed band when the board groups by one property. */
   readonly bands: readonly PageViewBand[];
   readonly canEdit: boolean;
+  /** Where to read what changed after the bands were read; null when the board cannot follow changes. */
+  readonly changesCursor: null | string;
   readonly groupByKey: string;
+  /** False when the view sorts its cards: their place is then the sort's. */
+  readonly isManualOrder: boolean;
   readonly personOptions?: readonly PagePersonOption[];
   /** Already narrowed to what this view shows. */
   readonly properties: readonly PageSchemaProperty[];
@@ -32,6 +48,10 @@ interface IProps {
   readonly spaceId: string;
   /** Empty when the board has a single grouping dimension. */
   readonly subGroupByKey: string;
+  readonly view: PageSchemaView;
+  readonly viewId: string;
+  /** Who looks; null when the browser does not know, and a filter that names the reader then goes to the server. */
+  readonly viewerId?: null | string;
 }
 
 /**
@@ -40,18 +60,49 @@ interface IProps {
  */
 export const PagesCollectionBoard = ({
   activeViewName,
+  aggregates: drawnAggregates,
   bands,
   canEdit,
+  changesCursor,
   groupByKey,
+  isManualOrder,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   properties,
   schema,
   spaceId,
   subGroupByKey,
+  view,
+  viewId,
+  viewerId = null,
 }: IProps) => {
   const t = useTranslations('pages');
   const isBanded = subGroupByKey !== '';
-  const drag = usePagesBoardDrag(bands, groupByKey, spaceId, subGroupByKey);
+  const groupByMode = readPageViewConfiguration(view.configuration).groupByMode;
+  const paging = usePagesViewLive({
+    aggregates: drawnAggregates,
+    bands,
+    changesCursor,
+    groupByKey,
+    groupByMode,
+    pageId: schema.pageId,
+    properties: schema.properties,
+    spaceId,
+    subGroupByKey,
+    view,
+    viewerId,
+  });
+  const { aggregates } = paging;
+  const drag = usePagesBoardDrag({
+    bands: paging.bands,
+    groupByKey,
+    groupByMode,
+    isManualOrder,
+    pageId: schema.pageId,
+    properties: schema.properties,
+    spaceId,
+    subGroupByKey,
+    viewId,
+  });
   const {
     onDragLeave: stopEdgeScrolling,
     onDragOver: scrollAtEdge,
@@ -108,6 +159,18 @@ export const PagesCollectionBoard = ({
       <output aria-live="polite" className="sr-only">
         {drag.announcement}
       </output>
+      {canEdit && (
+        <PagesCollectionBoardToolbar
+          activeViewName={activeViewName}
+          aggregates={aggregates}
+          columns={columns}
+          groupByKey={groupByKey}
+          mode={groupByMode}
+          schema={schema}
+          spaceId={spaceId}
+          subGroupByKey={subGroupByKey}
+        />
+      )}
       {/* Bleeds past the body margin to use the full width; the padding restores it inside. */}
       <section
         aria-label={t('collection.boardColumns')}
@@ -129,13 +192,18 @@ export const PagesCollectionBoard = ({
                 />
                 {band.key === UNASSIGNED_GROUP_KEY ? t('collection.unassignedGroup') : band.label}
                 <span className="font-normal text-muted-foreground tabular-nums">
-                  {band.groups.reduce((total, group) => total + group.rows.length, 0)}
+                  <PagesCollectionGroupCount
+                    aggregates={aggregates}
+                    bandKey={band.key}
+                    drawn={band.groups.reduce((total, group) => total + group.rows.length, 0)}
+                  />
                 </span>
               </h3>
             )}
             <div className="flex items-start gap-3">
               {band.groups.filter(isShown).map((group) => (
                 <PagesCollectionBoardColumn
+                  aggregates={aggregates}
                   bandKey={band.key}
                   canDrag={canEdit}
                   canEdit={canEdit}
@@ -145,9 +213,11 @@ export const PagesCollectionBoard = ({
                   group={group}
                   isCollapsed={columns.collapsedColumns.includes(group.key)}
                   isCreating={creation.isCreating}
+                  isLoadingMore={paging.isLoading(band.key, group.key)}
                   isNaming={namingIn?.bandKey === band.key && namingIn.groupKey === group.key}
                   key={group.key}
                   onCreate={(title) => createNamed(band.key, group.key, title)}
+                  onLoadMore={() => paging.loadMore(band.key, group.key)}
                   onNameCancel={() => setNamingIn(null)}
                   onNameStart={() => setNamingIn({ bandKey: band.key, groupKey: group.key })}
                   personOptions={personOptions}

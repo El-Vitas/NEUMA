@@ -1,14 +1,20 @@
 import 'server-only';
 
-import type { Result } from '@neuma/shared';
+import type { PageQueryRequest, Result } from '@neuma/shared';
 import { cacheLife, cacheTag } from 'next/cache';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { ApiError } from '@/shared/lib/api';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
+import { readRequestTimeZone } from '@/shared/server/lib/time-zone.server';
 import { PAGE_API_ROUTES } from '../../../constants/pages.constants';
-import { pageSchemaSchema, pageViewReadingSchema } from '../../schemas/pages.schema.schemas';
-import type { PageSchema, PageViewReading } from '../../types/pages.schema.types';
+import {
+  pageQueryResponseSchema,
+  pageSchemaSchema,
+  pageSpaceCollectionsResponseSchema,
+} from '../../schemas/pages.schema.schemas';
+import type { PageQueryResult } from '../../types/pages.query.types';
+import type { PageRelatedRow, PageSchema } from '../../types/pages.schema.types';
 
 const isNotFoundError = (error: unknown): boolean => error instanceof ApiError && error.status === 404;
 
@@ -26,28 +32,50 @@ const getPageSchemaCached = async (accessToken: string, spaceId: string, pageId:
   return pageSchemaSchema.parse(response);
 };
 
-export const getPageView = async (
-  spaceId: string,
-  pageId: string,
-  viewName: string,
-): Promise<Result<PageViewReading | null, Error>> =>
-  withQuery({ op: 'getPageView', params: { pageId, spaceId, viewName } }, (accessToken) =>
-    getPageViewCached(accessToken, spaceId, pageId, viewName),
+/** The collections of a space the caller can open, which is what a relation property may point to. */
+export const getSpaceCollections = async (spaceId: string): Promise<Result<readonly PageRelatedRow[], Error>> =>
+  withQuery({ op: 'getSpaceCollections', params: { spaceId } }, (accessToken) =>
+    getSpaceCollectionsCached(accessToken, spaceId),
   );
 
-const getPageViewCached = async (
+const getSpaceCollectionsCached = async (accessToken: string, spaceId: string): Promise<readonly PageRelatedRow[]> => {
+  'use cache';
+  cacheLife('seconds');
+  cacheTag(PAGES_CACHE_TAG(spaceId));
+
+  const response = await apiRequest<unknown>(PAGE_API_ROUTES.collections(spaceId), accessToken);
+  return pageSpaceCollectionsResponseSchema.parse(response);
+};
+
+/** Asks for the reducers a view needs. Null when the page or the view is gone. */
+export const queryPageView = async (
+  spaceId: string,
+  pageId: string,
+  request: PageQueryRequest,
+): Promise<Result<PageQueryResult | null, Error>> => {
+  const timeZone = await readRequestTimeZone();
+  const sent: PageQueryRequest = timeZone === null ? request : { ...request, timeZone };
+  return withQuery({ op: 'queryPageView', params: { pageId, request: sent, spaceId } }, (accessToken) =>
+    queryPageViewCached(accessToken, spaceId, pageId, JSON.stringify(sent)),
+  );
+};
+
+const queryPageViewCached = async (
   accessToken: string,
   spaceId: string,
   pageId: string,
-  viewName: string,
-): Promise<PageViewReading | null> => {
+  requestJson: string,
+): Promise<PageQueryResult | null> => {
   'use cache';
   cacheLife('seconds');
   cacheTag(PAGES_CACHE_TAG(spaceId));
 
   try {
-    const response = await apiRequest<unknown>(PAGE_API_ROUTES.view(spaceId, pageId, viewName), accessToken);
-    return pageViewReadingSchema.parse(response);
+    const response = await apiRequest<unknown>(PAGE_API_ROUTES.query(spaceId, pageId), accessToken, {
+      body: requestJson,
+      method: 'POST',
+    });
+    return pageQueryResponseSchema.parse(response);
   } catch (error) {
     if (isNotFoundError(error)) return null;
     throw error;

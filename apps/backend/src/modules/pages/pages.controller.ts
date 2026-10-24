@@ -15,8 +15,10 @@ import type { Result } from '@neuma/shared';
 import type { FastifyReply } from 'fastify';
 import { MutationId } from '../../common/infrastructure/decorators/mutation-id.decorator';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
+import { BlockWriteThrottlerGuard } from '../../common/infrastructure/guards/block-write-throttler.guard';
 import { ExportThrottlerGuard } from '../../common/infrastructure/guards/export-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
+import { PageReadThrottlerGuard } from '../../common/infrastructure/guards/page-read-throttler.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { buildZipArchive } from '../../common/utils/zip.utils';
@@ -37,6 +39,7 @@ import { RenamePageDto } from './dto/page.rename.dto';
 import { ReorderPageDto } from './dto/page.reorder.dto';
 import { RestorePageDto } from './dto/page.restore.dto';
 import { SetPageVerificationDto } from './dto/page.verification.dto';
+import { PageRowComputedService } from './page-row-computed.service';
 import { PagesService } from './pages.service';
 import type { PageDescendantsPreview, PagePurgeSchedule, PageRestoreOutcome } from './types/page.types';
 
@@ -44,18 +47,19 @@ import type { PageDescendantsPreview, PagePurgeSchedule, PageRestoreOutcome } fr
 export class PagesController {
   constructor(
     private readonly pagesService: PagesService,
+    private readonly pageRowComputedService: PageRowComputedService,
     private readonly workspaceContextService: WorkspaceContextService,
   ) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async list(@Param('spaceId') spaceId: string, @Query() dto: ListPagesDto, @User('payload') payload: TokenPayload) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     return this.pagesService.list(spaceId, workspace.id, payload.sub, payload.role, dto.includeTrashed);
   }
 
   @Get(':pageId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async getAccessible(
     @Param('spaceId') spaceId: string,
     @Param('pageId') pageId: string,
@@ -70,21 +74,33 @@ export class PagesController {
     if (page.spaceId !== spaceId) {
       throw new PageAccessDeniedError();
     }
-    return page;
+    const withComputed = await this.pageRowComputedService.attach(page, {
+      role: payload.role,
+      userId: payload.sub,
+      workspaceId: workspace.id,
+    });
+    if (withComputed.isFail()) {
+      throw withComputed.getError();
+    }
+    return withComputed.getValue();
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BlockWriteThrottlerGuard)
   async create(@Param('spaceId') spaceId: string, @Body() dto: CreatePageDto, @User('payload') payload: TokenPayload) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pagesService.create(
       {
         content: dto.content,
         createdById: payload.sub,
+        ...(dto.defaultValues === undefined ? {} : { defaultValues: dto.defaultValues }),
+        ...(dto.id === undefined ? {} : { pageId: dto.id }),
         parentId: dto.parentId ?? null,
         propertyValues: dto.propertyValues ?? null,
         role: payload.role,
         spaceId,
+        ...(dto.templateId === undefined ? {} : { templateId: dto.templateId }),
+        ...(dto.timeZone === undefined ? {} : { timeZone: dto.timeZone }),
         title: dto.title,
         userId: payload.sub,
         workspaceId: workspace.id,
@@ -118,6 +134,7 @@ export class PagesController {
   ) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pagesService.updateProperties({
+      ...(dto.expectedVersion === undefined ? {} : { expectedVersion: dto.expectedVersion }),
       pageId,
       propertyValues: dto.propertyValues,
       role: payload.role,
@@ -211,7 +228,7 @@ export class PagesController {
   }
 
   @Post(':pageId/duplicate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BlockWriteThrottlerGuard)
   async duplicate(
     @Param('pageId') pageId: string,
     @Body() dto: DuplicatePageDto,
@@ -310,15 +327,16 @@ export class PagesController {
     @User('payload') payload: TokenPayload,
   ) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    const result = await this.pagesService.move(
-      pageId,
-      dto.parentId ?? null,
-      dto.targetSpaceId ?? null,
-      payload.sub,
-      workspace.id,
+    const result = await this.pagesService.move({
+      expectedVersion: dto.expectedVersion ?? null,
       mutationId,
-      payload.role,
-    );
+      pageId,
+      parentId: dto.parentId ?? null,
+      role: payload.role,
+      targetSpaceId: dto.targetSpaceId ?? null,
+      userId: payload.sub,
+      workspaceId: workspace.id,
+    });
     if (result.isFail()) {
       throw result.getError();
     }

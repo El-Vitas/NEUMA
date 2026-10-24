@@ -16,14 +16,14 @@ export const PagesCollectionChartLine = ({ label, points }: IProps) => {
   const top = readChartTopValue(values);
 
   return (
-    <div className="space-y-2">
+    <figure className="m-0 space-y-2">
+      <figcaption className="sr-only">{label}</figcaption>
       <svg
+        aria-hidden="true"
         className="h-64 w-full text-foreground"
         preserveAspectRatio="none"
-        role="img"
         viewBox={`0 0 ${PAGE_CHART_WIDTH} ${PAGE_CHART_HEIGHT}`}
       >
-        <title>{label}</title>
         <polyline
           fill="none"
           points={readChartPointsPath(values, top, PAGE_CHART_WIDTH, PAGE_CHART_HEIGHT)}
@@ -44,6 +44,6 @@ export const PagesCollectionChartLine = ({ label, points }: IProps) => {
           </li>
         ))}
       </ul>
-    </div>
+    </figure>
   );
 };

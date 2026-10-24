@@ -11,7 +11,7 @@ import {
   readPagePreviewTitle,
 } from '@/modules/pages/links/lib/pages.preview.lib';
 import type { PageContent } from '@/modules/pages/types/pages.types';
-import { asPropertyOptions } from './pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 
 describe('readInternalPageTarget', () => {
   it('reads the space and the page a link to this app names', () => {
@@ -70,6 +70,7 @@ describe('readPagePreviewFragment', () => {
 
 describe('readPagePreviewProperties', () => {
   const titleProperty: PageSchemaProperty = {
+    config: defaultConfig,
     key: 'title',
     label: 'Title',
     options: null,
@@ -77,6 +78,7 @@ describe('readPagePreviewProperties', () => {
     type: 'TITLE',
   };
   const statusProperty: PageSchemaProperty = {
+    config: defaultConfig,
     key: 'status',
     label: 'Status',
     options: asPropertyOptions('todo', 'done'),
@@ -84,6 +86,7 @@ describe('readPagePreviewProperties', () => {
     type: 'SELECT',
   };
   const teamProperty: PageSchemaProperty = {
+    config: defaultConfig,
     key: 'team',
     label: 'Team',
     options: asPropertyOptions('design', 'engineering'),

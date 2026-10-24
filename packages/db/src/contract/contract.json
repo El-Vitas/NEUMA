@@ -32,8 +32,20 @@
       "model": "BlockTransaction",
       "namespace": "public"
     },
+    "Comment": {
+      "model": "Comment",
+      "namespace": "public"
+    },
+    "Discussion": {
+      "model": "Discussion",
+      "namespace": "public"
+    },
     "FileAsset": {
       "model": "FileAsset",
+      "namespace": "public"
+    },
+    "Notification": {
+      "model": "Notification",
       "namespace": "public"
     },
     "PageFavorite": {
@@ -58,6 +70,10 @@
     },
     "PageView": {
       "model": "PageView",
+      "namespace": "public"
+    },
+    "RefreshSession": {
+      "model": "RefreshSession",
       "namespace": "public"
     },
     "Space": {
@@ -592,6 +608,13 @@
                   "kind": "scalar"
                 }
               },
+              "changeXid": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int8@1",
+                  "kind": "scalar"
+                }
+              },
               "children": {
                 "many": {
                   "elementNullable": false
@@ -798,6 +821,21 @@
                   "namespace": "public"
                 }
               },
+              "discussions": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "blockId"
+                  ]
+                },
+                "to": {
+                  "model": "Discussion",
+                  "namespace": "public"
+                }
+              },
               "favorites": {
                 "cardinality": "1:N",
                 "on": {
@@ -825,6 +863,21 @@
                 },
                 "to": {
                   "model": "BlockLink",
+                  "namespace": "public"
+                }
+              },
+              "notifications": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "blockId"
+                  ]
+                },
+                "to": {
+                  "model": "Notification",
                   "namespace": "public"
                 }
               },
@@ -987,6 +1040,9 @@
               "fields": {
                 "alive": {
                   "column": "alive"
+                },
+                "changeXid": {
+                  "column": "changeXid"
                 },
                 "children": {
                   "column": "children"
@@ -1279,6 +1335,267 @@
               "table": "BlockTransaction"
             }
           },
+          "Comment": {
+            "fields": {
+              "authorId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "body": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/jsonb@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "deletedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "discussionId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "editedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "discussion": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "discussionId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Discussion",
+                  "namespace": "public"
+                }
+              },
+              "notifications": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "commentId"
+                  ]
+                },
+                "to": {
+                  "model": "Notification",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "authorId": {
+                  "column": "authorId"
+                },
+                "body": {
+                  "column": "body"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "deletedAt": {
+                  "column": "deletedAt"
+                },
+                "discussionId": {
+                  "column": "discussionId"
+                },
+                "editedAt": {
+                  "column": "editedAt"
+                },
+                "id": {
+                  "column": "id"
+                }
+              },
+              "namespaceId": "public",
+              "table": "Comment"
+            }
+          },
+          "Discussion": {
+            "fields": {
+              "anchorMarkId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "blockId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdById": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "quote": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "resolvedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "resolvedById": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "spaceId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "block": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "blockId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Block",
+                  "namespace": "public"
+                }
+              },
+              "comments": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "discussionId"
+                  ]
+                },
+                "to": {
+                  "model": "Comment",
+                  "namespace": "public"
+                }
+              },
+              "notifications": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "discussionId"
+                  ]
+                },
+                "to": {
+                  "model": "Notification",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "anchorMarkId": {
+                  "column": "anchorMarkId"
+                },
+                "blockId": {
+                  "column": "blockId"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "createdById": {
+                  "column": "createdById"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "quote": {
+                  "column": "quote"
+                },
+                "resolvedAt": {
+                  "column": "resolvedAt"
+                },
+                "resolvedById": {
+                  "column": "resolvedById"
+                },
+                "spaceId": {
+                  "column": "spaceId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "Discussion"
+            }
+          },
           "FileAsset": {
             "fields": {
               "checksum": {
@@ -1421,6 +1738,175 @@
               },
               "namespaceId": "public",
               "table": "FileAsset"
+            }
+          },
+          "Notification": {
+            "fields": {
+              "actorId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "blockId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "commentId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "discussionId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "kind": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/enum@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "typeName": "NotificationKind"
+                  }
+                }
+              },
+              "readAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "recipientId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "block": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "blockId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Block",
+                  "namespace": "public"
+                }
+              },
+              "comment": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "commentId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Comment",
+                  "namespace": "public"
+                }
+              },
+              "discussion": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "discussionId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Discussion",
+                  "namespace": "public"
+                }
+              },
+              "recipient": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "recipientId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "actorId": {
+                  "column": "actorId"
+                },
+                "blockId": {
+                  "column": "blockId"
+                },
+                "commentId": {
+                  "column": "commentId"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "discussionId": {
+                  "column": "discussionId"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "kind": {
+                  "column": "kind"
+                },
+                "readAt": {
+                  "column": "readAt"
+                },
+                "recipientId": {
+                  "column": "recipientId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "Notification"
             }
           },
           "PageFavorite": {
@@ -1630,6 +2116,13 @@
           },
           "PageSchemaProperty": {
             "fields": {
+              "config": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/jsonb@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -1648,6 +2141,13 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "nextValue": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
                   "kind": "scalar"
                 }
               },
@@ -1710,6 +2210,9 @@
             },
             "storage": {
               "fields": {
+                "config": {
+                  "column": "config"
+                },
                 "id": {
                   "column": "id"
                 },
@@ -1718,6 +2221,9 @@
                 },
                 "label": {
                   "column": "label"
+                },
+                "nextValue": {
+                  "column": "nextValue"
                 },
                 "options": {
                   "column": "options"
@@ -1769,6 +2275,16 @@
                   "kind": "scalar"
                 }
               },
+              "manualOrder": {
+                "many": {
+                  "elementNullable": false
+                },
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": false,
                 "type": {
@@ -1806,6 +2322,13 @@
                   "codecId": "pg/timestamptz-date@1",
                   "kind": "scalar"
                 }
+              },
+              "version": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
               }
             },
             "relations": {
@@ -1840,6 +2363,9 @@
                 "isDefault": {
                   "column": "isDefault"
                 },
+                "manualOrder": {
+                  "column": "manualOrder"
+                },
                 "name": {
                   "column": "name"
                 },
@@ -1854,6 +2380,9 @@
                 },
                 "updatedAt": {
                   "column": "updatedAt"
+                },
+                "version": {
+                  "column": "version"
                 }
               },
               "namespaceId": "public",
@@ -2040,6 +2569,104 @@
               },
               "namespaceId": "public",
               "table": "PageView"
+            }
+          },
+          "RefreshSession": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "expiresAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "familyId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "replacedById": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "usedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "expiresAt": {
+                  "column": "expiresAt"
+                },
+                "familyId": {
+                  "column": "familyId"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "replacedById": {
+                  "column": "replacedById"
+                },
+                "usedAt": {
+                  "column": "usedAt"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "RefreshSession"
             }
           },
           "Space": {
@@ -2471,6 +3098,21 @@
                   "namespace": "public"
                 }
               },
+              "notifications": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "recipientId"
+                  ]
+                },
+                "to": {
+                  "model": "Notification",
+                  "namespace": "public"
+                }
+              },
               "ownedBlocks": {
                 "cardinality": "1:N",
                 "on": {
@@ -2513,6 +3155,21 @@
                 },
                 "to": {
                   "model": "PageView",
+                  "namespace": "public"
+                }
+              },
+              "refreshSessions": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "RefreshSession",
                   "namespace": "public"
                 }
               },
@@ -2839,7 +3496,20 @@
                 "PERSON",
                 "DATE",
                 "CHECKBOX",
-                "NUMBER"
+                "NUMBER",
+                "STATUS",
+                "RELATION",
+                "URL",
+                "EMAIL",
+                "PHONE",
+                "FILES",
+                "CREATED_TIME",
+                "EDITED_TIME",
+                "CREATED_BY",
+                "EDITED_BY",
+                "UNIQUE_ID",
+                "FORMULA",
+                "ROLLUP"
               ],
               "typeName": "DatabasePropertyType"
             },
@@ -2851,7 +3521,8 @@
                 "LIST",
                 "GALLERY",
                 "CALENDAR",
-                "CHART"
+                "CHART",
+                "TIMELINE"
               ],
               "typeName": "DatabaseViewType"
             },
@@ -2862,6 +3533,15 @@
                 "DELETED"
               ],
               "typeName": "FileAssetLifecycle"
+            },
+            "NotificationKind": {
+              "kind": "postgres-enum",
+              "members": [
+                "MENTION",
+                "REPLY",
+                "PAGE_CHANGE"
+              ],
+              "typeName": "NotificationKind"
             },
             "PageLifecycle": {
               "kind": "postgres-enum",
@@ -3386,6 +4066,15 @@
                   },
                   "nullable": false
                 },
+                "changeXid": {
+                  "codecId": "pg/int8@1",
+                  "dataType": "pg/int8",
+                  "default": {
+                    "kind": "literal",
+                    "value": "0"
+                  },
+                  "nullable": false
+                },
                 "children": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -3643,6 +4332,14 @@
                 },
                 {
                   "columns": [
+                    "parentId",
+                    "changeXid"
+                  ],
+                  "name": "Block_parentId_changeXid_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
                     "parentId"
                   ],
                   "name": "Block_parentId_idx",
@@ -3653,6 +4350,22 @@
                     "purgeAfter"
                   ],
                   "name": "Block_purgeAfter_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "spaceId",
+                    "changeXid"
+                  ],
+                  "name": "Block_spaceId_changeXid_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "spaceId",
+                    "editedAt"
+                  ],
+                  "name": "Block_spaceId_editedAt_idx",
                   "unique": false
                 },
                 {
@@ -3923,6 +4636,195 @@
               },
               "uniques": []
             },
+            "Comment": {
+              "columns": {
+                "authorId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "body": {
+                  "codecId": "pg/jsonb@1",
+                  "dataType": "pg/jsonb",
+                  "default": {
+                    "kind": "literal",
+                    "value": []
+                  },
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nullable": false
+                },
+                "deletedAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": true
+                },
+                "discussionId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "editedAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "name": "Comment_discussionId_createdAt_idx"
+                  },
+                  "name": "Comment_discussionId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "discussionId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Comment"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Discussion"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "discussionId",
+                    "createdAt"
+                  ],
+                  "name": "Comment_discussionId_createdAt_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ],
+                "name": "Comment_pkey"
+              },
+              "uniques": []
+            },
+            "Discussion": {
+              "columns": {
+                "anchorMarkId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": true
+                },
+                "blockId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nullable": false
+                },
+                "createdById": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "quote": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": true
+                },
+                "resolvedAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": true
+                },
+                "resolvedById": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": true
+                },
+                "spaceId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "name": "Discussion_blockId_createdAt_idx"
+                  },
+                  "name": "Discussion_blockId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "blockId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Discussion"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Block"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "blockId",
+                    "createdAt"
+                  ],
+                  "name": "Discussion_blockId_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "spaceId"
+                  ],
+                  "name": "Discussion_spaceId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ],
+                "name": "Discussion_pkey"
+              },
+              "uniques": []
+            },
             "FileAsset": {
               "columns": {
                 "checksum": {
@@ -4049,6 +4951,201 @@
                   "name": "FileAsset_storageKey_key"
                 }
               ]
+            },
+            "Notification": {
+              "columns": {
+                "actorId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "blockId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "commentId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nullable": false
+                },
+                "discussionId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "kind": {
+                  "codecId": "pg/enum@1",
+                  "dataType": "pg/enum",
+                  "nullable": false,
+                  "typeParams": {
+                    "typeName": "NotificationKind"
+                  },
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "NotificationKind",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "readAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": true
+                },
+                "recipientId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "name": "Notification_recipientId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "recipientId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Notification"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "User"
+                  }
+                },
+                {
+                  "index": {
+                    "name": "Notification_blockId_idx"
+                  },
+                  "name": "Notification_blockId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "blockId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Notification"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Block"
+                  }
+                },
+                {
+                  "index": {
+                    "name": "Notification_discussionId_idx"
+                  },
+                  "name": "Notification_discussionId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "discussionId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Notification"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Discussion"
+                  }
+                },
+                {
+                  "index": {
+                    "name": "Notification_commentId_idx"
+                  },
+                  "name": "Notification_commentId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "commentId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Notification"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Comment"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "blockId"
+                  ],
+                  "name": "Notification_blockId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "commentId"
+                  ],
+                  "name": "Notification_commentId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "discussionId"
+                  ],
+                  "name": "Notification_discussionId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "readAt"
+                  ],
+                  "name": "Notification_readAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "recipientId",
+                    "readAt",
+                    "createdAt"
+                  ],
+                  "name": "Notification_recipientId_readAt_createdAt_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ],
+                "name": "Notification_pkey"
+              },
+              "uniques": []
             },
             "PageFavorite": {
               "columns": {
@@ -4240,6 +5337,11 @@
             },
             "PageSchemaProperty": {
               "columns": {
+                "config": {
+                  "codecId": "pg/jsonb@1",
+                  "dataType": "pg/jsonb",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -4253,6 +5355,15 @@
                 "label": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
+                  "nullable": false
+                },
+                "nextValue": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "default": {
+                    "kind": "literal",
+                    "value": 1
+                  },
                   "nullable": false
                 },
                 "options": {
@@ -4381,6 +5492,17 @@
                   },
                   "nullable": false
                 },
+                "manualOrder": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "many": {
+                    "elementNullable": false
+                  },
+                  "noCheck": [
+                    "elementNotNull"
+                  ],
+                  "nullable": true
+                },
                 "name": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -4417,6 +5539,15 @@
                 "updatedAt": {
                   "codecId": "pg/timestamptz-date@1",
                   "dataType": "pg/timestamptz",
+                  "nullable": false
+                },
+                "version": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
                   "nullable": false
                 }
               },
@@ -4668,6 +5799,103 @@
                   "id"
                 ],
                 "name": "PageView_pkey"
+              },
+              "uniques": []
+            },
+            "RefreshSession": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nullable": false
+                },
+                "expiresAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": false
+                },
+                "familyId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "replacedById": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": true
+                },
+                "usedAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": true
+                },
+                "userId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "name": "RefreshSession_userId_idx"
+                  },
+                  "name": "RefreshSession_userId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "RefreshSession"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "User"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "expiresAt"
+                  ],
+                  "name": "RefreshSession_expiresAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "familyId"
+                  ],
+                  "name": "RefreshSession_familyId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "RefreshSession_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ],
+                "name": "RefreshSession_pkey"
               },
               "uniques": []
             },
@@ -5256,7 +6484,20 @@
                 "PERSON",
                 "DATE",
                 "CHECKBOX",
-                "NUMBER"
+                "NUMBER",
+                "STATUS",
+                "RELATION",
+                "URL",
+                "EMAIL",
+                "PHONE",
+                "FILES",
+                "CREATED_TIME",
+                "EDITED_TIME",
+                "CREATED_BY",
+                "EDITED_BY",
+                "UNIQUE_ID",
+                "FORMULA",
+                "ROLLUP"
               ]
             },
             "DatabaseViewType": {
@@ -5267,7 +6508,8 @@
                 "LIST",
                 "GALLERY",
                 "CALENDAR",
-                "CHART"
+                "CHART",
+                "TIMELINE"
               ]
             },
             "FileAssetLifecycle": {
@@ -5275,6 +6517,14 @@
               "values": [
                 "ACTIVE",
                 "DELETED"
+              ]
+            },
+            "NotificationKind": {
+              "kind": "valueSet",
+              "values": [
+                "MENTION",
+                "REPLY",
+                "PAGE_CHANGE"
               ]
             },
             "PageLifecycle": {
@@ -5306,10 +6556,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "5083241f092100d52c71e07d592503da95edb69bdb44fe6c018f68d52de1e10d"
+    "storageHash": "0d86e5905915870daf38c15e50e41d04dfa344e3055d253005cfcc69d7bcac17"
   },
   "execution": {
-    "executionHash": "2b965273b0fc57be7ed80a8f06d08314d907caf10355d0ea78ebadd11b969006",
+    "executionHash": "3d33d8085b294f7bd41d64520ac2b5e978652367341ecedffab1dd3ec52fb50a",
     "mutations": {
       "defaults": [
         {
@@ -5399,6 +6649,28 @@
             "kind": "generator"
           },
           "ref": {
+            "entry": "Comment",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv7",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "Discussion",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv7",
+            "kind": "generator"
+          },
+          "ref": {
             "entry": "FileAsset",
             "field": "id",
             "namespace": "public"
@@ -5416,6 +6688,17 @@
           "ref": {
             "entry": "FileAsset",
             "field": "updatedAt",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv7",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "Notification",
+            "field": "id",
             "namespace": "public"
           }
         },
@@ -5496,6 +6779,17 @@
           },
           "ref": {
             "entry": "PageView",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv7",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "RefreshSession",
             "field": "id",
             "namespace": "public"
           }

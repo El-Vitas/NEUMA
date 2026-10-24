@@ -1,8 +1,6 @@
 import type { Node as EditorNode, NodeSpec, TagParseRule } from 'prosemirror-model';
 import {
   PAGE_EDITOR_BACKGROUND_COLOR_ATTRIBUTE,
-  PAGE_EDITOR_BLOCK_COMMENTED_ATTRIBUTE,
-  PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE,
   PAGE_EDITOR_BLOCK_ID_ATTRIBUTE,
   PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE,
 } from '../constants/pages.editor.blocks.constants';
@@ -16,10 +14,6 @@ export const getPageBlockDomAttributes = (node: EditorNode): Record<string, stri
   ...readPageBlockAttribute(node, PAGE_EDITOR_BLOCK_ID_ATTRIBUTE, 'id'),
   ...readPageBlockAttribute(node, PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE, 'textColor'),
   ...readPageBlockAttribute(node, PAGE_EDITOR_BACKGROUND_COLOR_ATTRIBUTE, 'backgroundColor'),
-  ...(Array.isArray(node.attrs[PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE]) &&
-  node.attrs[PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE].length > 0
-    ? { [PAGE_EDITOR_BLOCK_COMMENTED_ATTRIBUTE]: 'true' }
-    : {}),
 });
 
 export const getPageBlockAttrs = (

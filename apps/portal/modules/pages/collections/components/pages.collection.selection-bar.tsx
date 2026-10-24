@@ -7,22 +7,40 @@ import { Button } from '@/shared/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { usePagesBulkEditing } from '../hooks/use.pages.bulk-editing';
 import { usePagesRowSelection } from '../hooks/use.pages.row-selection';
-import type { PagePersonOption, PagePropertyValues, PageSchemaProperty } from '../types/pages.schema.types';
+import type {
+  PagePersonOption,
+  PagePropertyValues,
+  PageSchemaProperty,
+  PageViewAggregates,
+} from '../types/pages.schema.types';
 import { PagesCollectionSelectionAssign } from './pages.collection.selection-assign';
+import { PagesCollectionSelectionMatching } from './pages.collection.selection-matching';
 
 interface IProps {
+  /** The counts, which say whether the rows marked are all the rows that match. */
+  readonly aggregates: Promise<PageViewAggregates | null>;
+  readonly pageId: string;
   readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
   readonly spaceId: string;
   readonly valuesByRow: Readonly<Record<string, PagePropertyValues>>;
+  readonly viewId: string;
 }
 
 /** Every action can be undone from the toast, so deleting does not ask for confirmation first. */
-export const PagesCollectionSelectionBar = ({ personOptions, properties, spaceId, valuesByRow }: IProps) => {
+export const PagesCollectionSelectionBar = ({
+  aggregates,
+  pageId,
+  personOptions,
+  properties,
+  spaceId,
+  valuesByRow,
+  viewId,
+}: IProps) => {
   const t = useTranslations('pages.collection');
   const selection = usePagesRowSelection();
   const [isAssigning, setIsAssigning] = useState(false);
-  const bulk = usePagesBulkEditing(spaceId, valuesByRow, () => selection?.clear());
+  const bulk = usePagesBulkEditing(spaceId, { ...valuesByRow, ...selection?.knownValues }, () => selection?.clear());
 
   if (selection === null || selection.count === 0) return null;
 
@@ -34,6 +52,7 @@ export const PagesCollectionSelectionBar = ({ personOptions, properties, spaceId
       <span className="px-1 font-medium text-foreground text-sm tabular-nums">
         {t('selectedRows', { count: selection.count })}
       </span>
+      <PagesCollectionSelectionMatching aggregates={aggregates} pageId={pageId} spaceId={spaceId} viewId={viewId} />
       <Popover onOpenChange={setIsAssigning} open={isAssigning}>
         <PopoverTrigger asChild>
           <Button className="min-h-11 rounded-md" disabled={bulk.isWorking} size="sm" type="button" variant="ghost">

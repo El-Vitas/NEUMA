@@ -1,5 +1,7 @@
-import type { NeumaTransaction } from '@neuma/db';
+import { FileAssetLifecycle, type NeumaTransaction } from '@neuma/db';
 import { BLOCK_TYPE } from '@neuma/shared';
+import type { SchemaPropertyDefinition } from '../../../../common/domain/schema.domain.types';
+import { toSchemaPropertyDefinition } from '../../../../common/infrastructure/persistence/schema-json.adapter';
 import { requireRow } from '../../../../common/utils/required-row.utils';
 import type { PrismaService } from '../../../../prisma/prisma.service';
 import { buildSqlTextList } from '../../../../prisma/prisma.sql.lib';
@@ -9,23 +11,34 @@ import {
   BLOCK_TREE_LOCK_PREFIX,
 } from '../../constants/block.transaction.constants';
 import { BLOCK_TREE_MAX_DEPTH } from '../../constants/blocks.constants';
+import type { StoredFile } from '../../domain/block.row-values.domain.types';
 import type {
   BlockLinkDiff,
   BlockLoad,
   BlockPageColumns,
   BlockWrite,
+  CollectionFacts,
   LinkSourceRebind,
   SpaceRoots,
   StoredBlockLink,
+  StoredView,
+  ViewWrite,
   WorkingBlock,
 } from '../../domain/block.transaction.domain.types';
-import { blockStoredResultSchema } from '../../schemas/block.operation.schemas';
-import { blockChildrenSchema, blockJsonValueSchema, blockLinkKindSchema } from '../../schemas/block.row.schemas';
+import { blockFieldSchemas, blockStoredResultSchema } from '../../schemas/block.operation.schemas';
+import {
+  blockChildrenSchema,
+  blockJsonValueSchema,
+  blockLinkKindSchema,
+  viewConfigurationSchema,
+  viewTypeSchema,
+} from '../../schemas/block.row.schemas';
 import type {
   BlockTransactionClaim,
   BlockTransactionResult,
   BlockTransactionSession,
 } from '../../types/block.transaction.types';
+import { toCollectionFacts } from './block.collection-facts.lib';
 import { toRecord } from './block.repository';
 
 /** Only the page columns the block carries: a block read without them must not erase what is stored. */
@@ -49,6 +62,36 @@ export class PostgresBlockTransactionSession implements BlockTransactionSession 
     return { kind: 'replayed', result: blockStoredResultSchema.parse(stored.result) };
   }
 
+  async readCollectionFacts(collectionIds: readonly string[]): Promise<CollectionFacts> {
+    if (collectionIds.length === 0) return { relations: new Map(), rules: new Map() };
+    const properties = await this.transaction.orm.public.PageSchemaProperty.select(
+      'config',
+      'key',
+      'options',
+      'pageId',
+      'type',
+    )
+      .where((property) => property.pageId.in([...collectionIds]))
+      .orderBy((property) => property.order.asc())
+      .all();
+    return toCollectionFacts(properties);
+  }
+
+  /** The counter row is locked by the update until this transaction ends, so two rows never get the same number. */
+  async takeUniqueIds(collectionId: string, key: string, count: number): Promise<number> {
+    const { columns } = this.prisma.tables.PageSchemaProperty;
+    const rows = await this.transaction.query(
+      this.prisma.sql`
+      UPDATE "PageSchemaProperty" SET "nextValue" = "nextValue" + ${count}
+      WHERE "pageId" = ${collectionId} AND "key" = ${key}
+      RETURNING "nextValue" - ${count} AS "firstValue"
+    `
+        .returnsRow({ firstValue: columns.nextValue })
+        .build(),
+    );
+    return requireRow(rows[0] ?? null, `Unique id counter ${collectionId}/${key}`).firstValue;
+  }
+
   async lockTreeMoves(spaceId: string): Promise<void> {
     const lockKey = BLOCK_TREE_LOCK_PREFIX + spaceId;
     await this.transaction.execute(
@@ -68,6 +111,141 @@ export class PostgresBlockTransactionSession implements BlockTransactionSession 
     const locked = await this.readLocked(lockedIds);
     const context = await this.readContext(contextIds);
     return { context, isDepthExceeded: ancestors.isDepthExceeded, locked, spaces };
+  }
+
+  async readViewPageIds(viewIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+    if (viewIds.length === 0) return new Map();
+    const views = await this.transaction.orm.public.PageSchemaView.select('id', 'pageId')
+      .where((view) => view.id.in([...viewIds]))
+      .all();
+    return new Map(views.map((view) => [view.id, view.pageId]));
+  }
+
+  async lockViews(viewIds: readonly string[]): Promise<StoredView[]> {
+    if (viewIds.length === 0) return [];
+    const { columns } = this.prisma.tables.PageSchemaView;
+    const rows = await this.transaction.query(
+      this.prisma.sql`
+      SELECT "id", "pageId", "name", "type"::text AS "type", "configuration", to_jsonb("manualOrder") AS "manualOrder",
+        "version"
+      FROM "PageSchemaView"
+      WHERE "id" = ANY(${buildSqlTextList(this.prisma.sql, viewIds)}) ORDER BY "id" FOR UPDATE
+    `
+        .returnsRow({
+          configuration: columns.configuration,
+          id: columns.id,
+          manualOrder: { codecId: 'pg/jsonb@1', nullable: true },
+          name: columns.name,
+          pageId: columns.pageId,
+          type: 'pg/text@1',
+          version: columns.version,
+        })
+        .build(),
+    );
+    const orders = await this.readCollectionRowOrders([...new Set(rows.map((row) => row.pageId))]);
+    return rows.map((row) => ({
+      collectionOrder: orders.get(row.pageId) ?? [],
+      configuration: viewConfigurationSchema.parse(row.configuration),
+      id: row.id,
+      manualOrder: row.manualOrder === null ? null : blockChildrenSchema.parse(row.manualOrder),
+      name: row.name,
+      pageId: row.pageId,
+      type: viewTypeSchema.parse(row.type),
+      version: row.version,
+    }));
+  }
+
+  /** The children of each collection that are pages, in the order the collection lists them. */
+  private async readCollectionRowOrders(collectionIds: readonly string[]): Promise<Map<string, string[]>> {
+    if (collectionIds.length === 0) return new Map();
+    const orders = new Map<string, string[]>(collectionIds.map((id) => [id, []]));
+    const { columns } = this.prisma.tables.Block;
+    const rows = await this.transaction.query(
+      this.prisma.sql`
+      SELECT "collection"."id" AS "collectionId", "entry"."id" AS "id"
+      FROM "Block" AS "collection"
+      CROSS JOIN LATERAL unnest("collection"."children") WITH ORDINALITY AS "entry"("id", "position")
+      INNER JOIN "Block" AS "child" ON "child"."id" = "entry"."id" AND "child"."type" = ${BLOCK_TYPE.page}
+      WHERE "collection"."id" = ANY(${buildSqlTextList(this.prisma.sql, collectionIds)})
+      ORDER BY "collection"."id", "entry"."position"
+    `
+        .returnsRow({ collectionId: columns.id, id: columns.id })
+        .build(),
+    );
+    for (const row of rows) orders.get(row.collectionId)?.push(row.id);
+    return orders;
+  }
+
+  async listWorkspaceMemberIds(workspaceId: string): Promise<ReadonlySet<string>> {
+    const members = await this.transaction.orm.public.WorkspaceMember.select('userId')
+      .where({ workspaceId })
+      .where((member) => member.user.some({ isActive: true }))
+      .all();
+    return new Set(members.map((member) => member.userId));
+  }
+
+  async readActiveFiles(fileIds: readonly string[], workspaceId: string): Promise<StoredFile[]> {
+    if (fileIds.length === 0) return [];
+    const assets = await this.transaction.orm.public.FileAsset.select('id', 'ownerId', 'pageId')
+      .where({ lifecycle: FileAssetLifecycle.ACTIVE, workspaceId })
+      .where((asset) => asset.id.in([...fileIds]))
+      .all();
+    return assets.map((asset) => ({ id: asset.id, ownerId: asset.ownerId, pageId: asset.pageId }));
+  }
+
+  /** A file that belongs to no page yet follows the row that names it, as it does when the page is saved by the API. */
+  async attachFilesToRows(filesByRow: ReadonlyMap<string, readonly string[]>): Promise<void> {
+    for (const [rowId, fileIds] of filesByRow) {
+      await this.transaction.orm.public.FileAsset.where((asset) => asset.id.in([...fileIds]))
+        .where({ pageId: null })
+        .updateAndCount({ pageId: rowId });
+    }
+  }
+
+  async readCollectionSchemas(
+    pageIds: readonly string[],
+  ): Promise<ReadonlyMap<string, readonly SchemaPropertyDefinition[]>> {
+    if (pageIds.length === 0) return new Map();
+    const schemas = new Map<string, SchemaPropertyDefinition[]>(pageIds.map((pageId) => [pageId, []]));
+    const properties = await this.transaction.orm.public.PageSchemaProperty.select(
+      'config',
+      'key',
+      'label',
+      'options',
+      'pageId',
+      'required',
+      'type',
+    )
+      .where((property) => property.pageId.in([...pageIds]))
+      .orderBy((property) => property.order.asc())
+      .all();
+    for (const property of properties) schemas.get(property.pageId)?.push(toSchemaPropertyDefinition(property));
+    return schemas;
+  }
+
+  async writeViews(writes: readonly ViewWrite[]): Promise<void> {
+    for (const write of writes) {
+      const updated = await this.transaction.orm.public.PageSchemaView.where({ id: write.id }).update({
+        configuration: blockFieldSchemas.properties.parse(write.configuration),
+        manualOrder: write.manualOrder === null ? null : [...write.manualOrder],
+        version: write.version,
+      });
+      requireRow(updated, `View ${write.id}`);
+    }
+  }
+
+  async appendRowsToViewOrders(rows: readonly { readonly pageId: string; readonly rowId: string }[]): Promise<void> {
+    for (const { pageId, rowId } of rows) {
+      await this.transaction.execute(
+        this.prisma.sql`
+        UPDATE "PageSchemaView"
+        SET "manualOrder" = array_append("manualOrder", ${rowId}::text), "version" = "version" + 1
+        WHERE "pageId" = ${pageId} AND "manualOrder" IS NOT NULL AND NOT (${rowId}::text = ANY("manualOrder"))
+      `
+          .affectedCount()
+          .build(),
+      );
+    }
   }
 
   async writeSpaces(spaces: readonly SpaceRoots[]): Promise<void> {

@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import { Toaster, toast } from 'sonner';
 import type { TrashRestoreOutcome } from '@/modules/pages/trash/types/pages.trash.types';
+import type { PageTreeEntry, PageTreeStore } from '@/modules/pages/tree/types/pages.tree.types';
 import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
 import en from '../../../../../../messages/en.json';
 
@@ -113,10 +114,15 @@ mock.module('@/shared/components/ui/dropdown-menu', () => ({
 }));
 
 const { SidebarPageTree } = await import('@/shared/components/portal/sidebar/sidebar-page-tree');
+const { usePagesTreeSpace } = await import('@/modules/pages/tree/hooks/use.pages.tree');
+const { PagesTreeStoreStub, buildSeededPageTreeStore } = await import(
+  '../../../../modules/pages/stubs/pages.tree.stubs'
+);
 
 const spaceId = 'engineering';
 
 const parentPage: PortalSidebarPage = {
+  canEdit: true,
   id: 'parent-page',
   icon: null,
   lifecycle: 'ACTIVE',
@@ -126,6 +132,7 @@ const parentPage: PortalSidebarPage = {
 };
 
 const childPage: PortalSidebarPage = {
+  canEdit: true,
   id: 'child-page',
   icon: null,
   lifecycle: 'ACTIVE',
@@ -135,6 +142,7 @@ const childPage: PortalSidebarPage = {
 };
 
 const siblingPage: PortalSidebarPage = {
+  canEdit: true,
   id: 'sibling-page',
   icon: null,
   lifecycle: 'ACTIVE',
@@ -144,6 +152,7 @@ const siblingPage: PortalSidebarPage = {
 };
 
 const trashedPage: PortalSidebarPage = {
+  canEdit: true,
   id: 'trashed-page',
   icon: null,
   lifecycle: 'TRASHED',
@@ -152,15 +161,38 @@ const trashedPage: PortalSidebarPage = {
   title: 'Trashed page',
 };
 
-const renderSidebarPageTree = (pages: readonly PortalSidebarPage[], role: 'ADMIN' | 'CLIENT' = 'ADMIN') =>
+const TreeUnderTest = ({ role }: { readonly role: 'ADMIN' | 'CLIENT' }) => {
+  const treeView = usePagesTreeSpace(spaceId);
+  return <SidebarPageTree id="sidebar-page-tree" role={role} spaceId={spaceId} treeView={treeView} />;
+};
+
+const pageTreeEntry = (overrides: Partial<PageTreeEntry> & Pick<PageTreeEntry, 'id' | 'title'>): PageTreeEntry => ({
+  canEdit: true,
+  hasChildren: false,
+  hasOwnPermissions: false,
+  icon: null,
+  isCollection: false,
+  lifecycle: 'ACTIVE',
+  order: 0,
+  parentId: null,
+  version: 1,
+  ...overrides,
+});
+
+const renderSidebarPageTreeWithStore = (store: PageTreeStore, role: 'ADMIN' | 'CLIENT' = 'ADMIN') =>
   render(
     <>
       <Toaster />
       <NextIntlClientProvider locale="en" messages={en}>
-        <SidebarPageTree id="sidebar-page-tree" pages={pages} role={role} spaceId={spaceId} />
+        <PagesTreeStoreStub store={store}>
+          <TreeUnderTest role={role} />
+        </PagesTreeStoreStub>
       </NextIntlClientProvider>
     </>,
   );
+
+const renderSidebarPageTree = (pages: readonly PortalSidebarPage[], role: 'ADMIN' | 'CLIENT' = 'ADMIN') =>
+  renderSidebarPageTreeWithStore(buildSeededPageTreeStore(spaceId, pages), role);
 
 const createDataTransferStub = () => ({
   dropEffect: '',
@@ -194,16 +226,68 @@ describe('SidebarPageTree', () => {
     );
   });
 
+  it('marks with a lock a page that has its own access settings, and no other', () => {
+    renderSidebarPageTree([{ ...parentPage, hasOwnPermissions: true }, siblingPage]);
+
+    expect(screen.getByRole('link', { name: /Parent page/ }).textContent).toContain(
+      'This page has its own access settings',
+    );
+    expect(screen.getByRole('link', { name: 'Sibling page' }).textContent).not.toContain('own access settings');
+  });
+
   it('does not show a page that was sent to the trash, since it is now reachable from /trash instead', () => {
-    renderSidebarPageTree([trashedPage]);
+    renderSidebarPageTree([parentPage, trashedPage]);
 
     expect(screen.queryByRole('link', { name: /Trashed page/ })).toBeNull();
+  });
+
+  it('shows the chevron of a page whose children are not loaded yet, and loads them when it opens', async () => {
+    const store = buildSeededPageTreeStore(
+      spaceId,
+      [{ ...parentPage, hasChildren: true }],
+      async (_space, requests) => [
+        {
+          entries: requests.map(() =>
+            pageTreeEntry({ id: 'child-page', parentId: 'parent-page', title: 'Child page' }),
+          ),
+          total: 1,
+        },
+      ],
+    );
+    renderSidebarPageTreeWithStore(store);
+
+    expect(screen.queryByRole('link', { name: 'Child page' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Expand Parent page' }));
+
+    expect(await screen.findByRole('link', { name: 'Child page' })).toBeDefined();
+  });
+
+  it('offers to show more when the pages loaded are not all of them, and loads the next window', async () => {
+    const store = buildSeededPageTreeStore(spaceId, [], async () => [
+      { entries: [pageTreeEntry({ id: 'second-page', order: 1, title: 'Second page' })], total: 2 },
+    ]);
+    store.seedRoots(spaceId, { entries: [pageTreeEntry({ id: 'first-page', title: 'First page' })], total: 2 });
+    renderSidebarPageTreeWithStore(store);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+
+    expect(await screen.findByRole('link', { name: 'Second page' })).toBeDefined();
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull();
+    });
   });
 
   it('does not offer page actions to members who cannot edit content', () => {
     renderSidebarPageTree([parentPage], 'CLIENT');
 
     expect(screen.queryByRole('button', { name: 'Actions for Parent page' })).toBeNull();
+  });
+
+  it('offers no actions on a page the member may only read, whatever their role in the workspace', () => {
+    renderSidebarPageTree([{ ...parentPage, canEdit: false }, siblingPage]);
+
+    expect(screen.queryByRole('button', { name: 'Actions for Parent page' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Actions for Sibling page' })).toBeDefined();
   });
 
   it('expands the ancestor path when the current route selects a nested page', () => {

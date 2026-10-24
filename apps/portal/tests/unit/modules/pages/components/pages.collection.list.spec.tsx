@@ -1,14 +1,17 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
+import { NO_PAGE_AGGREGATES } from '@/modules/pages/collections/constants/pages.aggregates.constants';
 import type {
   PagePersonOption,
   PageSchemaProperty,
   PageViewGroup,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
-import { asPropertyOptions } from '../lib/pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
+import { buildView } from '../lib/pages.views.fixture';
+import { COLLECTION_ACTION_STUBS, PAGE_ACTION_STUBS } from '../stubs/pages.actions.stubs';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
@@ -18,11 +21,53 @@ mock.module('@/i18n/navigation', () => ({
   useRouter: () => ({ refresh: () => undefined }),
 }));
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
+const asked: Record<string, unknown>[] = [];
+mock.module('@/modules/pages/server/actions/pages.actions', () => PAGE_ACTION_STUBS);
+mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  ...COLLECTION_ACTION_STUBS,
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
+  readEveryPageRowAction: async () => ({ data: null }),
+  readPageCollectionAction: async () => ({ data: null }),
+  readPageCollectionChangesAction: async () => ({ data: null }),
+  readPageMatchingRowsAction: async () => ({ data: null }),
+  readPageViewAggregatesAction: async () => ({ data: null }),
+  refreshPageRowsAction: async () => ({ data: null }),
+  loadMorePageRowsAction: async (input: Record<string, unknown>) => {
+    asked.push(input);
+    return {
+      data: {
+        attachedFiles: [],
+        nextCursor: null,
+        relatedRows: [],
+        rows: [
+          {
+            id: 'row-3',
+            lifecycle: 'ACTIVE',
+            order: 2,
+            parentId: 'collection-1',
+            propertyValues: { status: 'todo' },
+            spaceId: 'space-1',
+            title: 'Third task',
+          },
+        ],
+      },
+    };
+  },
+  updatePageRowPropertiesAction: async () => ({ data: null }),
+}));
 
 const { PagesCollectionList } = await import('@/modules/pages/collections/components/pages.collection.list');
 
 const properties: PageSchemaProperty[] = [
-  { key: 'status', label: 'Status', options: asPropertyOptions('todo', 'done'), required: true, type: 'SELECT' },
+  {
+    config: defaultConfig,
+    key: 'status',
+    label: 'Status',
+    options: asPropertyOptions('todo', 'done'),
+    required: true,
+    type: 'SELECT',
+  },
 ];
 
 const personOptions: readonly PagePersonOption[] = [];
@@ -30,6 +75,7 @@ const personOptions: readonly PagePersonOption[] = [];
 const rowIn = (id: string, title: string, status: string) => ({
   id,
   lifecycle: 'ACTIVE' as const,
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues: { status },
@@ -58,10 +104,27 @@ const renderWithMessages = (ui: ReactNode) =>
     </NextIntlClientProvider>,
   );
 
-const drawList = async (groups: PageViewGroup[], isGrouped: boolean) => {
+const drawList = async (groups: PageViewGroup[], isGrouped: boolean, nextCursor: null | string = null) => {
   cleanup();
+  const view = buildView('List', 'LIST', { configuration: isGrouped ? { groupBy: 'status' } : {} });
   return renderWithMessages(
-    await PagesCollectionList({ groups, isGrouped, personOptions, properties, spaceId: 'space-1' }),
+    <PagesCollectionList
+      aggregates={NO_PAGE_AGGREGATES}
+      bands={[
+        {
+          color: null,
+          groups: isGrouped ? groups : groups.map((group) => ({ ...group, nextCursor })),
+          key: '',
+          label: '',
+        },
+      ]}
+      changesCursor={null}
+      personOptions={personOptions}
+      properties={properties}
+      schema={{ pageId: 'collection-1', properties, spaceId: 'space-1', views: [view] }}
+      spaceId="space-1"
+      view={view}
+    />,
   );
 };
 
@@ -77,8 +140,8 @@ describe('PagesCollectionList', () => {
   it('says what each row holds besides its name', async () => {
     await drawList(ungrouped, false);
 
-    expect(screen.getByText('Todo')).toBeDefined();
-    expect(screen.getByText('Done')).toBeDefined();
+    expect(screen.getByText('todo')).toBeDefined();
+    expect(screen.getByText('done')).toBeDefined();
   });
 
   it('heads every group with its value and how many rows it carries', async () => {
@@ -92,5 +155,31 @@ describe('PagesCollectionList', () => {
     await drawList([{ color: null, key: '', label: '', rows: [] }], false);
 
     expect(screen.queryByTestId('collection-list')).toBeNull();
+  });
+
+  it('offers no way to load more when the rows drawn are all there are', async () => {
+    await drawList(ungrouped, false);
+
+    expect(screen.queryByTestId('collection-load-more')).toBeNull();
+  });
+
+  it('asks for the rows after the cursor and draws them below the first ones', async () => {
+    asked.length = 0;
+    await drawList(ungrouped, false, 'cursor-1');
+
+    fireEvent.click(screen.getByTestId('collection-load-more'));
+
+    expect(await screen.findByText('Third task')).toBeDefined();
+    expect(asked).toEqual([
+      {
+        cursor: 'cursor-1',
+        pageId: 'collection-1',
+        quickFilter: null,
+        search: '',
+        spaceId: 'space-1',
+        viewId: 'view-list',
+      },
+    ]);
+    expect(screen.queryByTestId('collection-load-more')).toBeNull();
   });
 });

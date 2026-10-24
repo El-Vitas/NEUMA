@@ -1,4 +1,6 @@
 import type { z } from 'zod';
+import type { PagePropertyValues } from '../page-property/page-property.types.js';
+import type { PageTemplateMarker } from '../page-template/page-template.types.js';
 import type { PageContent } from '../schemas/page-content.schema.js';
 import type { PageCoverValue } from '../schemas/page-cover.schema.js';
 import type { PageIcon } from '../schemas/page-icon.schema.js';
@@ -27,16 +29,20 @@ export interface BlockDocumentRow {
   readonly type: string;
 }
 
-export type BlockDocumentPropertyValues = Readonly<Record<string, string | number | boolean | readonly string[]>>;
+export type BlockDocumentPropertyValues = PagePropertyValues;
 
 export interface DocumentToBlocksInput {
   readonly content: PageContent;
   readonly cover: PageCoverValue | null | undefined;
+  /** On a collection: the template new rows start from. */
+  readonly defaultTemplateId?: string | null | undefined;
   readonly icon: PageIcon | null | undefined;
   readonly pageId: string;
   readonly parentId: string | null;
   readonly propertyValues: BlockDocumentPropertyValues | null | undefined;
   readonly spaceId: string;
+  /** Present on a template page: the column words that are filled when a row is made from it. */
+  readonly template?: PageTemplateMarker | null | undefined;
   readonly title: string;
 }
 

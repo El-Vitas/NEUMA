@@ -1,25 +1,23 @@
 import { describe, expect, test } from 'bun:test';
 import { PAGE_CONTENT_NODE_TYPES, type PageContent, pageContentSchema } from '../schemas/page-content.schema.js';
-import { blocksToDocument } from './block-document.to-document.lib.js';
-import { documentToBlocks } from './block-document.to-blocks.lib.js';
 import { parseBlockContent } from './block-content.lib.js';
 import {
   ANNOTATIONS,
-  FIXTURE_ASSET_ID,
-  FIXTURE_SPACE_ID,
-  FIXTURE_USER_ID,
-  type FixtureNode,
-  IMAGE_NODE,
-  REALISTIC_DOCUMENTS,
   bulletList,
   cell,
   document,
   documentWithIds,
+  FIXTURE_ASSET_ID,
+  FIXTURE_SPACE_ID,
+  FIXTURE_USER_ID,
+  type FixtureNode,
   heading,
+  IMAGE_NODE,
   listItem,
   nestedBlock,
   orderedList,
   paragraph,
+  REALISTIC_DOCUMENTS,
   row,
   table,
   taskItem,
@@ -29,6 +27,8 @@ import {
   unwrap,
   withoutNodeIds,
 } from './block-document.fixtures.js';
+import { documentToBlocks } from './block-document.to-blocks.lib.js';
+import { blocksToDocument } from './block-document.to-document.lib.js';
 
 const expectRoundTrip = (content: PageContent): void => {
   const { blocks, page } = unwrap(documentToBlocks(toInput(content)));
@@ -102,6 +102,17 @@ const NODE_CASES: Readonly<Record<string, readonly unknown[]>> = {
     {
       attrs: { deed: 'blocks', label: 'Añadir', pageId: 'page-1', place: 'below', spaceId: FIXTURE_SPACE_ID },
       content: [paragraph(text('Nuevo bloque'))],
+      type: 'button',
+    },
+    {
+      attrs: {
+        deed: 'row',
+        label: 'Nueva fila',
+        pageId: 'page-1',
+        spaceId: FIXTURE_SPACE_ID,
+        templateId: 'template-1',
+      },
+      content: [paragraph(text('Fila'))],
       type: 'button',
     },
   ],
@@ -289,12 +300,12 @@ describe('round trip: lists', () => {
     );
   });
 
-  test('two adjacent lists of the same kind keep their own colors and comments', () => {
+  test('two adjacent lists of the same kind keep their own colors', () => {
     expectRoundTrip(
       documentWithIds(
         { attrs: { textColor: 'red' }, content: [listItem(paragraph(text('a')))], type: 'bullet_list' },
         {
-          attrs: { backgroundColor: 'blue', comments: ANNOTATIONS.comments },
+          attrs: { backgroundColor: 'blue', textColor: 'green' },
           content: [listItem(paragraph(text('b')))],
           type: 'bullet_list',
         },
@@ -359,7 +370,7 @@ describe('round trip: lists', () => {
     );
   });
 
-  test('a first paragraph with its own id, colors and comments', () => {
+  test('a first paragraph with its own id and colors', () => {
     expectRoundTrip(
       documentWithIds(
         bulletList(listItem({ attrs: { ...ANNOTATIONS }, content: [text('con atributos')], type: 'paragraph' })),
@@ -528,8 +539,8 @@ describe('round trip: nested blocks', () => {
   });
 });
 
-describe('round trip: colors and comments', () => {
-  test('every kind of node carries colors and comments, list wrappers included', () => {
+describe('round trip: colors', () => {
+  test('every kind of node carries colors, list wrappers included', () => {
     const everyKind = Object.values(NODE_CASES).flat();
     const nested = nestedBlock(paragraph(text('Padre')), [paragraph(text('Hijo'))]);
 

@@ -15,9 +15,9 @@ export const PagesCollectionChartPie = ({ label, points }: IProps) => {
   const diameter = PAGE_CHART_PIE_RADIUS * 2;
 
   return (
-    <div className="flex flex-wrap items-center gap-6">
-      <svg className="size-64 shrink-0" role="img" viewBox={`0 0 ${diameter} ${diameter}`}>
-        <title>{label}</title>
+    <figure className="m-0 flex flex-wrap items-center gap-6">
+      <figcaption className="sr-only">{label}</figcaption>
+      <svg aria-hidden="true" className="size-64 shrink-0" viewBox={`0 0 ${diameter} ${diameter}`}>
         {slices.map((slice, index) => (
           <path
             className={readPageOptionFillClass(points[index]?.color ?? null)}
@@ -38,6 +38,6 @@ export const PagesCollectionChartPie = ({ label, points }: IProps) => {
           </li>
         ))}
       </ul>
-    </div>
+    </figure>
   );
 };

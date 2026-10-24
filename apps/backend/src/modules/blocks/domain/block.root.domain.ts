@@ -6,7 +6,7 @@ import type { BlockOperation, RootLists, SpaceRoots, WorkingBlock } from './bloc
 import { BlockTreeInvalidError } from './block.transaction.error';
 
 const isRootPage = (block: WorkingBlock | undefined): block is WorkingBlock =>
-  block !== undefined && block.type === BLOCK_TYPE.page && block.parentId === null && block.alive;
+  block?.type === BLOCK_TYPE.page && block.parentId === null && block.alive;
 
 const findList = (lists: RootLists, spaceId: string): Result<string[], DomainError> => {
   const list = lists.get(spaceId);
@@ -93,7 +93,7 @@ export const applyRootLists = (
   }
   for (const id of touchedIds) {
     const next = after.get(id);
-    if (next === undefined || next.type !== BLOCK_TYPE.page) continue;
+    if (next?.type !== BLOCK_TYPE.page) continue;
     const reconciled = reconcilePage(before.get(id), next, lists);
     if (reconciled.isFail()) return Result.fail(reconciled.getError());
   }

@@ -5,6 +5,7 @@ import type { PageRow, PageViewGroup } from '@/modules/pages/collections/types/p
 const row = (id: string): PageRow => ({
   id,
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection',
   propertyValues: { status: 'todo' },

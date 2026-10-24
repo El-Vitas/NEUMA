@@ -77,6 +77,7 @@ const createHarness = (tokens: readonly (string | null)[] = ['token-1', 'token-2
       return socket;
     },
     pageId: 'page-1',
+    onAccessChanged: () => events.push('access-changed'),
     requestToken: () => {
       const token = tokens[tokenCalls] ?? null;
       tokenCalls += 1;
@@ -116,6 +117,15 @@ describe('createBlockLiveSession', () => {
     expect(socket.sent[1]).toEqual({ pageId: 'page-1', type: 'subscribe' });
     expect(harness.statuses).toEqual(['connecting', 'connected']);
     expect(harness.events).toEqual(['connected']);
+  });
+
+  it('tells the page that what the viewer may do changed', async () => {
+    const harness = createHarness();
+    const socket = await connectFirstSocket(harness);
+
+    socket.receive({ pageId: 'page-1', type: 'access-changed' });
+
+    expect(harness.events).toContain('access-changed');
   });
 
   it('answers a request with the reply that carries its request id', async () => {
@@ -201,6 +211,21 @@ describe('createBlockLiveSession', () => {
     expect(harness.tokenCalls()).toBe(2);
     harness.sockets[1]?.open();
     expect(harness.sockets[1]?.sent[0]).toEqual({ token: 'token-2', type: 'auth' });
+  });
+
+  it('backs off when the server keeps asking to reconnect without ever becoming ready', async () => {
+    const harness = createHarness();
+    const socket = await connectFirstSocket(harness);
+    socket.closeWith(BLOCK_SYNC_CLOSE_CODE.reconnectRequired);
+    await flush();
+
+    harness.sockets[1]?.closeWith(BLOCK_SYNC_CLOSE_CODE.reconnectRequired);
+    await flush();
+
+    expect(harness.sockets).toHaveLength(2);
+    jest.advanceTimersByTime(computeCollaborationReconnectDelayMs(2));
+    await flush();
+    expect(harness.sockets).toHaveLength(3);
   });
 
   it('stops and reports an error when the token is refused', async () => {
@@ -329,5 +354,94 @@ describe('createBlockLiveSession', () => {
 
     expect(socket.isClosed).toBe(true);
     expect(harness.sockets).toHaveLength(1);
+  });
+});
+
+describe('createBlockLiveSession following a collection', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  const createCollectionHarness = () => {
+    const sockets: FakeSocket[] = [];
+    const events: Record<string, unknown>[] = [];
+    const connections: string[] = [];
+    createBlockLiveSession({
+      collectionId: 'collection-1',
+      handlers: {
+        onConnected: () => connections.push('connected'),
+        onDisconnected: () => connections.push('disconnected'),
+        onPresence: () => undefined,
+        onResync: () => undefined,
+        onRevoked: () => undefined,
+        onStatusChange: () => undefined,
+        onVersions: () => undefined,
+      },
+      onCollectionMessage: (message) => events.push(message),
+      openSocket: () => {
+        const socket = new FakeSocket();
+        sockets.push(socket);
+        return socket;
+      },
+      pageId: 'collection-1',
+      requestToken: () => Promise.resolve('token-1'),
+      url: 'ws://localhost/api/v1/blocks/live',
+    });
+    return { connections, events, sockets };
+  };
+
+  const open = async (harness: ReturnType<typeof createCollectionHarness>): Promise<FakeSocket> => {
+    await flush();
+    const socket = harness.sockets.at(-1);
+    if (socket === undefined) throw new Error('No socket was opened');
+    socket.open();
+    socket.receive({ type: 'ready' });
+    return socket;
+  };
+
+  it('follows the collection instead of the page once the server is ready', async () => {
+    const harness = createCollectionHarness();
+
+    const socket = await open(harness);
+
+    expect(socket.sentOfType('subscribe-collection')).toEqual([
+      { collectionId: 'collection-1', type: 'subscribe-collection' },
+    ]);
+    expect(socket.sentOfType('subscribe')).toEqual([]);
+  });
+
+  it('counts as connected when the server accepts the collection', async () => {
+    const harness = createCollectionHarness();
+    const socket = await open(harness);
+
+    socket.receive({ collectionId: 'collection-1', type: 'subscribed-collection' });
+
+    expect(harness.connections).toEqual(['connected']);
+  });
+
+  it('hands the notices of the collection to its listener', async () => {
+    const harness = createCollectionHarness();
+    const socket = await open(harness);
+    const changes = {
+      collectionId: 'collection-1',
+      rows: [{ id: 'row-1', version: 3 }],
+      type: 'collection-changes',
+      views: [],
+    };
+
+    socket.receive(changes);
+    socket.receive({ collectionId: 'collection-1', type: 'collection-resync' });
+    socket.receive({ collectionId: 'collection-1', type: 'collection-revoked' });
+
+    expect(harness.events).toEqual([
+      changes,
+      { collectionId: 'collection-1', type: 'collection-resync' },
+      { collectionId: 'collection-1', type: 'collection-revoked' },
+    ]);
   });
 });

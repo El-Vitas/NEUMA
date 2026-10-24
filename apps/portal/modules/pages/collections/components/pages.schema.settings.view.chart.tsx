@@ -11,12 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { listNumberPropertyKeys } from '../lib/pages.chart-properties.lib';
 import { readPropertyLabel } from '../lib/pages.properties.lib';
 import { readPageChartKind, readPageChartMeasure } from '../lib/pages.view-editing.lib';
-import type { PageSchemaView } from '../types/pages.schema.types';
+import type { PageSchemaViewDraft } from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
 
 interface IProps {
   readonly editor: PagesSchemaEditor;
-  readonly view: PageSchemaView;
+  readonly view: PageSchemaViewDraft;
 }
 
 /** Grouping is not chosen here: it is the chart's axis. Sum and average are offered only with a numeric property. */

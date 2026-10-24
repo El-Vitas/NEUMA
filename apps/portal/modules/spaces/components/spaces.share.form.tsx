@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
+import { callAction, hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
 import type { SpaceMember } from '@/shared/types/space-members.types';
 import { shareSpaceAction } from '../server/actions/spaces.actions';
 
@@ -27,7 +27,7 @@ export const SpacesShareForm = ({ assignableMembers, spaceId }: IProps) => {
 
     setIsSubmitting(true);
     try {
-      const result = await shareSpaceAction({ spaceId, userId: selectedUserId });
+      const result = await callAction(() => shareSpaceAction({ spaceId, userId: selectedUserId }));
       if (hasActionError(result)) {
         toast.error(tErrors(`reasons.${readActionFailureReason(result)}`));
         return;

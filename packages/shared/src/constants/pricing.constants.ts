@@ -1,8 +1,0 @@
-export const PRICING_LIMITS = {
-  MIN_MONEY_AMOUNT: 0,
-  MAX_MONEY_AMOUNT: 100_000_000,
-  MIN_TAX_RATE: 0,
-  MAX_TAX_RATE: 100,
-} as const;
-
-export const DEFAULT_TAX_RATE = 19;

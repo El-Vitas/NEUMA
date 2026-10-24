@@ -79,6 +79,15 @@ export const blockMergePageValuesArgsSchema = z
   .object({ values: z.record(z.string().min(1).max(PAGE_PROPERTY_KEY_MAX_LENGTH), z.json()) })
   .strict();
 
+/** Takes entries out of a list the row holds and puts others in, relative to what the row has when it is written. */
+export const blockChangeValueListArgsSchema = z
+  .object({
+    add: z.array(z.string().min(1).max(200)).max(50).optional(),
+    property: z.string().min(1).max(PAGE_PROPERTY_KEY_MAX_LENGTH),
+    remove: z.array(z.string().min(1).max(200)).max(50).optional(),
+  })
+  .strict();
+
 export const blockMoveToSpaceRootArgsSchema = z
   .object({
     afterId: blockIdSchema.optional(),
@@ -94,6 +103,14 @@ export const blockListBeforeArgsSchema = z.object({ before: blockIdSchema.option
 
 export const blockListRemoveArgsSchema = z.object({ id: blockIdSchema }).strict();
 
+export const blockAddRelationArgsSchema = z
+  .object({ after: blockIdSchema.optional(), property: blockPropertyKeySchema, targetId: blockIdSchema })
+  .strict();
+
+export const blockRemoveRelationArgsSchema = z
+  .object({ property: blockPropertyKeySchema, targetId: blockIdSchema })
+  .strict();
+
 export const blockApplyTextArgsSchema = z
   .object({
     property: blockPropertyKeySchema,
@@ -103,7 +120,11 @@ export const blockApplyTextArgsSchema = z
 
 export const blockSetPermissionArgsSchema = z.object({ permissions: blockPermissionsSchema }).strict();
 
+const versionedIdSchema = z.object({ id: z.string(), version: z.number().int() });
+
 export const blockStoredResultSchema = z.object({
-  blocks: z.array(z.object({ id: z.string(), version: z.number().int() })),
+  blocks: z.array(versionedIdSchema),
   id: z.string(),
+  // A result stored before views had operations carries none.
+  views: z.array(versionedIdSchema).default([]),
 });

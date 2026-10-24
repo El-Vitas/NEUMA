@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import type { EditorView } from 'prosemirror-view';
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { linkPreviewResponseSchema } from '../../../links/schemas/pages.link-preview.response.schemas';
 import type { PageLinkPreview } from '../../../links/types/pages.link-preview.types';
 import { PAGE_LINK_PREVIEW_ROUTE } from '../../menus/constants/pages.editor.link-shape.constants';
 import {
@@ -29,7 +30,9 @@ const askWhatTheLinkSays = async (url: string): Promise<PageLinkPreview | null> 
   try {
     const answer = await fetch(`${PAGE_LINK_PREVIEW_ROUTE}?url=${encodeURIComponent(url)}`);
     if (!answer.ok) return null;
-    const said = (await answer.json()) as PageLinkPreview;
+    const parsed = linkPreviewResponseSchema.safeParse(await answer.json());
+    if (!parsed.success) return null;
+    const said: PageLinkPreview = parsed.data;
     return said.title === undefined && said.icon === undefined ? null : said;
   } catch {
     return null;

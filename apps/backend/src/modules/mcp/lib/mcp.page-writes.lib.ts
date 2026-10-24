@@ -34,7 +34,10 @@ const listReachablePlaces = async (
   call: McpCall,
   nodes: readonly unknown[],
 ): Promise<ReadonlyMap<string, McpPagePlace>> => {
-  const reachable = await dependencies.outline.listReadable(listReferencedPageIds(nodes), call.viewer);
+  const reachable = await dependencies.outline.listReadable(
+    listReferencedPageIds(nodes),
+    await call.readOutlineViewer(),
+  );
   return new Map(reachable.map((place) => [place.id, place]));
 };
 

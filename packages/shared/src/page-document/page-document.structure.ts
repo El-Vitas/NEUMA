@@ -9,7 +9,6 @@ const REQUIRED: PageDocumentAttributes[string] = {};
 
 const PAGE_DOCUMENT_BLOCK_ATTRIBUTES: PageDocumentAttributes = {
   backgroundColor: OPTIONAL,
-  comments: OPTIONAL,
   id: OPTIONAL,
   textColor: OPTIONAL,
 };
@@ -70,6 +69,7 @@ export const PAGE_DOCUMENT_NODES = {
       pageId: OPTIONAL,
       place: OPTIONAL,
       spaceId: OPTIONAL,
+      templateId: OPTIONAL,
     }),
     content: 'block+',
     group: 'block',

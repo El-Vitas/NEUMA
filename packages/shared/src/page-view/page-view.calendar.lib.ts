@@ -1,6 +1,7 @@
 import { MILLISECONDS_IN_A_DAY } from '../constants/time.constants.js';
-import type { PageCalendarDay } from './page-view.types.js';
+import type { PageCalendarDay, PageCalendarLane, PageCalendarPeriod } from './page-view.types.js';
 
+const DAYS_IN_A_WEEK = 7;
 const MONTH_LENGTH = 7;
 const DATE_LENGTH = 10;
 /** Six whole weeks: the most a month can span, e.g. 31 days starting on a Sunday. */
@@ -41,4 +42,48 @@ export const listPageCalendarDays = (month: string): readonly PageCalendarDay[] 
     const date = writeDate(new Date(start + position * MILLISECONDS_IN_A_DAY));
     return { date, isOfTheMonth: date.slice(0, MONTH_LENGTH) === month };
   });
+};
+
+/** The Monday-first week that holds a day, for the calendar that draws one week at a time. */
+export const listPageCalendarWeekDays = (day: string): readonly string[] => {
+  const weekday = new Date(`${day}T00:00:00.000Z`).getUTCDay();
+  const daysBack = weekday === 0 ? DAYS_BACK_FROM_SUNDAY : weekday - 1;
+  return Array.from({ length: DAYS_IN_A_WEEK }, (_unused, position) => shiftPageCalendarDate(day, position - daysBack));
+};
+
+const compareByStartThenLongest = (left: PageCalendarPeriod, right: PageCalendarPeriod): number => {
+  if (left.start !== right.start) return left.start < right.start ? -1 : 1;
+  if (left.end !== right.end) return left.end > right.end ? -1 : 1;
+  return left.id < right.id ? -1 : 1;
+};
+
+const findFreeLane = (laneEnds: readonly number[], startColumn: number): number => {
+  const free = laneEnds.findIndex((lastColumn) => lastColumn < startColumn);
+  return free === -1 ? laneEnds.length : free;
+};
+
+/**
+ * Places the entries that touch a week in lanes, so an entry that lasts several days sits at the same height in each
+ * of them and entries that share a day never overlap. An entry cut at the edge of the week says that it goes on.
+ */
+export const layoutPageCalendarLanes = (
+  days: readonly string[],
+  periods: readonly PageCalendarPeriod[],
+): readonly PageCalendarLane[] => {
+  const firstDay = days.at(0);
+  const lastDay = days.at(-1);
+  if (firstDay === undefined || lastDay === undefined) return [];
+  const laneEnds: number[] = [];
+  return periods
+    .filter((period) => period.start <= lastDay && period.end >= firstDay)
+    .toSorted(compareByStartThenLongest)
+    .map((period) => {
+      const startsInWeek = period.start >= firstDay;
+      const endsInWeek = period.end <= lastDay;
+      const startColumn = startsInWeek ? days.indexOf(period.start) : 0;
+      const endColumn = endsInWeek ? days.indexOf(period.end) : days.length - 1;
+      const lane = findFreeLane(laneEnds, startColumn);
+      laneEnds[lane] = endColumn;
+      return { endColumn, endsInWeek, id: period.id, lane, startColumn, startsInWeek };
+    });
 };

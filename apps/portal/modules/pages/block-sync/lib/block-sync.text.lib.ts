@@ -10,7 +10,7 @@ export const toStableJson = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(toStableJson).join(',')}]`;
   if (!isRecord(value)) return JSON.stringify(value);
   const entries = Object.keys(value)
-    .toSorted()
+    .toSorted((left, right) => left.localeCompare(right))
     .map((key) => `${JSON.stringify(key)}:${toStableJson(value[key])}`);
   return `{${entries.join(',')}}`;
 };

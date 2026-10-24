@@ -1,4 +1,4 @@
-import type { PagePropertyValue } from '../page-property/page-property.types.js';
+import type { PagePropertyOption, PagePropertyValue } from '../page-property/page-property.types.js';
 import type { PagePropertyType } from '../types/page-schema.types.js';
 
 export type PageFilterOperator =
@@ -11,7 +11,11 @@ export type PageFilterOperator =
   | 'IS_GREATER_THAN'
   | 'IS_LESS_THAN'
   | 'IS_BEFORE'
-  | 'IS_AFTER';
+  | 'IS_AFTER'
+  | 'IS_ON_OR_BEFORE'
+  | 'IS_ON_OR_AFTER'
+  | 'IS_IN_GROUP'
+  | 'IS_NOT_IN_GROUP';
 
 export const PAGE_FILTER_OPERATOR = {
   IS: 'IS',
@@ -24,6 +28,10 @@ export const PAGE_FILTER_OPERATOR = {
   IS_LESS_THAN: 'IS_LESS_THAN',
   IS_BEFORE: 'IS_BEFORE',
   IS_AFTER: 'IS_AFTER',
+  IS_ON_OR_BEFORE: 'IS_ON_OR_BEFORE',
+  IS_ON_OR_AFTER: 'IS_ON_OR_AFTER',
+  IS_IN_GROUP: 'IS_IN_GROUP',
+  IS_NOT_IN_GROUP: 'IS_NOT_IN_GROUP',
 } as const satisfies Record<PageFilterOperator, PageFilterOperator>;
 
 export const PAGE_FILTER_OPERATOR_VALUES = [
@@ -37,6 +45,10 @@ export const PAGE_FILTER_OPERATOR_VALUES = [
   PAGE_FILTER_OPERATOR.IS_LESS_THAN,
   PAGE_FILTER_OPERATOR.IS_BEFORE,
   PAGE_FILTER_OPERATOR.IS_AFTER,
+  PAGE_FILTER_OPERATOR.IS_ON_OR_BEFORE,
+  PAGE_FILTER_OPERATOR.IS_ON_OR_AFTER,
+  PAGE_FILTER_OPERATOR.IS_IN_GROUP,
+  PAGE_FILTER_OPERATOR.IS_NOT_IN_GROUP,
 ] as const;
 
 export type PageFilterGroupOperator = 'AND' | 'OR';
@@ -46,7 +58,9 @@ export const PAGE_FILTER_GROUP_OPERATOR = {
   OR: 'OR',
 } as const satisfies Record<PageFilterGroupOperator, PageFilterGroupOperator>;
 
+/** Every stored node has an id so it can be changed alone (ADR 025). A client may omit it; the server assigns. */
 export interface PageFilterCondition {
+  readonly id?: string;
   readonly kind: 'CONDITION';
   readonly propertyKey: string;
   readonly operator: PageFilterOperator;
@@ -54,6 +68,7 @@ export interface PageFilterCondition {
 }
 
 export interface PageFilterGroup {
+  readonly id?: string;
   readonly kind: 'GROUP';
   readonly operator: PageFilterGroupOperator;
   readonly conditions: readonly PageFilter[];
@@ -89,7 +104,9 @@ export type PageViewCalculation =
   | 'MINIMUM'
   | 'MAXIMUM'
   | 'MEDIAN'
-  | 'PERCENT_CHECKED';
+  | 'PERCENT_CHECKED'
+  | 'PERCENT_EMPTY'
+  | 'PERCENT_FILLED';
 
 export const PAGE_VIEW_CALCULATION = {
   NONE: 'NONE',
@@ -102,6 +119,8 @@ export const PAGE_VIEW_CALCULATION = {
   MAXIMUM: 'MAXIMUM',
   MEDIAN: 'MEDIAN',
   PERCENT_CHECKED: 'PERCENT_CHECKED',
+  PERCENT_EMPTY: 'PERCENT_EMPTY',
+  PERCENT_FILLED: 'PERCENT_FILLED',
 } as const satisfies Record<PageViewCalculation, PageViewCalculation>;
 
 export const PAGE_VIEW_CALCULATION_VALUES = [
@@ -115,6 +134,8 @@ export const PAGE_VIEW_CALCULATION_VALUES = [
   PAGE_VIEW_CALCULATION.MAXIMUM,
   PAGE_VIEW_CALCULATION.MEDIAN,
   PAGE_VIEW_CALCULATION.PERCENT_CHECKED,
+  PAGE_VIEW_CALCULATION.PERCENT_EMPTY,
+  PAGE_VIEW_CALCULATION.PERCENT_FILLED,
 ] as const;
 
 /** Without a bucket, each distinct day is its own group: a year of work becomes hundreds of one-row groups. */
@@ -127,6 +148,16 @@ export const PAGE_DATE_BUCKET = {
 } as const satisfies Record<PageDateBucket, PageDateBucket>;
 
 export const PAGE_DATE_BUCKET_VALUES = [PAGE_DATE_BUCKET.DAY, PAGE_DATE_BUCKET.WEEK, PAGE_DATE_BUCKET.MONTH] as const;
+
+/** A status groups by each option or by its three groups; any other property has one way to group. */
+export type PageGroupByMode = 'OPTION' | 'GROUP';
+
+export const PAGE_GROUP_BY_MODE = {
+  GROUP: 'GROUP',
+  OPTION: 'OPTION',
+} as const satisfies Record<PageGroupByMode, PageGroupByMode>;
+
+export const PAGE_GROUP_BY_MODE_VALUES = [PAGE_GROUP_BY_MODE.OPTION, PAGE_GROUP_BY_MODE.GROUP] as const;
 
 export type PageRowHeight = 'SHORT' | 'MEDIUM' | 'TALL';
 
@@ -176,13 +207,54 @@ export const PAGE_COLUMN_ALIGNMENT_VALUES = [
   PAGE_COLUMN_ALIGNMENT.END,
 ] as const;
 
+/** How much time a screen of a calendar or a timeline holds; a calendar takes MONTH and WEEK, a timeline all three. */
+export type PageDateScale = 'DAY' | 'WEEK' | 'MONTH';
+
+export const PAGE_DATE_SCALE = {
+  DAY: 'DAY',
+  WEEK: 'WEEK',
+  MONTH: 'MONTH',
+} as const satisfies Record<PageDateScale, PageDateScale>;
+
+export const PAGE_DATE_SCALE_VALUES = [PAGE_DATE_SCALE.DAY, PAGE_DATE_SCALE.WEEK, PAGE_DATE_SCALE.MONTH] as const;
+
+export type PageCardSize = 'SMALL' | 'MEDIUM' | 'LARGE';
+
+export const PAGE_CARD_SIZE = {
+  SMALL: 'SMALL',
+  MEDIUM: 'MEDIUM',
+  LARGE: 'LARGE',
+} as const satisfies Record<PageCardSize, PageCardSize>;
+
+export const PAGE_CARD_SIZE_VALUES = [PAGE_CARD_SIZE.SMALL, PAGE_CARD_SIZE.MEDIUM, PAGE_CARD_SIZE.LARGE] as const;
+
 export interface PageCalendarDay {
   readonly date: string;
   readonly isOfTheMonth: boolean;
 }
 
+/** The days a row lasts, first and last included, as `YYYY-MM-DD`. */
+export interface PageCalendarPeriod {
+  readonly end: string;
+  readonly id: string;
+  readonly start: string;
+}
+
+/** Where an entry sits in the seven columns of a week: the columns it takes, and whether it is cut at either edge. */
+export interface PageCalendarLane {
+  readonly endColumn: number;
+  readonly endsInWeek: boolean;
+  readonly id: string;
+  /** Entries that share a day take different lanes, counted from the top. */
+  readonly lane: number;
+  readonly startColumn: number;
+  readonly startsInWeek: boolean;
+}
+
+/** What the engine needs to read a column: its options give a select its order and a status its groups. */
 export interface PageViewProperty {
   readonly key: string;
+  readonly options?: readonly PagePropertyOption[] | null;
   readonly type: PagePropertyType;
 }
 
@@ -190,12 +262,26 @@ export interface PageViewConfiguration {
   /** Emoji shown on the view's tab; per view, not per collection. */
   readonly icon: string | null;
   readonly groupBy: string | null;
+  /** Only means something for a status. */
+  readonly groupByMode: PageGroupByMode;
+  /** Groups the view keeps out of sight; their rows are read only when asked for. */
+  readonly hiddenGroups: readonly string[];
   /** Crosses `groupBy`: with both set, rows form a grid where each crossing is a drop target. */
   readonly subGroupBy: string | null;
   /** Ignored when grouping by a non-date property. */
   readonly groupByDateBucket: PageDateBucket;
   /** Separate from `groupBy`: it places each row on its day, and a collection may hold several date properties. */
   readonly dateProperty: string | null;
+  /** A timeline whose rows end in another property than they start in; null reads start and end from `dateProperty`. */
+  readonly endDateProperty: string | null;
+  /** Per view: a calendar opens on a week or a month, a timeline on days, weeks or months. */
+  readonly dateScale: PageDateScale;
+  /** Gallery and board cards. */
+  readonly cardSize: PageCardSize;
+  /** A files property whose first image is the cover of a card; null shows no cover. */
+  readonly coverProperty: string | null;
+  /** Columns whose text wraps, on top of `wrapsText` that wraps all of them; only true entries are kept. */
+  readonly columnWraps: Readonly<Record<string, true>>;
   readonly filter: PageFilter | null;
   readonly sorts: readonly PageSort[];
   /** Null means all properties, in collection order; an empty list means show none. */

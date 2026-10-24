@@ -1,7 +1,7 @@
 'use client';
 
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import type { PageEditorSurfaceRect } from '../../editor/menus/types/pages.editor.surface.types';
 import { PAGE_PREVIEW_CLOSE_DELAY_MS, PAGE_PREVIEW_OPEN_DELAY_MS } from '../constants/pages.preview.constants';
 import { isWithinThePagePreviewCard, readPagePreviewLink, readPagePreviewSpot } from '../lib/pages.preview.lib';
@@ -15,7 +15,9 @@ import type {
 } from '../types/pages.preview.types';
 
 const readPagePreviewOutcome = async (link: PagePreviewLinkMatch): Promise<PagePreviewOutcome> => {
-  const response = await getPagePreviewAction({ pageId: link.target.pageId, spaceId: link.target.spaceId });
+  const response = await callAction(() =>
+    getPagePreviewAction({ pageId: link.target.pageId, spaceId: link.target.spaceId }),
+  );
   return isActionSuccess<PagePreviewContent>(response) ? { content: response.data, kind: 'found' } : { kind: 'denied' };
 };
 

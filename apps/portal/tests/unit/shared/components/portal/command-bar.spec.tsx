@@ -1,10 +1,12 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { RECENT_PAGES_STORAGE_KEY } from '@/shared/constants/recents.constants';
+import { RecentsOwnerProvider } from '@/shared/components/portal/recents-owner.provider';
+import { buildRecentPagesStorageKey } from '@/shared/lib/recents.lib';
 import en from '../../../../../messages/en.json';
 import es from '../../../../../messages/es.json';
 
+const RECENT_PAGES_STORAGE_KEY = buildRecentPagesStorageKey('user-1');
 const push = mock(() => undefined);
 
 mock.module('@/i18n/navigation', () => ({
@@ -24,9 +26,11 @@ const { PortalCommandBar } = await import('@/shared/components/portal/command-ba
 
 const renderCommandBar = (onOpenChange: (open: boolean) => void = mock(() => undefined)) =>
   render(
-    <NextIntlClientProvider locale="en" messages={en}>
-      <PortalCommandBar onOpenChange={onOpenChange} open />
-    </NextIntlClientProvider>,
+    <RecentsOwnerProvider userId="user-1">
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PortalCommandBar onOpenChange={onOpenChange} open />
+      </NextIntlClientProvider>
+    </RecentsOwnerProvider>,
   );
 
 describe('PortalCommandBar', () => {
@@ -89,9 +93,11 @@ describe('PortalCommandBar', () => {
     localStorage.removeItem(RECENT_PAGES_STORAGE_KEY);
     const onOpenChange = mock(() => undefined);
     const { rerender } = render(
-      <NextIntlClientProvider locale="en" messages={en}>
-        <PortalCommandBar onOpenChange={onOpenChange} open={false} />
-      </NextIntlClientProvider>,
+      <RecentsOwnerProvider userId="user-1">
+        <NextIntlClientProvider locale="en" messages={en}>
+          <PortalCommandBar onOpenChange={onOpenChange} open={false} />
+        </NextIntlClientProvider>
+      </RecentsOwnerProvider>,
     );
 
     localStorage.setItem(
@@ -102,9 +108,11 @@ describe('PortalCommandBar', () => {
     );
 
     rerender(
-      <NextIntlClientProvider locale="en" messages={en}>
-        <PortalCommandBar onOpenChange={onOpenChange} open />
-      </NextIntlClientProvider>,
+      <RecentsOwnerProvider userId="user-1">
+        <NextIntlClientProvider locale="en" messages={en}>
+          <PortalCommandBar onOpenChange={onOpenChange} open />
+        </NextIntlClientProvider>
+      </RecentsOwnerProvider>,
     );
 
     expect(screen.getByText('Roadmap')).toBeDefined();

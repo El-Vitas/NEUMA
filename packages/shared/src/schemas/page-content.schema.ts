@@ -274,6 +274,8 @@ export const pageButtonAttrsSchema = z
     pageId: z.string().min(1).max(maximumMentionPageIdLength).optional(),
     place: z.enum(PAGE_BUTTON_PLACES).optional(),
     spaceId: z.string().min(1).max(maximumMentionSpaceIdLength).optional(),
+    /** The template of the collection a row is made from; left out, the default one (ADR 027). */
+    templateId: z.string().min(1).max(maximumMentionPageIdLength).optional(),
   })
   .strict();
 

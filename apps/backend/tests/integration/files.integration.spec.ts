@@ -28,6 +28,7 @@ describe('Files (Integration)', () => {
   let prisma: PrismaService;
   let admin: SeededUser;
   let outsider: SeededUser;
+  let worker: SeededUser;
   let publicSpaceId: string;
   let restrictedSpaceId: string;
   let pageId: string;
@@ -75,6 +76,7 @@ describe('Files (Integration)', () => {
     prisma = testApp.get(PrismaService);
     admin = await createSeededUser(testApp, 'Files Admin', 'ADMIN');
     outsider = await createSeededUser(testApp, 'files-outsider', 'CLIENT');
+    worker = await createSeededUser(testApp, 'files-worker', 'WORKER');
     publicSpaceId = await createSeededSpace(testApp, admin.token, SpaceVisibility.PUBLIC_INTERNAL);
     restrictedSpaceId = await createSeededSpace(testApp, admin.token, SpaceVisibility.RESTRICTED);
     pageId = await createPage(restrictedSpaceId, 'Attachment host page');
@@ -119,6 +121,63 @@ describe('Files (Integration)', () => {
 
   it('denies a non-member, non-admin user from enumerating the page attachments', async () => {
     await listAttachments(outsider.token, pageId).expect(HTTP_FORBIDDEN);
+  });
+
+  describe('a page the person can only read', () => {
+    const createSharedPage = async (workerRole: 'editor' | 'reader'): Promise<string> =>
+      (
+        await blocks().create({
+          createdById: admin.id,
+          editedById: admin.id,
+          permissions: [
+            ...onlyUserPermissions(admin.id),
+            { principal: { kind: 'user' as const, userId: worker.id }, role: workerRole },
+          ],
+          spaceId: publicSpaceId,
+          title: `Shared as ${workerRole}`,
+          type: 'page',
+        })
+      ).id;
+
+    const deleteAsset = (token: string, assetId: string) =>
+      request(testApp.getServer()).delete(`/api/v1/files/${assetId}`).set('Authorization', `Bearer ${token}`);
+
+    it('lets a reader read an attachment but not upload one', async () => {
+      const sharedPageId = await createSharedPage('reader');
+      const assetId = await uploadAttachment(admin.token, sharedPageId);
+
+      await download(worker.token, assetId).expect(HTTP_OK);
+      await request(testApp.getServer())
+        .post('/api/v1/files')
+        .query({ pageId: sharedPageId })
+        .set('Authorization', `Bearer ${worker.token}`)
+        .attach('file', Buffer.from('attachment contents'), 'attachment.txt')
+        .expect(HTTP_FORBIDDEN);
+    });
+
+    it('does not let a reader delete an attachment', async () => {
+      const sharedPageId = await createSharedPage('reader');
+      const assetId = await uploadAttachment(admin.token, sharedPageId);
+
+      await deleteAsset(worker.token, assetId).expect(HTTP_FORBIDDEN);
+
+      await download(admin.token, assetId).expect(HTTP_OK);
+    });
+
+    it('does not let a reader delete an attachment through a block that shows it', async () => {
+      const sharedPageId = await createSharedPage('reader');
+      const assetId = await uploadAttachment(admin.token, pageId);
+      await createReferencingBlock(sharedPageId, publicSpaceId, assetId);
+
+      await deleteAsset(worker.token, assetId).expect(HTTP_FORBIDDEN);
+    });
+
+    it('lets an editor upload and delete', async () => {
+      const sharedPageId = await createSharedPage('editor');
+      const assetId = await uploadAttachment(worker.token, sharedPageId);
+
+      await deleteAsset(worker.token, assetId).expect(HTTP_OK);
+    });
   });
 
   describe('assets referenced by a block', () => {

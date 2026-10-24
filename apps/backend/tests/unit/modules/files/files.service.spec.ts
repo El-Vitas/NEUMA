@@ -28,6 +28,7 @@ const buildRepository = (overrides: Partial<FileAssetRepository> = {}): FileAsse
   create: () => Promise.resolve(asset),
   findAccessible: () => Promise.resolve(asset),
   findByPage: () => Promise.resolve([]),
+  findDeletable: () => Promise.resolve(asset),
   markDeleted: () => Promise.resolve(true),
   ...overrides,
 });

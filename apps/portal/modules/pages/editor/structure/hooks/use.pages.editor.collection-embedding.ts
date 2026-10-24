@@ -1,9 +1,9 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import { readTheViewToShow } from '../../../collections/lib/pages.collections.lib';
 import {
   createPageCollectionAction,
@@ -35,6 +35,8 @@ export const usePagesEditorCollectionEmbedding = ({
   const tErrors = useTranslations('errors');
   const [choice, setChoice] = useState<null | PageEditorCollectionChoice>(null);
   const [isAsking, startAsking] = useTransition();
+  /** Kept until the page is made, so asking again after a failure finds the page the first try may have created. */
+  const pendingPageIdRef = useRef<string | null>(null);
 
   const insert = (pageId: string, viewName: null | string, spot: number): void => {
     const editorView = editorViewRef.current;
@@ -46,26 +48,32 @@ export const usePagesEditorCollectionEmbedding = ({
   };
 
   const create = (input: PageEditorCollectionCreation): void => {
+    pendingPageIdRef.current ??= crypto.randomUUID();
+    const pageId = pendingPageIdRef.current;
     startAsking(async () => {
-      const made = await createPageCollectionAction({
-        content: createEmptyPageContent(),
-        parentId: input.parentId,
-        properties: input.shape.properties,
-        spaceId,
-        title: input.title,
-        views: input.shape.views,
-      });
+      const made = await callAction(() =>
+        createPageCollectionAction({
+          content: createEmptyPageContent(),
+          id: pageId,
+          parentId: input.parentId,
+          properties: input.shape.properties,
+          spaceId,
+          title: input.title,
+          views: input.shape.views,
+        }),
+      );
       if (!isActionSuccess<PageSummary>(made)) {
         toast.error(tErrors(`reasons.${readActionFailureReason(made)}`));
         return;
       }
+      pendingPageIdRef.current = null;
       insert(made.data.id, input.shape.views[0]?.name ?? null, input.spot);
     });
   };
 
   const show = (pageId: string, spot: number): void => {
     startAsking(async () => {
-      const asked = await readPageCollectionAction({ pageId, spaceId });
+      const asked = await callAction(() => readPageCollectionAction({ pageId, spaceId }));
       if (!isActionSuccess<PageSchema | null>(asked)) {
         toast.error(tErrors(`reasons.${readActionFailureReason(asked)}`));
         return;

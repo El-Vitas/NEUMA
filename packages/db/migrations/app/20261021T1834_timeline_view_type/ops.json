@@ -1,0 +1,53 @@
+[
+  {
+    "id": "addNativeEnumValue.DatabaseViewType.TIMELINE",
+    "label": "Add value \"TIMELINE\" to enum type \"DatabaseViewType\"",
+    "summary": "Adds value \"TIMELINE\" to enum type \"DatabaseViewType\". A newly added enum value cannot be used until the transaction that adds it commits, so a migration that both appends a value and uses it in the same step will fail at apply.",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabaseViewType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure enum type \"DatabaseViewType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_type\" AS \"t\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"t\".\"typtype\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabaseViewType",
+          "e"
+        ]
+      },
+      {
+        "description": "ensure value \"TIMELINE\" is absent from enum type \"DatabaseViewType\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabaseViewType",
+          "TIMELINE"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add value \"TIMELINE\" to enum type \"DatabaseViewType\"",
+        "sql": "ALTER TYPE \"public\".\"DatabaseViewType\" ADD VALUE 'TIMELINE'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify value \"TIMELINE\" exists on enum type \"DatabaseViewType\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabaseViewType",
+          "TIMELINE"
+        ]
+      }
+    ]
+  }
+]

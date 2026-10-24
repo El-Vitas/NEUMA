@@ -5,6 +5,7 @@ import {
   BLOCK_SYNC_RATE_LIMIT_MAX_DELAY_MS,
 } from '../constants/block-sync.constants';
 import type {
+  BlockQueuePersistence,
   BlockQueueState,
   BlockTransaction,
   BlockTransactionOutcome,
@@ -27,8 +28,14 @@ const computeRetryDelayMs = (code: string, attempt: number): number =>
  * which the server answers from what it stored. One the server refused is handed over and the queue holds the
  * rest until it is cleared, because they were built on what that one assumed.
  */
-export const createTransactionQueue = ({ handlers, send }: BlockTransactionQueueOptions): BlockTransactionQueue => {
+export const createTransactionQueue = ({
+  handlers,
+  persistence,
+  send,
+}: BlockTransactionQueueOptions): BlockTransactionQueue => {
   let items: BlockTransaction[] = [];
+  /** Disk work in the order it was asked, so a transaction is on disk before it is sent and gone after it is done. */
+  let writes: Promise<void> = Promise.resolve();
   let isSending = false;
   let isBlocked = false;
   let isDestroyed = false;
@@ -37,6 +44,12 @@ export const createTransactionQueue = ({ handlers, send }: BlockTransactionQueue
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
   const emit = (state: BlockQueueState): void => handlers.onStateChange(state);
+
+  /** The persistence reports its own failures, so a broken disk never stops the queue from sending. */
+  const writeToDisk = (write: (disk: BlockQueuePersistence) => Promise<void>): void => {
+    if (persistence === undefined) return;
+    writes = writes.then(() => write(persistence)).catch(() => undefined);
+  };
 
   const attempt = async (transaction: BlockTransaction): Promise<SendResult> => {
     try {
@@ -77,19 +90,27 @@ export const createTransactionQueue = ({ handlers, send }: BlockTransactionQueue
     failures = 0;
     items = items.filter((held) => held !== transaction);
     if ('error' in outcome) {
+      const { error } = outcome;
       isBlocked = true;
-      handlers.onRejected(transaction, outcome.error);
+      writeToDisk((disk) => disk.setAside(transaction, error));
+      handlers.onRejected(transaction, error);
       return false;
     }
+    writeToDisk((disk) => disk.drop(transaction.id));
     handlers.onApplied(transaction, outcome.blocks);
     return true;
   };
 
   const pump = async (): Promise<void> => {
-    const next = items[0];
-    if (isSending || isBlocked || isDestroyed || retryTimer !== null || next === undefined) return;
+    if (isSending || isBlocked || isDestroyed || retryTimer !== null || items.length === 0) return;
     isSending = true;
     emit('saving');
+    await writes;
+    const next = items[0];
+    if (next === undefined || isDestroyed) {
+      isSending = false;
+      return;
+    }
     const result = await attempt(next);
     isSending = false;
     if (isDestroyed) return;
@@ -109,6 +130,7 @@ export const createTransactionQueue = ({ handlers, send }: BlockTransactionQueue
       isBlocked = false;
       failures = 0;
       clearRetry();
+      for (const transaction of dropped) writeToDisk((disk) => disk.drop(transaction.id));
       return dropped;
     },
     destroy: () => {
@@ -117,12 +139,26 @@ export const createTransactionQueue = ({ handlers, send }: BlockTransactionQueue
     },
     enqueue: (transaction) => {
       items = [...items, transaction];
+      writeToDisk((disk) => disk.keep(transaction));
       void pump();
     },
     list: () => items,
+    restore: (transactions) => {
+      const restored = new Set(transactions.map((transaction) => transaction.id));
+      items = [...transactions, ...items.filter((held) => !restored.has(held.id))];
+      void pump();
+    },
     resume: () => {
       clearRetry();
       void pump();
+    },
+    setAsideAll: (error) => {
+      const waiting = items;
+      items = [];
+      isBlocked = false;
+      failures = 0;
+      clearRetry();
+      for (const transaction of waiting) writeToDisk((disk) => disk.setAside(transaction, error));
     },
     size: () => items.length,
   };

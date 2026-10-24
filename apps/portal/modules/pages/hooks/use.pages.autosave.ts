@@ -186,9 +186,11 @@ export const usePagesAutosave = ({ enabled, onSave }: PagesAutosaveOptions): Pag
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      const isSaveWaiting = timeoutRef.current !== null;
       cancel();
+      if (isSaveWaiting && enabledRef.current && !isSavingRef.current) void attemptSave();
     };
-  }, [cancel]);
+  }, [attemptSave, cancel]);
 
   return {
     cancel,

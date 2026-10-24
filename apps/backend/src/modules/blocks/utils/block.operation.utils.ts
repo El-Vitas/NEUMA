@@ -1,12 +1,14 @@
 import { isOneOf, Result } from '@neuma/shared';
 import type { z } from 'zod';
 import type { DomainError } from '../../../common/domain/domain.error';
+import { compareCodeUnits } from '../../../common/utils/compare.utils';
 import {
   BLOCK_CHILDREN_PATH,
   BLOCK_COMMAND,
   BLOCK_PAGE_COMMAND,
   BLOCK_ROOT_PAGES_PATH,
   BLOCK_SPACE_TABLE,
+  BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION,
 } from '../constants/block.transaction.constants';
 import {
   BLOCK_BAG_VALUES,
@@ -14,9 +16,15 @@ import {
   BLOCK_WRITABLE_FIELD_VALUES,
 } from '../domain/block.operation.constants';
 import type { BlockFieldPatch, BlockOperation } from '../domain/block.transaction.domain.types';
-import { BlockFieldNotWritableError, BlockOperationInvalidError } from '../domain/block.transaction.error';
 import {
+  BlockFieldNotWritableError,
+  BlockOperationInvalidError,
+  BlockOperationsTooManyError,
+} from '../domain/block.transaction.error';
+import {
+  blockAddRelationArgsSchema,
   blockApplyTextArgsSchema,
+  blockChangeValueListArgsSchema,
   blockCreateArgsSchema,
   blockEntriesSchema,
   blockEntryValueSchema,
@@ -28,6 +36,7 @@ import {
   blockMoveToSpaceRootArgsSchema,
   blockOperationEnvelopeSchema,
   blockPropertyKeySchema,
+  blockRemoveRelationArgsSchema,
   blockSetLifecycleArgsSchema,
   blockSetLockArgsSchema,
   blockSetOwnerArgsSchema,
@@ -156,6 +165,31 @@ const parseListRemove = (blockId: string, path: readonly string[], args: unknown
   return Result.ok({ blockId, childId: parsed.data.id, command: 'removeChild' });
 };
 
+const parseAddRelation = (blockId: string, path: readonly string[], args: unknown): Parsed => {
+  if (path.length !== 0) return invalid('addRelation addresses the block');
+  const parsed = blockAddRelationArgsSchema.safeParse(args);
+  if (!parsed.success) return invalidArguments(parsed.error);
+  return Result.ok({
+    afterId: parsed.data.after ?? null,
+    blockId,
+    command: 'addRelation',
+    property: parsed.data.property,
+    targetId: parsed.data.targetId,
+  });
+};
+
+const parseRemoveRelation = (blockId: string, path: readonly string[], args: unknown): Parsed => {
+  if (path.length !== 0) return invalid('removeRelation addresses the block');
+  const parsed = blockRemoveRelationArgsSchema.safeParse(args);
+  if (!parsed.success) return invalidArguments(parsed.error);
+  return Result.ok({
+    blockId,
+    command: 'removeRelation',
+    property: parsed.data.property,
+    targetId: parsed.data.targetId,
+  });
+};
+
 const parseApplyText = (blockId: string, path: readonly string[], args: unknown): Parsed => {
   if (path.length !== 0) return invalid('applyText addresses the block');
   const parsed = blockApplyTextArgsSchema.safeParse(args);
@@ -217,6 +251,19 @@ const parseMergePageValues = (blockId: string, path: readonly string[], args: un
   return Result.ok({ blockId, command: 'mergePageValues', values: parsed.data.values });
 };
 
+const parseChangeValueList = (blockId: string, path: readonly string[], args: unknown): Parsed => {
+  if (path.length !== 0) return invalid('changeValueList addresses the block');
+  const parsed = blockChangeValueListArgsSchema.safeParse(args);
+  if (!parsed.success) return invalidArguments(parsed.error);
+  return Result.ok({
+    add: parsed.data.add ?? [],
+    blockId,
+    command: 'changeValueList',
+    property: parsed.data.property,
+    remove: parsed.data.remove ?? [],
+  });
+};
+
 const parseRewritePageValues = (blockId: string, path: readonly string[], args: unknown): Parsed => {
   if (path.length !== 0) return invalid('rewritePageValues addresses the block');
   const parsed = blockMergePageValuesArgsSchema.safeParse(args);
@@ -250,6 +297,8 @@ const parsePageCommand = ({ args, command, path, pointer }: ReadEnvelope): Parse
       return parseSetOwner(pointer.id, path, args);
     case BLOCK_PAGE_COMMAND.mergePageValues:
       return parseMergePageValues(pointer.id, path, args);
+    case BLOCK_PAGE_COMMAND.changeValueList:
+      return parseChangeValueList(pointer.id, path, args);
     case BLOCK_PAGE_COMMAND.rewritePageValues:
       return parseRewritePageValues(pointer.id, path, args);
     case BLOCK_PAGE_COMMAND.moveToSpaceRoot:
@@ -308,6 +357,10 @@ const parseBlockCommand = ({ args, command, path, pointer }: ReadEnvelope): Pars
       return parseApplyText(pointer.id, path, args);
     case BLOCK_COMMAND.setPermission:
       return parseSetPermission(pointer.id, path, args);
+    case BLOCK_COMMAND.addRelation:
+      return parseAddRelation(pointer.id, path, args);
+    case BLOCK_COMMAND.removeRelation:
+      return parseRemoveRelation(pointer.id, path, args);
     default:
       return invalid('The command is not known');
   }
@@ -351,7 +404,9 @@ export const parseBlockOperations = (raw: readonly unknown[]): Result<BlockOpera
   parseEach(raw, parseBlockOperation);
 
 export const parseTrustedBlockOperations = (raw: readonly unknown[]): Result<BlockOperation[], DomainError> =>
-  parseEach(raw, parseTrustedBlockOperation);
+  raw.length > BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION
+    ? Result.fail(new BlockOperationsTooManyError(BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION))
+    : parseEach(raw, parseTrustedBlockOperation);
 
 const listParentId = (parentId: string | null | undefined): string[] =>
   parentId === null || parentId === undefined ? [] : [parentId];
@@ -372,6 +427,9 @@ const listReferencedIds = (operation: BlockOperation): string[] => {
       return listParentId(operation.placement.anchorId);
     case 'setLifecycle':
       return listParentId(operation.detachFromParentId);
+    case 'addRelation':
+    case 'removeRelation':
+      return [operation.targetId];
     case 'moveToSpaceRoot':
       return [
         ...listParentId(operation.detachFromParentId),
@@ -436,7 +494,23 @@ export const listRootSpaceIds = (operations: readonly BlockOperation[], spaceId:
   const named = operations.flatMap((operation) =>
     operation.command === 'insertRoot' || operation.command === 'removeRoot' ? [operation.spaceId] : [],
   );
-  return [...new Set([spaceId, ...named, ...listDestinationSpaceIds(operations, spaceId)])].toSorted();
+  return [...new Set([spaceId, ...named, ...listDestinationSpaceIds(operations, spaceId)])].toSorted(compareCodeUnits);
+};
+
+/**
+ * The collections whose schema a transaction must read: the ones that get a new row, and the ones whose rows it
+ * changes in any way. `locked` holds the rows the operations name, so it tells where those rows live.
+ */
+export const listCollectionIds = (
+  operations: readonly BlockOperation[],
+  locked: readonly { readonly id: string; readonly parentId: string | null }[],
+): string[] => {
+  const parentOf = new Map(locked.map((row) => [row.id, row.parentId]));
+  const parents = operations.flatMap((operation) => {
+    if (operation.command === 'create') return listParentId(operation.fields.parentId);
+    return listParentId(parentOf.get(operation.blockId));
+  });
+  return [...new Set(parents)];
 };
 
 /** The pages that leave their space with their whole branch: the rows to read below them. */
