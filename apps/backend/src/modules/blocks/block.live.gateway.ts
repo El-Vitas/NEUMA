@@ -1,4 +1,4 @@
-import { type BeforeApplicationShutdown, Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { type BeforeApplicationShutdown, Inject, Injectable } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import type { FastifyAdapter } from '@nestjs/platform-fastify';
 import { BlockLiveFanoutService } from './block.live.fanout.service';
@@ -8,9 +8,12 @@ import { BlockVersionListener } from './infrastructure/listener/block.version.li
 import { registerBlockLiveTransport } from './infrastructure/transport/block.live.transport';
 import type { BlockLiveSettings } from './types/block.live.types';
 
-/** Mounts the socket and the listener when the application starts and takes them down before the database closes. */
+/**
+ * Mounts the socket and the listener when `main.ts` starts the server, and takes them down before the database
+ * closes. It is not a module init hook: a command that boots the modules without a server has no HTTP adapter.
+ */
 @Injectable()
-export class BlockLiveGateway implements OnModuleInit, BeforeApplicationShutdown {
+export class BlockLiveGateway implements BeforeApplicationShutdown {
   private presenceSweepTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -21,7 +24,7 @@ export class BlockLiveGateway implements OnModuleInit, BeforeApplicationShutdown
     @Inject(BLOCK_LIVE_SETTINGS) private readonly settings: BlockLiveSettings,
   ) {}
 
-  async onModuleInit(): Promise<void> {
+  async start(): Promise<void> {
     await registerBlockLiveTransport(this.httpAdapterHost.httpAdapter.getInstance(), (socket) =>
       this.blockLiveService.openConnection(socket),
     );
