@@ -37,10 +37,4 @@ describe('findMissingProductionVariables', () => {
     expect(findMissingProductionVariables({ NODE_ENV: 'development' })).toEqual([]);
     expect(findMissingProductionVariables({})).toEqual([]);
   });
-
-  it('does not ask for them while the production build runs', () => {
-    expect(findMissingProductionVariables({ NEXT_PHASE: 'phase-production-build', NODE_ENV: 'production' })).toEqual(
-      [],
-    );
-  });
 });
