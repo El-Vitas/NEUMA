@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { AppModule } from '@/app.module';
 import { MULTIPART_LIMITS } from '@/common/constants/storage.constants';
 import { GlobalExceptionFilter } from '@/common/infrastructure/filters/global.exception.filter';
+import { BlockLiveGateway } from '@/modules/blocks/block.live.gateway';
 import { BLOCK_LIVE_DEFAULT_SETTINGS, BLOCK_LIVE_SETTINGS } from '@/modules/blocks/constants/block.live.constants';
 import type { BlockLiveSettings } from '@/modules/blocks/types/block.live.types';
 import type { TestApp } from './test-app.helper';
@@ -56,6 +57,8 @@ export const bootstrapLiveTestApp = async (settings: Partial<BlockLiveSettings> 
     }),
   );
   app.useGlobalFilters(new GlobalExceptionFilter(moduleRef.get(Logger)));
+  await app.init();
+  await app.get(BlockLiveGateway).start();
   await app.listen(0, '127.0.0.1');
   const address = app.getHttpServer().address();
   if (address === null || typeof address === 'string') throw new Error('The test server did not expose a port');
