@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PAGE_VIEW_NO_GROUP } from '../constants/pages.collections.constants';
 import { readPropertyLabel } from '../lib/pages.properties.lib';
 import { listGroupablePropertyKeys, readPageDateBucket } from '../lib/pages.view-editing.lib';
-import type { PageSchemaView } from '../types/pages.schema.types';
+import type { PageSchemaViewDraft } from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
 import type { PagesSchemaSettingsRoute } from '../types/pages.schema-settings.types';
 import { PagesSchemaSettingsMissingProperty } from './pages.schema.settings.missing-property';
@@ -21,7 +21,7 @@ import { PagesSchemaSettingsMissingProperty } from './pages.schema.settings.miss
 interface IProps {
   readonly editor: PagesSchemaEditor;
   readonly onGo: (route: PagesSchemaSettingsRoute) => void;
-  readonly view: PageSchemaView;
+  readonly view: PageSchemaViewDraft;
 }
 
 export const PagesSchemaSettingsViewGrouping = ({ editor, onGo, view }: IProps) => {

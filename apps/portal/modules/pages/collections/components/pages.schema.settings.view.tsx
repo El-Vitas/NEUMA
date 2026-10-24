@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PAGE_VIEW_NO_GROUP } from '../constants/pages.collections.constants';
 import { listWhatConvertingDrops } from '../lib/pages.schema-editing.lib';
 import { listGroupablePropertyKeys, readPageViewType } from '../lib/pages.view-editing.lib';
-import type { PageSchemaView } from '../types/pages.schema.types';
+import type { PageSchemaViewDraft } from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
 import type { PagesSchemaSettingsRoute } from '../types/pages.schema-settings.types';
 import { PagesSchemaSettingsViewChart } from './pages.schema.settings.view.chart';
@@ -31,7 +31,7 @@ interface IProps {
   readonly editor: PagesSchemaEditor;
   readonly onGo: (route: PagesSchemaSettingsRoute) => void;
   readonly position: number;
-  readonly view: PageSchemaView;
+  readonly view: PageSchemaViewDraft;
 }
 
 export const PagesSchemaSettingsView = ({ editor, onGo, position, view }: IProps) => {

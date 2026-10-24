@@ -1,79 +1,127 @@
+'use client';
+
 import { readPageViewConfiguration } from '@neuma/shared';
-import { getTranslations } from 'next-intl/server';
+import { useTranslations } from 'next-intl';
 import { EmptyState } from '@/shared/components/ui/empty-state';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
-import { buildRowSearchText } from '../lib/pages.row-search.lib';
+import { usePagesViewLive } from '../hooks/use.pages.view-live';
 import { readAlignmentClass, readTableAppearance } from '../lib/pages.table-appearance.lib';
 import { listTableColumnKeys, readTableColumnOffsets, readTableFrozenCellProps } from '../lib/pages.table-columns.lib';
-import type { PagePersonOption, PageSchema, PageSchemaProperty, PageViewGroup } from '../types/pages.schema.types';
+import type {
+  PagePersonOption,
+  PageSchema,
+  PageSchemaProperty,
+  PageSchemaView,
+  PageViewAggregates,
+  PageViewBand,
+} from '../types/pages.schema.types';
 import { PagesCollectionTableFooter } from './pages.collection.table.footer';
 import { PagesCollectionTableGroupCalculations } from './pages.collection.table.group-calculations';
+import { PagesCollectionTableGroupRows } from './pages.collection.table.group-rows';
 import { PagesCollectionTableGroups } from './pages.collection.table.groups';
 import { PagesCollectionTableHeader } from './pages.collection.table.header';
-import { PagesCollectionTableRow } from './pages.collection.table.row';
 
 interface IProps {
   readonly activeViewName: string;
+  readonly aggregates: Promise<PageViewAggregates | null>;
+  /** The rows as the server drew them: one band, with one unnamed group when the table does not group. */
+  readonly bands: readonly PageViewBand[];
   readonly canEdit: boolean;
-  readonly groups: readonly PageViewGroup[];
-  readonly isGrouped: boolean;
+  /** Where to read what changed after those rows were read; null when the table cannot follow changes. */
+  readonly changesCursor: null | string;
   readonly personOptions?: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
   readonly schema: PageSchema;
   readonly spaceId: string;
+  readonly view: PageSchemaView;
+  readonly viewId: string;
+  /** Who looks; null when the browser does not know, and a filter that names the reader then goes to the server. */
+  readonly viewerId?: null | string;
 }
 
-export const PagesCollectionTable = async ({
+export const PagesCollectionTable = ({
   activeViewName,
+  aggregates: drawnAggregates,
+  bands,
   canEdit,
-  groups,
-  isGrouped,
+  changesCursor,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   properties,
   schema,
   spaceId,
+  view,
+  viewId,
+  viewerId = null,
 }: IProps) => {
-  const t = await getTranslations('pages');
+  const t = useTranslations('pages');
+  const configuration = readPageViewConfiguration(view.configuration);
+  const live = usePagesViewLive({
+    aggregates: drawnAggregates,
+    bands,
+    changesCursor,
+    groupByKey: configuration.groupBy ?? '',
+    groupByMode: configuration.groupByMode,
+    pageId: schema.pageId,
+    properties: schema.properties,
+    spaceId,
+    subGroupByKey: '',
+    view,
+    viewerId,
+  });
+  const { aggregates } = live;
+  const groups = live.bands[0]?.groups ?? [];
   const rows = groups.flatMap((group) => group.rows);
-  if (rows.length === 0) return <EmptyState message={t('collection.emptyTable')} />;
+  if (rows.length === 0 && groups.every((group) => group.nextCursor === undefined || group.nextCursor === null)) {
+    return <EmptyState message={t('collection.emptyTable')} />;
+  }
 
   const columnKeys = listTableColumnKeys(properties.map((property) => property.key));
-  const activeView = schema.views.find((view) => view.name === activeViewName);
   const {
     calculations,
     columnAlignments,
     columnWidths,
+    columnWraps,
     frozenColumns,
     groupBy,
     hidesEmptyGroups,
     rowHeight,
+    sorts,
     wrapsText,
-  } = readPageViewConfiguration(activeView?.configuration ?? {});
+  } = configuration;
   const appearance = readTableAppearance(rowHeight, wrapsText);
+  const columnAppearances = Object.fromEntries(
+    properties.map((property) => [
+      property.key,
+      readTableAppearance(rowHeight, wrapsText || columnWraps[property.key] === true),
+    ]),
+  );
   const alignmentClasses = Object.fromEntries(
     properties.map((property) => [property.key, readAlignmentClass(columnAlignments, property.key)]),
   );
-  const searchTextByRow = Object.fromEntries(rows.map((row) => [row.id, buildRowSearchText(row, properties)]));
   const offsets = readTableColumnOffsets(columnKeys, columnWidths);
   const frozenCells = columnKeys.map((_columnKey, position) =>
     readTableFrozenCellProps(position, frozenColumns, offsets),
   );
+  const isGrouped = groupBy !== null;
 
   return (
     <PagesCollectionTableHeader
       activeViewName={activeViewName}
+      aggregates={aggregates}
       canEdit={canEdit}
+      isOrderable={canEdit && sorts.length === 0}
       personOptions={personOptions}
       properties={properties}
       rowIds={rows.map((row) => row.id)}
       schema={schema}
-      searchTexts={Object.values(searchTextByRow)}
       spaceId={spaceId}
       titleLabel={t('titleField')}
       valuesByRow={Object.fromEntries(rows.map((row) => [row.id, row.propertyValues ?? {}]))}
+      viewId={viewId}
     >
       <PagesCollectionTableGroups
         activeViewName={activeViewName}
+        aggregates={aggregates}
         canEdit={canEdit}
         columnCount={columnKeys.length}
         groupByKey={groupBy ?? ''}
@@ -84,29 +132,27 @@ export const PagesCollectionTable = async ({
           rowCount: group.rows.length,
           rows: (
             <>
-              {group.rows.map((row) => (
-                <PagesCollectionTableRow
-                  alignmentClasses={alignmentClasses}
-                  appearance={appearance}
-                  canEdit={canEdit}
-                  collectionPageId={schema.pageId}
-                  frozenCells={frozenCells}
-                  key={row.id}
-                  openFullPageLabel={t('sidePanel.openFullPage')}
-                  personOptions={personOptions}
-                  properties={properties}
-                  row={row}
-                  searchText={searchTextByRow[row.id] ?? ''}
-                  selectLabel={t('collection.selectRow', { title: row.title.length > 0 ? row.title : t('untitled') })}
-                  spaceId={spaceId}
-                  untitledLabel={t('untitled')}
-                />
-              ))}
+              <PagesCollectionTableGroupRows
+                alignmentClasses={alignmentClasses}
+                appearance={appearance}
+                canEdit={canEdit}
+                collectionPageId={schema.pageId}
+                columnAppearances={columnAppearances}
+                columnCount={columnKeys.length}
+                frozenCells={frozenCells}
+                group={group}
+                isLoadingMore={live.isLoading('', group.key)}
+                onLoadMore={() => live.loadMore('', group.key)}
+                personOptions={personOptions}
+                properties={properties}
+                spaceId={spaceId}
+              />
               {isGrouped && (
                 <PagesCollectionTableGroupCalculations
+                  aggregates={aggregates}
                   calculations={calculations}
+                  groupKey={group.key}
                   properties={properties}
-                  rowValues={group.rows.map((row) => row.propertyValues ?? {})}
                 />
               )}
             </>
@@ -119,9 +165,9 @@ export const PagesCollectionTable = async ({
       />
       <PagesCollectionTableFooter
         activeViewName={activeViewName}
+        aggregates={aggregates}
         canEdit={canEdit}
         properties={properties}
-        rowValues={rows.map((row) => row.propertyValues ?? {})}
         schema={schema}
         spaceId={spaceId}
       />

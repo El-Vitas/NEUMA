@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { cleanup, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
-import type { PageSchemaView } from '@/modules/pages/collections/types/pages.schema.types';
+import { buildView } from '../lib/pages.views.fixture';
 
 mock.module('@/i18n/navigation', () => ({
   Link: ({ children, scroll: _scroll, ...rest }: ComponentProps<'a'> & { scroll?: boolean }) => (
@@ -11,8 +11,8 @@ mock.module('@/i18n/navigation', () => ({
 
 const { PagesCollectionTabs } = await import('@/modules/pages/collections/components/pages.collection.tabs');
 
-const table: PageSchemaView = { configuration: { icon: '📋' }, isDefault: true, name: 'Table', type: 'TABLE' };
-const board: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
+const table = buildView('Table', 'TABLE', { configuration: { icon: '📋' }, isDefault: true });
+const board = buildView('Board', 'BOARD');
 
 describe('PagesCollectionTabs', () => {
   it('marks the view being looked at', () => {
@@ -21,6 +21,20 @@ describe('PagesCollectionTabs', () => {
 
     expect(screen.getByRole('link', { name: 'Board' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('link', { name: /Table/ }).getAttribute('aria-current')).toBeNull();
+  });
+
+  it('keeps the words searched when another view is opened', () => {
+    cleanup();
+    render(<PagesCollectionTabs activeViewName="Table" label="Vistas" search="informe anual" views={[table, board]} />);
+
+    expect(screen.getByRole('link', { name: 'Board' }).getAttribute('href')).toBe('?view=Board&q=informe+anual');
+  });
+
+  it('opens a view with no words when none were searched', () => {
+    cleanup();
+    render(<PagesCollectionTabs activeViewName="Table" label="Vistas" views={[table, board]} />);
+
+    expect(screen.getByRole('link', { name: 'Board' }).getAttribute('href')).toBe('?view=Board');
   });
 
   it('draws the emoji of a view that chose one, next to its name', () => {

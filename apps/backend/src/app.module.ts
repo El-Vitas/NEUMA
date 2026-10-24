@@ -9,7 +9,11 @@ import {
   CREDENTIAL_RATE_LIMIT,
   EXPORT_RATE_LIMIT,
   MCP_RATE_LIMIT,
+  PAGE_READ_RATE_LIMIT,
+  PASSWORD_CHANGE_RATE_LIMIT,
+  SEARCH_RATE_LIMIT,
   THROTTLER_NAMES,
+  UPLOAD_RATE_LIMIT,
 } from './common/constants/throttler.constants';
 import { LoggerModule } from './common/infrastructure/logger.module';
 import { AccessTokenPlaceRepository } from './common/infrastructure/persistence/access-token-place.repository';
@@ -23,6 +27,7 @@ import { McpServerDependenciesAdapter } from './mcp.server-dependencies.adapter'
 import { AccessTokensModule } from './modules/access-tokens/access-tokens.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BlocksModule } from './modules/blocks/blocks.module';
+import { CommentsModule } from './modules/comments/comments.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { FilesModule } from './modules/files/files.module';
 import { LinksModule } from './modules/links/links.module';
@@ -32,6 +37,7 @@ import { McpActionRepository } from './modules/mcp/infrastructure/persistence/mc
 import { McpController } from './modules/mcp/mcp.controller';
 import { McpModule } from './modules/mcp/mcp.module';
 import type { McpServerDependencies } from './modules/mcp/types/mcp.types';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PageViewsModule } from './modules/page-views/page-views.module';
 import { PageContentController } from './modules/pages/page.content.controller';
 import { PageContentService } from './modules/pages/page.content.service';
@@ -81,9 +87,29 @@ import { PrismaModule } from './prisma/prisma.module';
           limit: BLOCK_WRITE_RATE_LIMIT.perUserLimit,
         },
         {
+          name: THROTTLER_NAMES.pageReads,
+          ttl: seconds(PAGE_READ_RATE_LIMIT.windowSeconds),
+          limit: PAGE_READ_RATE_LIMIT.perUserLimit,
+        },
+        {
           name: THROTTLER_NAMES.mcpPerIp,
           ttl: seconds(MCP_RATE_LIMIT.windowSeconds),
           limit: MCP_RATE_LIMIT.perIpLimit,
+        },
+        {
+          name: THROTTLER_NAMES.passwordChange,
+          ttl: seconds(PASSWORD_CHANGE_RATE_LIMIT.windowSeconds),
+          limit: PASSWORD_CHANGE_RATE_LIMIT.perUserLimit,
+        },
+        {
+          name: THROTTLER_NAMES.search,
+          ttl: seconds(SEARCH_RATE_LIMIT.windowSeconds),
+          limit: SEARCH_RATE_LIMIT.perUserLimit,
+        },
+        {
+          name: THROTTLER_NAMES.uploads,
+          ttl: seconds(UPLOAD_RATE_LIMIT.windowSeconds),
+          limit: UPLOAD_RATE_LIMIT.perUserLimit,
         },
       ],
       generateKey: (_context, tracker, throttlerName) =>
@@ -98,6 +124,8 @@ import { PrismaModule } from './prisma/prisma.module';
     SpacesModule,
     PagesModule,
     BlocksModule,
+    CommentsModule,
+    NotificationsModule,
     PageViewsModule,
     FavoritesModule,
     FilesModule,

@@ -18,6 +18,8 @@ mock.module('@/modules/pages/attachments/server/actions/pages.attachments.action
 }));
 
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   createPageCollectionAction: async () => ({ data: { id: 'page-3', title: 'Colección' } }),
   readPageCollectionAction: async () => ({ data: null }),
 }));
@@ -72,6 +74,34 @@ describe('PagesProseMirrorEditor on the block channel', () => {
 
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Reconnecting'));
     expect(screen.getByText('Ana')).not.toBeNull();
+  });
+
+  it('keeps what was typed when the page turns read-only', () => {
+    const ref = createRef<Handle>();
+    const editor = (canEdit: boolean) => (
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesProseMirrorEditor
+          blockCollaboration={{ participants: [], status: 'connected' }}
+          canEdit={canEdit}
+          content={createEmptyPageContent()}
+          onContentChange={() => undefined}
+          pageId={PAGE_ID}
+          ref={ref}
+          spaceId="space-1"
+        />
+      </NextIntlClientProvider>
+    );
+    const { container, rerender } = render(editor(true));
+    act(() => {
+      ref.current?.runCommand((state, dispatch) => {
+        dispatch?.(state.tr.insertText('typed words'));
+        return true;
+      });
+    });
+
+    rerender(editor(false));
+
+    expect(container.querySelector('.ProseMirror')?.textContent).toContain('typed words');
   });
 
   it('tells where the cursor went each time the selection changes', async () => {

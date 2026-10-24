@@ -2,19 +2,22 @@ import { Injectable } from '@nestjs/common';
 import { and, PageLifecycle } from '@neuma/db';
 import {
   BLOCK_TYPE,
+  isPageTemplate,
   type PageContent,
   type PageCoverValue,
   type PageIcon,
   type Result,
+  readPageTemplate,
   type UserRole,
 } from '@neuma/shared';
 import { readBlockTitle } from '../../../../common/domain/block-access.domain';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { PAGE_RESTORE_VERSION_OUTCOME } from '../../constants/pages.constants';
+import { canEditPage } from '../../domain/page.access.domain';
 import { readPageValues } from '../../domain/page.block.domain';
 import { collectDescendantIds, pageTitleMatchesSearch } from '../../domain/page.domain';
-import { dropHiddenBlocks } from '../../domain/page.visibility.domain';
+import { dropHiddenBlocks, listClosedBlockIds, listNodeIds } from '../../domain/page.visibility.domain';
 import type { AccessiblePage, PageViewer } from '../../types/page.block.types';
 import type {
   DuplicatePageInput,
@@ -23,23 +26,31 @@ import type {
   PageContentWriter,
   PageDeleteForeverOutcome,
   PageMoveContext,
-  PageMoveDestinations,
+  PageMoveInput,
+  PageMoveOrigin,
   PagePropertyValuesMerge,
   PageRepositoryContract,
   PageRestoreOutcome,
   PageRestoreVersionOutcome,
   PageSummary,
+  PageVersionListing,
   PageVersionSnapshot,
+  TrashedPageListing,
   TrashedPageSummary,
   UpdatePagePropertyValuesInput,
 } from '../../types/page.types';
+import type { PageOutlineWindow } from '../../types/page-outline.types';
+import type { PageRowTemplate } from '../../types/page-template.types';
 import { PageBlockReader } from './page.block.reader';
 import { PageBlockWriter } from './page.block.writer';
 import { PagePurgeRepository } from './page.purge.repository';
 import { PageSummaryReader } from './page.summary.reader';
+import { PageTemplateRepository } from './page.template.repository';
 import { PageVersionRepository } from './page.version.repository';
 
 const toViewer = (workspaceId: string, userId: string, role: UserRole): PageViewer => ({ role, userId, workspaceId });
+
+const toDeletedAt = (block: AccessiblePage['block']): Date => block.trashedAt ?? block.editedAt;
 
 const compareBySiblingPosition = (first: PageSummary, second: PageSummary): number =>
   (first.parentId ?? '').localeCompare(second.parentId ?? '') || first.order - second.order;
@@ -57,6 +68,7 @@ export class PageRepository implements PageRepositoryContract {
     private readonly blockWriter: PageBlockWriter,
     private readonly versionRepository: PageVersionRepository,
     private readonly purgeRepository: PagePurgeRepository,
+    private readonly templateRepository: PageTemplateRepository,
   ) {}
 
   async listAccessible(
@@ -73,6 +85,21 @@ export class PageRepository implements PageRepositoryContract {
     return summaries.toSorted(compareBySiblingPosition);
   }
 
+  async listAccessibleAmong(
+    spaceId: string,
+    pageIds: readonly string[],
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<readonly PageSummary[]> {
+    const blocks = (await this.blockReader.readPageBlocks(pageIds)).filter(
+      (block) => block.spaceId === spaceId && !isPageTemplate(block.properties),
+    );
+    const accessible = await this.blockReader.keepAccessible(blocks, toViewer(workspaceId, userId, role));
+    const summaries = await this.summaryReader.summarizeAll(accessible.filter(({ access }) => !access.isInTrash));
+    return summaries.toSorted(compareBySiblingPosition);
+  }
+
   async getAccessible(
     pageId: string,
     workspaceId: string,
@@ -81,6 +108,11 @@ export class PageRepository implements PageRepositoryContract {
   ): Promise<PageSummary | null> {
     const page = await this.findAccessiblePage(pageId, toViewer(workspaceId, userId, role));
     return page === null ? null : this.summaryReader.summarizeOne(page);
+  }
+
+  async getEditable(pageId: string, workspaceId: string, userId: string, role: UserRole): Promise<PageSummary | null> {
+    const page = await this.findAccessiblePage(pageId, toViewer(workspaceId, userId, role));
+    return page === null || !canEditPage(page.access) ? null : this.summaryReader.summarizeOne(page);
   }
 
   async findReadablePageIds(
@@ -96,6 +128,27 @@ export class PageRepository implements PageRepositoryContract {
 
   create(input: NewPageInput): Promise<PageSummary | null> {
     return this.blockWriter.create(input);
+  }
+
+  /** Null when no template applies; the default one of the collection when none is named. */
+  async readRowTemplate(
+    collectionId: string,
+    templateId: null | string | undefined,
+    viewer: PageViewer,
+  ): Promise<PageRowTemplate | 'NOT_FOUND' | null> {
+    if (templateId === null) return null;
+    const template =
+      templateId === undefined
+        ? await this.findDefaultTemplate(collectionId, viewer)
+        : await this.templateRepository.findTemplate(collectionId, templateId, viewer);
+    if (template === null) return templateId === undefined ? null : 'NOT_FOUND';
+    const summary = await this.summaryReader.summarizeOne(template);
+    return {
+      content: summary.content,
+      propertyValues: readPageValues(template.block.properties) ?? {},
+      title: summary.title,
+      variables: readPageTemplate(template.block.properties)?.variables ?? {},
+    };
   }
 
   duplicate(input: DuplicatePageInput): Promise<PageSummary | null> {
@@ -121,8 +174,21 @@ export class PageRepository implements PageRepositoryContract {
     const snapshot = page === null ? null : await this.versionRepository.find(pageId, version);
     if (page === null || snapshot === null) return null;
     const visible = await this.blockReader.readVisibleContentBlocks([page]);
-    const hiddenIds = visible.get(pageId)?.hiddenIds ?? new Set<string>();
+    const chains = await this.blockReader.readAncestry(listNodeIds(snapshot.content));
+    const hiddenIds = new Set([...(visible.get(pageId)?.hiddenIds ?? []), ...listClosedBlockIds(chains, page.viewer)]);
     return { ...snapshot, content: dropHiddenBlocks(snapshot.content, hiddenIds) };
+  }
+
+  async listVersions(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+    cursor: null | number,
+    limit: number,
+  ): Promise<null | PageVersionListing> {
+    const page = await this.findAccessiblePage(pageId, toViewer(workspaceId, userId, role));
+    return page === null ? null : this.versionRepository.list(pageId, cursor, limit);
   }
 
   recordVersion(pageId: string, authorId: string): Promise<void> {
@@ -187,6 +253,16 @@ export class PageRepository implements PageRepositoryContract {
     return this.blockWriter.setVerification(pageId, verified, expiresAt, userId, workspaceId, role);
   }
 
+  setDefaultTemplate(
+    collectionId: string,
+    templateId: null | string,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<PageSummary | null> {
+    return this.blockWriter.setDefaultTemplate(collectionId, templateId, userId, workspaceId, role);
+  }
+
   setOwner(
     pageId: string,
     ownerId: null | string,
@@ -227,16 +303,8 @@ export class PageRepository implements PageRepositoryContract {
     return this.blockWriter.reorderAmongSiblings(pageId, beforePageId, userId, workspaceId, role);
   }
 
-  move(
-    pageId: string,
-    parentId: null | string,
-    targetSpaceId: string,
-    userId: string,
-    workspaceId: string,
-    role: UserRole,
-    mutationId: string,
-  ): Promise<PageSummary | null> {
-    return this.blockWriter.move(pageId, parentId, targetSpaceId, userId, workspaceId, role, mutationId);
+  move(input: PageMoveInput): Promise<PageSummary | null> {
+    return this.blockWriter.move(input);
   }
 
   trashCascade(
@@ -312,33 +380,21 @@ export class PageRepository implements PageRepositoryContract {
     return summaries.toSorted((first, second) => second.updatedAt.getTime() - first.updatedAt.getTime());
   }
 
-  async listMoveDestinations(
+  /** Where the page is and the spaces the reader may move it into; null when the reader cannot open the page. */
+  async readMoveOrigin(
     pageId: string,
     workspaceId: string,
     userId: string,
     role: UserRole,
-  ): Promise<PageMoveDestinations | null> {
-    const viewer = toViewer(workspaceId, userId, role);
-    const page = await this.findAccessiblePage(pageId, viewer);
+  ): Promise<PageMoveOrigin | null> {
+    const page = await this.findAccessiblePage(pageId, toViewer(workspaceId, userId, role));
     if (page === null) return null;
     const isVisible = buildSpaceVisibilityFilter(userId, role);
     const spaces = await this.prisma.models.Space.select('id', 'name')
       .where((space) => and(isVisible(space), space.workspaceId.eq(workspaceId)))
       .orderBy((space) => space.name.asc())
       .all();
-    const blocks = (await Promise.all(spaces.map((space) => this.blockReader.readSpacePageBlocks(space.id)))).flat();
-    const ownBranch = new Set([pageId, ...collectDescendantIds(pageId, blocks)]);
-    const candidates = await this.blockReader.keepAccessible(
-      blocks.filter((block) => block.lifecycle === PageLifecycle.ACTIVE && !ownBranch.has(block.id)),
-      viewer,
-    );
-    return {
-      pages: candidates
-        .filter(({ access }) => !access.isInTrash)
-        .map(({ block }) => ({ id: block.id, spaceId: block.spaceId, title: readBlockTitle(block.properties) }))
-        .toSorted((first, second) => first.title.localeCompare(second.title)),
-      spaces,
-    };
+    return { parentId: page.block.parentId, spaces };
   }
 
   async countDescendantsByLifecycle(
@@ -350,7 +406,7 @@ export class PageRepository implements PageRepositoryContract {
   ): Promise<null | number> {
     const page = await this.findAccessiblePage(pageId, toViewer(workspaceId, userId, role));
     if (page === null) return null;
-    const hierarchy = await this.blockReader.readSpacePageBlocks(page.block.spaceId);
+    const hierarchy = await this.blockReader.readSpacePageBlocks(page.block.spaceId, { includeTemplates: true });
     const lifecycleById = new Map(hierarchy.map((entry) => [entry.id, entry.lifecycle]));
     return collectDescendantIds(pageId, hierarchy).filter((id) => lifecycleById.get(id) === lifecycle).length;
   }
@@ -362,20 +418,25 @@ export class PageRepository implements PageRepositoryContract {
     role: UserRole,
     spaceId: null | string,
     search: null | string,
-  ): Promise<readonly TrashedPageSummary[]> {
+    window: PageOutlineWindow | null,
+  ): Promise<TrashedPageListing> {
     const viewer = toViewer(workspaceId, userId, role);
     const accessibleSpaceIds = await this.findAccessibleSpaceIds(viewer, spaceId);
-    if (accessibleSpaceIds.length === 0) return [];
-    const hierarchy = (
-      await Promise.all(accessibleSpaceIds.map((accessibleId) => this.blockReader.readSpacePageBlocks(accessibleId)))
-    ).flat();
-    const trashed = hierarchy.filter((block) => block.lifecycle === PageLifecycle.TRASHED);
+    const trashed = await this.blockReader.readTrashedPageBlocks(accessibleSpaceIds);
     const accessible = await this.blockReader.keepAccessible(trashed, viewer);
-    const listed = accessible.filter(({ block }) => pageTitleMatchesSearch(readBlockTitle(block.properties), search));
-    if (listed.length === 0) return [];
-    const lifecycleById = new Map(hierarchy.map((block) => [block.id, block.lifecycle]));
-    const deletedBy = await this.blockReader.readUsers(listed.map(({ block }) => block.editedById));
-    return listed.map(({ block }) => this.toTrashedSummary(block, hierarchy, lifecycleById, deletedBy));
+    const listed = accessible
+      .map(({ block }) => block)
+      .filter((block) => pageTitleMatchesSearch(readBlockTitle(block.properties), search))
+      .toSorted((first, second) => toDeletedAt(second).getTime() - toDeletedAt(first).getTime());
+    const shown = window === null ? listed : listed.slice(window.skip, window.skip + window.take);
+    const [deletedBy, trashedChildCounts] = await Promise.all([
+      this.blockReader.readUsers(shown.map((block) => block.editedById)),
+      this.blockReader.countTrashedDescendants(shown.map((block) => block.id)),
+    ]);
+    return {
+      items: shown.map((block) => this.toTrashedSummary(block, trashedChildCounts, deletedBy)),
+      total: listed.length,
+    };
   }
 
   /** Schedules the deletion instead of deleting: the page stays restorable until `purgeAfter` (ADR 017). */
@@ -407,7 +468,11 @@ export class PageRepository implements PageRepositoryContract {
     const accessibleSpaceIds = await this.findAccessibleSpaceIds(viewer, spaceId);
     if (accessibleSpaceIds.length === 0) return [];
     const pages = (
-      await Promise.all(accessibleSpaceIds.map((accessibleId) => this.blockReader.readSpacePageBlocks(accessibleId)))
+      await Promise.all(
+        accessibleSpaceIds.map((accessibleId) =>
+          this.blockReader.readSpacePageBlocks(accessibleId, { includeTemplates: true }),
+        ),
+      )
     ).flat();
     const accessible = await this.blockReader.keepAccessible(
       pages.filter((block) => block.lifecycle === PageLifecycle.TRASHED),
@@ -421,6 +486,11 @@ export class PageRepository implements PageRepositoryContract {
         workspaceId,
       }),
     );
+  }
+
+  private async findDefaultTemplate(collectionId: string, viewer: PageViewer): Promise<AccessiblePage | null> {
+    const collection = await this.templateRepository.findCollection(collectionId, viewer);
+    return collection === null ? null : this.templateRepository.findDefaultTemplate(collection, viewer);
   }
 
   private async findAccessiblePage(pageId: string, viewer: PageViewer): Promise<AccessiblePage | null> {
@@ -445,22 +515,19 @@ export class PageRepository implements PageRepositoryContract {
 
   private toTrashedSummary(
     block: AccessiblePage['block'],
-    hierarchy: readonly AccessiblePage['block'][],
-    lifecycleById: ReadonlyMap<string, PageLifecycle>,
+    trashedChildCounts: ReadonlyMap<string, number>,
     deletedBy: ReadonlyMap<string, { id: string; name: string }>,
   ): TrashedPageSummary {
-    const trashedChildCount = collectDescendantIds(block.id, hierarchy).filter(
-      (id) => lifecycleById.get(id) === PageLifecycle.TRASHED,
-    ).length;
     return {
-      deletedAt: block.trashedAt ?? block.editedAt,
+      deletedAt: toDeletedAt(block),
       deletedBy: deletedBy.get(block.editedById) ?? null,
       id: block.id,
+      isTemplate: isPageTemplate(block.properties),
       parentId: block.parentId,
       purgeAfter: block.purgeAfter,
       spaceId: block.spaceId,
       title: readBlockTitle(block.properties),
-      trashedChildCount,
+      trashedChildCount: trashedChildCounts.get(block.id) ?? 0,
     };
   }
 }

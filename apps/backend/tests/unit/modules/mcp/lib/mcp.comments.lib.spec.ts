@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'bun:test';
-import { PAGE_BLOCK_COMMENTS_MOST, type PageContent, pageContentSchema } from '@neuma/shared';
-import { addMcpBlockComment, removeMcpBlockComment } from '@/modules/mcp/lib/mcp.comments.lib';
+import { type PageContent, pageContentSchema } from '@neuma/shared';
+import { checkMcpQuote, markMcpQuote, unmarkMcpDiscussion } from '@/modules/mcp/lib/mcp.comments.lib';
 
 const page = (...content: readonly unknown[]): PageContent =>
   pageContentSchema.parse({ content, schemaVersion: 1, type: 'doc' });
 
-const comment = (id: string) => ({ author: 'Ana', body: 'Revisar esto', createdAt: '2026-09-30T10:00:00.000Z', id });
-
-const COMMENT = '11111111-1111-4111-8111-111111111111';
-const commentMark = { attrs: { id: COMMENT }, type: 'comment' };
+const DISCUSSION = '11111111-1111-4111-8111-111111111111';
+const commentMark = { attrs: { id: DISCUSSION }, type: 'comment' };
 
 const content = page(
   {
@@ -33,16 +31,9 @@ const content = page(
   },
 );
 
-describe('addMcpBlockComment', () => {
-  it('leaves a comment on the whole block, keeping what it says', () => {
-    const edited = addMcpBlockComment('p', comment(COMMENT))(content).getValue();
-
-    expect(edited.content[0]?.attrs).toEqual({ comments: [comment(COMMENT)], id: 'p' });
-    expect(edited.content[0]).toMatchObject({ content: [{ text: 'Revisar la ' }, {}, { text: ' pronto' }] });
-  });
-
-  it('marks the words it is about, splitting only the stretch they take and keeping the marks already on them', () => {
-    const edited = addMcpBlockComment('p', comment(COMMENT), 'la fecha')(content).getValue();
+describe('markMcpQuote', () => {
+  it('marks the words with the id of their discussion, splitting only the stretch they take and keeping the marks already on them', () => {
+    const edited = markMcpQuote('p', 'la fecha', DISCUSSION)(content).getValue();
 
     expect(edited.content[0]).toMatchObject({
       content: [
@@ -55,13 +46,13 @@ describe('addMcpBlockComment', () => {
     });
   });
 
-  it('finds the words on the line of a list item, and keeps the comment on the item', () => {
-    const edited = addMcpBlockComment('item', comment(COMMENT), 'cliente')(content).getValue();
+  it('finds the words on the line of a list item and writes no comment into the block attributes', () => {
+    const edited = markMcpQuote('item', 'cliente', DISCUSSION)(content).getValue();
 
     expect(edited.content[1]).toMatchObject({
       content: [
         {
-          attrs: { comments: [comment(COMMENT)], id: 'item' },
+          attrs: { id: 'item' },
           content: [
             {
               content: [
@@ -73,37 +64,36 @@ describe('addMcpBlockComment', () => {
         },
       ],
     });
+    expect(JSON.stringify(edited.content[1])).not.toContain('"comments"');
   });
 
-  it('refuses words the block does not say, and a block with no room for another comment', () => {
-    const crowded = page({
-      attrs: {
-        comments: Array.from({ length: PAGE_BLOCK_COMMENTS_MOST }, (_unused, at) =>
-          comment(`22222222-2222-4222-8222-${String(at).padStart(12, '0')}`),
-        ),
-        id: 'p',
-      },
-      content: [{ text: 'Hola', type: 'text' }],
-      type: 'paragraph',
-    });
-
-    expect(addMcpBlockComment('p', comment(COMMENT), 'mañana')(content).getError()).toContain('"mañana"');
-    expect(addMcpBlockComment('p', comment(COMMENT))(crowded).getError()).toContain(String(PAGE_BLOCK_COMMENTS_MOST));
-    expect(addMcpBlockComment('nada', comment(COMMENT))(content).getError()).toContain('nada');
+  it('refuses words the block does not say and a block that does not exist', () => {
+    expect(markMcpQuote('p', 'mañana', DISCUSSION)(content).getError()).toContain('"mañana"');
+    expect(markMcpQuote('nada', 'hola', DISCUSSION)(content).getError()).toContain('nada');
   });
 });
 
-describe('removeMcpBlockComment', () => {
-  it('takes a comment off its block and off the words it marked', () => {
-    const commented = addMcpBlockComment('p', comment(COMMENT), 'pronto')(content).getValue();
-
-    const edited = removeMcpBlockComment('p', COMMENT)(commented).getValue();
-
-    expect(edited.content[0]?.attrs).toEqual({ id: 'p' });
-    expect(JSON.stringify(edited.content[0])).not.toContain(COMMENT);
+describe('checkMcpQuote', () => {
+  it('accepts words the block says, so the discussion can be created', () => {
+    expect(checkMcpQuote(content, 'p', 'la fecha').isOk()).toBe(true);
   });
 
-  it('refuses a comment the block does not have', () => {
-    expect(removeMcpBlockComment('p', COMMENT)(content).getError()).toContain(COMMENT);
+  it('refuses words the block does not say before anything is created', () => {
+    expect(checkMcpQuote(content, 'p', 'mañana').getError()).toContain('"mañana"');
+  });
+});
+
+describe('unmarkMcpDiscussion', () => {
+  it('takes the mark of a discussion off the words it marked', () => {
+    const marked = markMcpQuote('p', 'pronto', DISCUSSION)(content).getValue();
+
+    const edited = unmarkMcpDiscussion('p', DISCUSSION)(marked).getValue();
+
+    expect(JSON.stringify(edited.content[0])).not.toContain(DISCUSSION);
+    expect(JSON.stringify(edited.content[0])).toContain('pronto');
+  });
+
+  it('refuses a block that does not exist', () => {
+    expect(unmarkMcpDiscussion('nada', DISCUSSION)(content).getError()).toContain('nada');
   });
 });

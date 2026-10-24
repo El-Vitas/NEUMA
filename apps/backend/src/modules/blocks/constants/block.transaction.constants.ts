@@ -12,6 +12,9 @@ export const BLOCK_TRANSACTIONS_MAX_PER_REQUEST = 20;
 
 export const BLOCK_OPERATIONS_MAX_PER_TRANSACTION = 100;
 
+/** The backend's own writes (a column on every row, a copied branch) are larger than a client's, not unbounded. */
+export const BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION = 25_000;
+
 export const BLOCK_TRANSACTION_ID_MAX_LENGTH = 64;
 
 /** `[bag, key]` is the deepest path an operation addresses, such as `['format', 'textColor']`. */
@@ -57,10 +60,12 @@ export const BLOCK_TRANSACTION_MAX_ATTEMPTS = 3;
 export const BLOCK_TRANSACTION_RETRY_BACKOFF_MS = 25;
 
 export const BLOCK_COMMAND = {
+  addRelation: 'addRelation',
   applyText: 'applyText',
   listAfter: 'listAfter',
   listBefore: 'listBefore',
   listRemove: 'listRemove',
+  removeRelation: 'removeRelation',
   set: 'set',
   setPermission: 'setPermission',
   update: 'update',
@@ -74,6 +79,8 @@ export const BLOCK_COMMAND_VALUES = [
   BLOCK_COMMAND.listRemove,
   BLOCK_COMMAND.applyText,
   BLOCK_COMMAND.setPermission,
+  BLOCK_COMMAND.addRelation,
+  BLOCK_COMMAND.removeRelation,
 ] as const;
 
 /**
@@ -82,6 +89,7 @@ export const BLOCK_COMMAND_VALUES = [
  * space a branch moves to).
  */
 export const BLOCK_PAGE_COMMAND = {
+  changeValueList: 'changeValueList',
   mergePageValues: 'mergePageValues',
   moveToSpaceRoot: 'moveToSpaceRoot',
   rewritePageValues: 'rewritePageValues',
@@ -97,6 +105,7 @@ export const BLOCK_PAGE_COMMAND_VALUES = [
   BLOCK_PAGE_COMMAND.setVerification,
   BLOCK_PAGE_COMMAND.setOwner,
   BLOCK_PAGE_COMMAND.mergePageValues,
+  BLOCK_PAGE_COMMAND.changeValueList,
   BLOCK_PAGE_COMMAND.rewritePageValues,
   BLOCK_PAGE_COMMAND.moveToSpaceRoot,
 ] as const;

@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import { USER_ROLE } from '@neuma/shared';
 import { BlocksService } from '@/modules/blocks/blocks.service';
-import { BLOCK_SUBTREE_MAX_BLOCKS, BLOCK_SYNC_MAX_TEXT_STATE_BYTES } from '@/modules/blocks/constants/blocks.constants';
+import {
+  BLOCK_SUBTREE_MAX_BLOCKS,
+  BLOCK_SYNC_MAX_ROWS,
+  BLOCK_SYNC_MAX_TEXT_STATE_BYTES,
+} from '@/modules/blocks/constants/blocks.constants';
 import type { BlockRecord, BlockRows } from '@/modules/blocks/domain/block.domain.types';
 import {
   BlockAccessDeniedError,
@@ -36,17 +40,27 @@ const buildRecord = (id: string, parentId: string | null): BlockRecord => ({
   version: 1,
 });
 
+const stateReads: (readonly string[])[] = [];
+
 const buildService = (
   rows: BlockRows,
   readableSpaceIds: readonly string[],
   isDepthExceeded = false,
   textStates: ReadonlyMap<string, Uint8Array> = new Map(),
 ): BlocksService => {
-  const result = { ...rows, isDepthExceeded, textStates };
+  stateReads.length = 0;
+  const textStateBytes = new Map([...textStates].map(([id, state]) => [id, state.byteLength]));
+  const result = { ...rows, isDepthExceeded, textStateBytes };
   const repository: BlockRepositoryContract = {
     findReadableSpaceIds: () => Promise.resolve(new Set(readableSpaceIds)),
+    findReadableSpaceIdsByReader: (_spaceIds, readers) =>
+      Promise.resolve(new Map(readers.map((candidate) => [candidate.userId, new Set(readableSpaceIds)]))),
     readChanged: () => Promise.resolve(result),
     readSubtree: () => Promise.resolve(result),
+    readTextStates: (blockIds) => {
+      stateReads.push(blockIds);
+      return Promise.resolve(new Map([...textStates].filter(([id]) => blockIds.includes(id))));
+    },
   };
   return new BlocksService(repository);
 };
@@ -174,6 +188,35 @@ describe('BlocksService', () => {
     const result = await service.sync({ kind: 'page', pageId: PAGE_ID }, reader);
 
     expect(result.getError()).toBeInstanceOf(BlockSyncTextTooLargeError);
+    expect(stateReads).toEqual([]);
+  });
+
+  it('asks for the text states of the blocks that have one, and for none when no block does', async () => {
+    const withState = buildService(
+      { context: [], targets: [buildRecord(PAGE_ID, null), buildRecord('plain', PAGE_ID)] },
+      [SPACE_ID],
+      false,
+      new Map([[PAGE_ID, new Uint8Array([1])]]),
+    );
+    await withState.sync({ kind: 'page', pageId: PAGE_ID }, reader);
+    const readsWithState = [...stateReads];
+    const withoutState = buildService({ context: [], targets: [buildRecord(PAGE_ID, null)] }, [SPACE_ID]);
+    await withoutState.sync({ kind: 'page', pageId: PAGE_ID }, reader);
+
+    expect(readsWithState).toEqual([[PAGE_ID]]);
+    expect(stateReads).toEqual([]);
+  });
+
+  it('refuses a catch-up whose rows pass the cap instead of reading them all', async () => {
+    const rows = Array.from({ length: BLOCK_SYNC_MAX_ROWS + 1 }, (_, index) =>
+      buildRecord(`context-${String(index)}`, 'changed'),
+    );
+    const service = buildService({ context: rows, targets: [buildRecord('changed', null)] }, [SPACE_ID]);
+
+    const result = await service.sync({ blocks: [{ id: 'changed', version: 0 }], kind: 'changed' }, reader);
+
+    expect(result.getError()).toBeInstanceOf(BlockSubtreeTooLargeError);
+    expect(stateReads).toEqual([]);
   });
 
   it('returns the changed blocks of a catch-up read', async () => {

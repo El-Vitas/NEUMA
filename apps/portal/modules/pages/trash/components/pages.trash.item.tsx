@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { formatDate } from '@/shared/utils/formatters';
 import { restorePageAction } from '../../server/actions/pages.actions';
 import { usePageRestoreNotice } from '../hooks/use.pages.trash.restore-notice';
@@ -31,7 +31,9 @@ export const PagesTrashItem = ({ canDeleteForever, locale, page }: IProps) => {
   const title = page.title.length > 0 ? page.title : t('untitled');
 
   const performRestore = async (includeChildren: boolean): Promise<void> => {
-    const result = await restorePageAction({ includeChildren, pageId: page.id, spaceId: page.spaceId });
+    const result = await callAction(() =>
+      restorePageAction({ includeChildren, pageId: page.id, spaceId: page.spaceId }),
+    );
     if (!isActionSuccess<TrashRestoreOutcome>(result)) {
       toast.error(t('trashScreen.restoreError'));
       return;
@@ -42,7 +44,7 @@ export const PagesTrashItem = ({ canDeleteForever, locale, page }: IProps) => {
 
   const requestRestore = (): void => {
     startTransition(async () => {
-      const preview = await getPageRestorePreviewAction({ pageId: page.id, spaceId: page.spaceId });
+      const preview = await callAction(() => getPageRestorePreviewAction({ pageId: page.id, spaceId: page.spaceId }));
       const childPageCount = isActionSuccess<TrashDescendantsPreview>(preview)
         ? preview.data.childPageCount
         : page.trashedChildCount;
@@ -63,6 +65,11 @@ export const PagesTrashItem = ({ canDeleteForever, locale, page }: IProps) => {
     <li className="flex flex-col gap-3 bg-surface px-4 py-3 transition-colors hover:bg-surface-container-low sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6 sm:py-4">
       <div className="min-w-0">
         <p className="truncate font-semibold text-base text-foreground">{title}</p>
+        {page.isTemplate && (
+          <p className="mt-1 text-muted-foreground text-xs uppercase tracking-wide" data-testid="trash-template-badge">
+            {t('trashScreen.templateBadge')}
+          </p>
+        )}
         <p className="mt-1 text-muted-foreground text-sm">
           {t('trashScreen.deletedAt')}: {formatDate(page.deletedAt, { includeTime: true, locale })}
           {' · '}

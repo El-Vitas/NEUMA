@@ -1,21 +1,20 @@
 import type { Node as EditorNode } from 'prosemirror-model';
 import { Plugin as EditorPlugin } from 'prosemirror-state';
 import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
+import type { DiscussionsSummary } from '../../../discussions/types/pages.discussions.types';
+import { pageEditorDiscussionsKey } from '../../lib/pages.editor.plugin-keys.lib';
 import {
-  PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE,
   PAGE_EDITOR_COMMENT_ID_ATTRIBUTE,
   PAGE_EDITOR_COMMENT_MARK_ICON_CLASS,
   PAGE_EDITOR_COMMENT_MARK_ICON_PATH,
   PAGE_EDITOR_COMMENT_MARK_STYLE_CLASS,
   PAGE_EDITOR_COMMENTED_BLOCK_STYLE_CLASS,
+  PAGE_EDITOR_COMMENTED_TEXT_STYLE_CLASS,
+  PAGE_EDITOR_NOTHING_DISCUSSED,
   PAGE_EDITOR_SVG_NAMESPACE,
 } from '../constants/pages.editor.blocks.constants';
+import { getPageEditorBlockId } from './pages.editor.block-id.lib';
 import { openPageEditorBlockCommentsAt, openPageEditorBlockRequest } from './pages.editor.block-menu.lib';
-
-const countBlockComments = (block: EditorNode): number => {
-  const comments = block.attrs[PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE];
-  return Array.isArray(comments) ? comments.length : 0;
-};
 
 const createCommentIcon = (): SVGElement => {
   const icon = document.createElementNS(PAGE_EDITOR_SVG_NAMESPACE, 'svg');
@@ -65,27 +64,70 @@ const buildCommentMark = (
   }),
 ];
 
-const collectCommentMarks = (document: EditorNode, label: string): readonly Decoration[] => {
+const collectBubbles = (document: EditorNode, label: string, summary: DiscussionsSummary): readonly Decoration[] => {
   const marks: Decoration[] = [];
+  if (summary.openCounts.size === 0) return marks;
   document.descendants((block, blockStart) => {
-    const count = countBlockComments(block);
+    const blockId = getPageEditorBlockId(block);
+    const count = blockId === null ? 0 : (summary.openCounts.get(blockId) ?? 0);
     if (count === 0 || block.isAtom) return;
     marks.push(...buildCommentMark(block, blockStart, label, count));
   });
   return marks;
 };
 
-const isPointingAtCommentedText = (event: MouseEvent): boolean =>
-  event.target instanceof Element && event.target.closest(`[${PAGE_EDITOR_COMMENT_ID_ATTRIBUTE}]`) !== null;
+/** Only the words of a discussion that is still open are underlined; a resolved one leaves them plain. */
+const collectUnderlines = (document: EditorNode, summary: DiscussionsSummary): readonly Decoration[] => {
+  const underlines: Decoration[] = [];
+  if (summary.openMarkIds.size === 0) return underlines;
+  document.descendants((node, position) => {
+    const isOpen = node.marks.some(
+      (mark) => mark.type.name === 'comment' && summary.openMarkIds.has(String(mark.attrs.id)),
+    );
+    if (node.isText && isOpen) {
+      underlines.push(
+        Decoration.inline(position, position + node.nodeSize, { class: PAGE_EDITOR_COMMENTED_TEXT_STYLE_CLASS }),
+      );
+    }
+  });
+  return underlines;
+};
 
-export const createPageEditorBlockCommentPlugin = (label: string): EditorPlugin =>
-  new EditorPlugin({
+const readCommentedTextId = (event: MouseEvent): string | null => {
+  if (!(event.target instanceof Element)) return null;
+  return (
+    event.target.closest(`[${PAGE_EDITOR_COMMENT_ID_ATTRIBUTE}]`)?.getAttribute(PAGE_EDITOR_COMMENT_ID_ATTRIBUTE) ??
+    null
+  );
+};
+
+const isSummary = (value: unknown): value is DiscussionsSummary =>
+  typeof value === 'object' && value !== null && 'openCounts' in value && 'openMarkIds' in value;
+
+/** The page tells the plugin which discussions are open; a bubble per block and an underline per open quote follow. */
+export const createPageEditorBlockCommentPlugin = (label: string): EditorPlugin<DiscussionsSummary> =>
+  new EditorPlugin<DiscussionsSummary>({
+    key: pageEditorDiscussionsKey,
     props: {
-      decorations: (state) => DecorationSet.create(state.doc, [...collectCommentMarks(state.doc, label)]),
+      decorations: (state) => {
+        const summary = pageEditorDiscussionsKey.getState(state) ?? PAGE_EDITOR_NOTHING_DISCUSSED;
+        return DecorationSet.create(state.doc, [
+          ...collectBubbles(state.doc, label, summary),
+          ...collectUnderlines(state.doc, summary),
+        ]);
+      },
       handleClick: (view, place, event) => {
-        if (!isPointingAtCommentedText(event)) return false;
-        openPageEditorBlockCommentsAt(view, place);
+        const markId = readCommentedTextId(event);
+        if (markId === null) return false;
+        openPageEditorBlockCommentsAt(view, place, markId);
         return true;
       },
+    },
+    state: {
+      apply: (transaction, previous) => {
+        const next: unknown = transaction.getMeta(pageEditorDiscussionsKey);
+        return isSummary(next) ? next : previous;
+      },
+      init: () => PAGE_EDITOR_NOTHING_DISCUSSED,
     },
   });

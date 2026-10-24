@@ -1,6 +1,12 @@
-import { isBlockReadableInPage, isPageReadable, toViewerAccess } from './block.live.access.domain';
+import {
+  hasAccessChangeAbove,
+  isBlockReadableInPage,
+  isPageReadable,
+  toViewerAccess,
+} from './block.live.access.domain';
 import type {
   ChainRowsById,
+  LiveAccessContext,
   LiveDelivery,
   LiveServerMessage,
   LiveSubscription,
@@ -17,6 +23,21 @@ const toDelivery = (subscription: LiveSubscription, message: LiveServerMessage):
   connectionId: subscription.connectionId,
   message,
 });
+
+/**
+ * A subscription is filed under the space the page had when it was made. A page that moved to another space is
+ * filed again under its new one, or the edits that name that space would never find the subscriber.
+ */
+export const listSubscriptionsInOtherSpace = (
+  subscriptions: readonly LiveSubscription[],
+  context: LiveAccessContext,
+): { connectionId: string; pageId: string; spaceId: string }[] =>
+  subscriptions.flatMap((subscription) => {
+    const spaceId = context.rowsById.get(subscription.pageId)?.spaceId;
+    return spaceId === undefined || spaceId === subscription.spaceId
+      ? []
+      : [{ connectionId: subscription.connectionId, pageId: subscription.pageId, spaceId }];
+  });
 
 const groupVersionsByPage = (
   blocks: readonly BlockVersion[],
@@ -61,7 +82,10 @@ export const planVersionDeliveries = ({ blocks, context, subscriptions }: Versio
     if (!isPageReadable(subscription.pageId, access)) {
       return [toDelivery(subscription, { pageId: subscription.pageId, type: 'revoked' })];
     }
-    return planVersions(subscription, access, versionsByPage.get(subscription.pageId) ?? []);
+    const versions = planVersions(subscription, access, versionsByPage.get(subscription.pageId) ?? []);
+    return hasAccessChangeAbove(subscription.pageId, blocks, context)
+      ? [...versions, toDelivery(subscription, { pageId: subscription.pageId, type: 'access-changed' })]
+      : versions;
   });
 };
 

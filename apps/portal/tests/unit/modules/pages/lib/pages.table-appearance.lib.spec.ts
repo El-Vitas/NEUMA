@@ -11,10 +11,11 @@ import {
   setViewRowHeight,
   toggleViewWrapsText,
 } from '@/modules/pages/collections/lib/pages.view-filtering.lib';
-import type { PageSchemaView } from '@/modules/pages/collections/types/pages.schema.types';
+import type { PageSchemaViewDraft } from '@/modules/pages/collections/types/pages.schema.types';
 
-const view: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
-const configurationOf = (views: readonly PageSchemaView[]) => readPageViewConfiguration(views[0]?.configuration ?? {});
+const view: PageSchemaViewDraft = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+const configurationOf = (views: readonly PageSchemaViewDraft[]) =>
+  readPageViewConfiguration(views[0]?.configuration ?? {});
 
 describe('cómo se ve la tabla', () => {
   it('corta el texto en una línea mientras nadie pida partirlo', () => {

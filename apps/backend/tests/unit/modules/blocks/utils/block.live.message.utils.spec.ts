@@ -186,7 +186,32 @@ describe('parseVersionNotification', () => {
       blocks: [{ id: BLOCK_ID, version: 4 }],
       kind: 'versions',
       spaceId: 'space-1',
+      views: [],
     });
+  });
+
+  it('reads the views and the move or permission flags of a notification', () => {
+    const payload = JSON.stringify({
+      blocks: [{ hasAccessChange: true, id: BLOCK_ID, previousParentId: 'old', version: 4 }],
+      spaceId: 'space-1',
+      transactionId: 'transaction-1',
+      views: [{ id: 'view-1', pageId: 'page-1', version: 2 }],
+    });
+
+    expect(parseVersionNotification(payload).getValue()).toEqual({
+      blocks: [{ hasAccessChange: true, id: BLOCK_ID, previousParentId: 'old', version: 4 }],
+      kind: 'versions',
+      spaceId: 'space-1',
+      views: [{ id: 'view-1', pageId: 'page-1', version: 2 }],
+    });
+  });
+
+  it('reads the collection messages of a client', () => {
+    expect(parseClientMessage(JSON.stringify({ collectionId: 'c1', type: 'subscribe-collection' })).isOk()).toBe(true);
+    expect(parseClientMessage(JSON.stringify({ collectionId: 'c1', type: 'unsubscribe-collection' })).isOk()).toBe(
+      true,
+    );
+    expect(parseClientMessage(JSON.stringify({ type: 'subscribe-collection' })).isFail()).toBe(true);
   });
 
   it('reads a truncated notification as one that carries no blocks', () => {

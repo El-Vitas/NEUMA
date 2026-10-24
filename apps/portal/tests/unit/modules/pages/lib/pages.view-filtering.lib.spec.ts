@@ -11,47 +11,63 @@ import {
   moveViewProperty,
   moveViewPropertySideways,
   readViewColumnWidths,
+  readViewColumnWraps,
   readViewFilterRoot,
   readViewFrozenColumns,
+  readViewHiddenGroups,
   readViewSorts,
   removeViewFilterNode,
   removeViewSort,
+  setViewCardSize,
   setViewColumnWidth,
+  setViewCoverProperty,
+  setViewDateScale,
+  setViewEndDateProperty,
   setViewFilterConditionOperator,
   setViewFilterConditionValue,
   setViewFilterGroupOperator,
   setViewFrozenColumns,
+  toggleViewColumnWrap,
+  toggleViewHiddenGroup,
   toggleViewSortDirection,
 } from '@/modules/pages/collections/lib/pages.view-filtering.lib';
-import type { PageSchemaProperty, PageSchemaView } from '@/modules/pages/collections/types/pages.schema.types';
-import { asPropertyOptions } from './pages.options.fixture';
+import type { PageSchemaProperty, PageSchemaViewDraft } from '@/modules/pages/collections/types/pages.schema.types';
+import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 
 const status: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'status',
   label: 'Status',
   options: asPropertyOptions('todo', 'done'),
   required: false,
   type: 'SELECT',
 };
-const dueDate: PageSchemaProperty = { key: 'dueDate', label: 'Due date', options: null, required: false, type: 'DATE' };
+const dueDate: PageSchemaProperty = {
+  config: defaultConfig,
+  key: 'dueDate',
+  label: 'Due date',
+  options: null,
+  required: false,
+  type: 'DATE',
+};
 
-const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
-const other: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
+const table: PageSchemaViewDraft = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+const other: PageSchemaViewDraft = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
 
 const views = [table, other];
 
 const ROOT: readonly number[] = [];
 
-const rootOf = (rewritten: readonly PageSchemaView[]): PageFilterGroup =>
-  readViewFilterRoot(rewritten[0] as PageSchemaView);
+const rootOf = (rewritten: readonly PageSchemaViewDraft[]): PageFilterGroup =>
+  readViewFilterRoot(rewritten[0] as PageSchemaViewDraft);
 
-const nodeAt = (rewritten: readonly PageSchemaView[], path: readonly number[]): PageFilter | undefined =>
+const nodeAt = (rewritten: readonly PageSchemaViewDraft[], path: readonly number[]): PageFilter | undefined =>
   path.reduce<PageFilter | undefined>(
     (node, index) => (node !== undefined && node.kind === 'GROUP' ? node.conditions[index] : undefined),
     rootOf(rewritten),
   );
 
-const conditionAt = (rewritten: readonly PageSchemaView[], path: readonly number[]): PageFilterCondition => {
+const conditionAt = (rewritten: readonly PageSchemaViewDraft[], path: readonly number[]): PageFilterCondition => {
   const node = nodeAt(rewritten, path);
   if (node === undefined || node.kind !== 'CONDITION') throw new Error(`No condition at ${path.join('.')}`);
   return node;
@@ -63,7 +79,7 @@ describe('reading what a view filters by', () => {
   });
 
   it('reads a lone stored condition as a group holding it', () => {
-    const stored: PageSchemaView = {
+    const stored: PageSchemaViewDraft = {
       ...table,
       configuration: { filter: { kind: 'CONDITION', operator: 'IS', propertyKey: 'status', value: 'todo' } },
     };
@@ -152,7 +168,7 @@ describe('removing a node', () => {
 
     const [empty] = removeViewFilterNode(withOne, 'Table', [0]);
 
-    expect((empty as PageSchemaView).configuration).toMatchObject({ filter: null });
+    expect((empty as PageSchemaViewDraft).configuration).toMatchObject({ filter: null });
   });
 });
 
@@ -167,7 +183,7 @@ describe('clearing the filter', () => {
 
     const [cleared] = clearViewFilter(withTwo, 'Table');
 
-    expect((cleared as PageSchemaView).configuration).toMatchObject({ filter: null });
+    expect((cleared as PageSchemaViewDraft).configuration).toMatchObject({ filter: null });
   });
 });
 
@@ -246,13 +262,13 @@ describe('ordering rows', () => {
   it('adds an order that starts ascending', () => {
     const [ordered] = addViewSort(views, 'Table', 'dueDate');
 
-    expect(readViewSorts(ordered as PageSchemaView)).toEqual([{ direction: 'ASCENDING', propertyKey: 'dueDate' }]);
+    expect(readViewSorts(ordered as PageSchemaViewDraft)).toEqual([{ direction: 'ASCENDING', propertyKey: 'dueDate' }]);
   });
 
   it('does not order twice by the same property', () => {
     const [ordered] = addViewSort(addViewSort(views, 'Table', 'dueDate'), 'Table', 'dueDate');
 
-    expect(readViewSorts(ordered as PageSchemaView)).toHaveLength(1);
+    expect(readViewSorts(ordered as PageSchemaViewDraft)).toHaveLength(1);
   });
 
   it('turns one order around without disturbing the chain', () => {
@@ -260,7 +276,7 @@ describe('ordering rows', () => {
 
     const [turned] = toggleViewSortDirection(chained, 'Table', 0);
 
-    expect(readViewSorts(turned as PageSchemaView)).toEqual([
+    expect(readViewSorts(turned as PageSchemaViewDraft)).toEqual([
       { direction: 'DESCENDING', propertyKey: 'dueDate' },
       { direction: 'ASCENDING', propertyKey: 'status' },
     ]);
@@ -271,13 +287,13 @@ describe('ordering rows', () => {
 
     const [left] = removeViewSort(chained, 'Table', 0);
 
-    expect(readViewSorts(left as PageSchemaView)).toEqual([{ direction: 'ASCENDING', propertyKey: 'status' }]);
+    expect(readViewSorts(left as PageSchemaViewDraft)).toEqual([{ direction: 'ASCENDING', propertyKey: 'status' }]);
   });
 });
 
 describe('moviendo las columnas de una tabla', () => {
   const shown = [status.key, dueDate.key];
-  const columnsOf = (rewritten: readonly PageSchemaView[]) =>
+  const columnsOf = (rewritten: readonly PageSchemaViewDraft[]) =>
     readPageViewConfiguration(rewritten[0]?.configuration ?? {}).visibleProperties;
 
   // Without a stored list, moving one column would otherwise leave it as the only visible one.
@@ -315,13 +331,65 @@ describe('lo que una tabla guarda de sus propias columnas', () => {
     const [wide] = setViewColumnWidth(views, 'Table', 'status', 240);
     const [frozen] = setViewFrozenColumns(views, 'Table', 2);
 
-    expect(readViewColumnWidths(wide as PageSchemaView)).toEqual({ status: 240 });
-    expect(readViewFrozenColumns(frozen as PageSchemaView)).toBe(2);
+    expect(readViewColumnWidths(wide as PageSchemaViewDraft)).toEqual({ status: 240 });
+    expect(readViewFrozenColumns(frozen as PageSchemaViewDraft)).toBe(2);
   });
 
   it('refuses to freeze a negative number of columns', () => {
     const [frozen] = setViewFrozenColumns(views, 'Table', -3);
 
-    expect(readViewFrozenColumns(frozen as PageSchemaView)).toBe(0);
+    expect(readViewFrozenColumns(frozen as PageSchemaViewDraft)).toBe(0);
+  });
+});
+
+describe('lo que una vista guarda de sus fechas y de sus tarjetas', () => {
+  const configurationOf = (updated: readonly PageSchemaViewDraft[]) =>
+    readPageViewConfiguration(updated.find((view) => view.name === 'Table')?.configuration);
+
+  it('keeps the property a timeline ends in, and takes it off again', () => {
+    expect(configurationOf(setViewEndDateProperty(views, 'Table', 'dueDate')).endDateProperty).toBe('dueDate');
+    const withEnd = setViewEndDateProperty(views, 'Table', 'dueDate');
+    expect(configurationOf(setViewEndDateProperty(withEnd, 'Table', null)).endDateProperty).toBeNull();
+  });
+
+  it('keeps how much time one screen holds', () => {
+    expect(configurationOf(setViewDateScale(views, 'Table', 'WEEK')).dateScale).toBe('WEEK');
+  });
+
+  it('keeps how big the cards are, and where their cover comes from', () => {
+    expect(configurationOf(setViewCardSize(views, 'Table', 'LARGE')).cardSize).toBe('LARGE');
+    expect(configurationOf(setViewCoverProperty(views, 'Table', 'photos')).coverProperty).toBe('photos');
+    const covered = setViewCoverProperty(views, 'Table', 'photos');
+    expect(configurationOf(setViewCoverProperty(covered, 'Table', null)).coverProperty).toBeNull();
+  });
+
+  it('wraps the text of one column and leaves the others as they were', () => {
+    const wrapped = toggleViewColumnWrap(views, 'Table', 'status');
+
+    expect(readViewColumnWraps(wrapped.find((view) => view.name === 'Table') as PageSchemaViewDraft)).toEqual({
+      status: true,
+    });
+    expect(readViewColumnWraps(toggleViewColumnWrap(wrapped, 'Table', 'status')[0] as PageSchemaViewDraft)).toEqual({});
+  });
+
+  it('raises a short row to a medium one when a column starts to wrap, since the extra lines would be cut off', () => {
+    const wrapped = toggleViewColumnWrap(views, 'Table', 'status');
+
+    expect(readPageViewConfiguration(wrapped.find((view) => view.name === 'Table')?.configuration).rowHeight).toBe(
+      'MEDIUM',
+    );
+  });
+
+  it('hides a group and shows it again', () => {
+    const hidden = toggleViewHiddenGroup(views, 'Table', 'done');
+
+    expect(readViewHiddenGroups(hidden.find((view) => view.name === 'Table') as PageSchemaViewDraft)).toEqual(['done']);
+    expect(readViewHiddenGroups(toggleViewHiddenGroup(hidden, 'Table', 'done')[0] as PageSchemaViewDraft)).toEqual([]);
+  });
+
+  it('touches only the view it was asked about', () => {
+    const updated = setViewDateScale(views, 'Table', 'DAY');
+
+    expect(updated.find((view) => view.name === 'Board')).toEqual(other);
   });
 });

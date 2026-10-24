@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { documentOf, paragraph, syncedBlocksOf, text } from '../modules/pages/block-sync/block-sync.fixtures';
+import { COLLECTION_ACTION_STUBS } from '../modules/pages/stubs/pages.actions.stubs';
 
 const pageId = '44444444-4444-4444-8444-444444444444';
 const spaceId = '22222222-2222-4222-8222-222222222222';
@@ -15,10 +16,16 @@ const storedPage = (id: string, order: number) => ({
   parentId: null,
   title: 'Getting Started',
 });
-const pagesResult = {
-  getValue: () => [storedPage(pageId, 0), storedPage(panelPageId, 1)],
+const storedPages = new Map([
+  [pageId, storedPage(pageId, 0)],
+  [panelPageId, storedPage(panelPageId, 1)],
+]);
+const getPage = async (_spaceId: string, readPageId: string) => ({
+  getValue: () => storedPages.get(readPageId) ?? null,
+  isFail: () => false,
   isOk: () => true,
-};
+});
+const nothingKnownAbout = { getValue: () => null, isOk: () => true };
 const writtenInBlocks = documentOf(paragraph('p1', text('From the blocks')));
 const blockRows = syncedBlocksOf(writtenInBlocks, 1, pageId);
 const panelBlockRows = syncedBlocksOf(documentOf(paragraph('q1', text('Panel from the blocks'))), 1, panelPageId);
@@ -34,7 +41,7 @@ interface IWorkspaceProps {
   readonly blockSync?: readonly unknown[] | null;
   readonly blockSyncFailed?: boolean;
   readonly currentUserId?: string;
-  readonly pages: readonly { readonly content: unknown; readonly id: string }[];
+  readonly page: { readonly content: unknown; readonly id: string };
   readonly panelBundle?: {
     readonly blockSync: readonly unknown[] | null;
     readonly blockSyncFailed: boolean;
@@ -44,7 +51,7 @@ interface IWorkspaceProps {
 const workspace = mock((props: IWorkspaceProps) =>
   createElement('div', {
     'data-block-count': props.blockSync?.length ?? 'none',
-    'data-content': JSON.stringify(props.pages.find((page) => page.id === pageId)?.content),
+    'data-content': JSON.stringify(props.page.content),
     'data-block-failed': String(props.blockSyncFailed ?? false),
     'data-panel-block-count': props.panelBundle?.blockSync?.length ?? 'none',
     'data-panel-block-failed': String(props.panelBundle?.blockSyncFailed ?? false),
@@ -70,6 +77,8 @@ mock.module('@/i18n/navigation', () => ({
   redirect: () => undefined,
   useRouter: () => ({ refresh: () => undefined }),
 }));
+mock.module('@/shared/server/lib/time-zone.server', () => ({ readRequestTimeZone: async () => null }));
+mock.module('@/shared/server/actions/time-zone.actions', () => ({ rememberTimeZoneAction: async () => undefined }));
 mock.module('@/shared/server/lib/current-user.server', () => ({
   getCurrentUser: async () => ({ id: 'user-1', name: 'Ana', role: 'ADMIN' }),
 }));
@@ -85,19 +94,58 @@ mock.module('@/modules/pages/links/server/queries/pages.backlinks.queries', () =
 }));
 mock.module('@/modules/pages/block-sync/server/lib/block-sync.reading.server', () => ({ getPageBlocks }));
 mock.module('@/modules/pages/server/queries/pages.queries', () => ({
-  getPages: async () => pagesResult,
-  getPagesHolding: async () => pagesResult,
+  getPageComputedValues: async () => ({ isFail: () => true, isOk: () => false }),
+  getPage,
   getPageSpaceId: async () => ({ isFail: () => true, isOk: () => false }),
+}));
+mock.module('@/modules/pages/tree/server/queries/pages.tree.queries', () => ({
+  getPageAncestors: async () => ({ getValue: () => [], isOk: () => true }),
+  getPagePath: async () => nothingKnownAbout,
+}));
+mock.module('@/modules/pages/tree/server/lib/pages.references.server', () => ({
+  getPageReferences: async () => ({ isOk: () => false }),
 }));
 mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', () => ({
   getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),
-  getPageView: async () => ({ getValue: () => ({ kind: 'FLAT_ROWS', rows: [] }), isOk: () => true }),
+  getSpaceCollections: async () => ({ getValue: () => [], isOk: () => true }),
+}));
+mock.module('@/modules/pages/templates/server/queries/pages.templates.queries', () => ({
+  getPageTemplates: async () => ({ isFail: () => true }),
+}));
+mock.module('@/modules/pages/templates/server/actions/pages.templates.actions', () => ({
+  createPageTemplateAction: async () => undefined,
+  deletePageTemplateAction: async () => undefined,
+  listPageTemplatesAction: async () => undefined,
+  setDefaultPageTemplateAction: async () => undefined,
+  updatePageTemplateAction: async () => undefined,
+}));
+mock.module('@/modules/pages/collections/server/lib/pages.view-reading.server', () => ({
+  readPageViewReading: async () => null,
 }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  ...COLLECTION_ACTION_STUBS,
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
-  updatePageViewConfigurationAction: async () => ({ data: null }),
+  applyPageViewOperationsAction: async () => ({ data: null }),
+  loadMorePageRowsAction: async () => ({ data: null }),
+  readEveryPageRowAction: async () => ({ data: null }),
+  readPageCollectionAction: async () => ({ data: null }),
+  readPageCollectionChangesAction: async () => ({ data: null }),
+  readPageMatchingRowsAction: async () => ({ data: null }),
+  readPageViewAggregatesAction: async () => ({ data: null }),
+  refreshPageCollectionAction: async () => ({ data: null }),
+  refreshPageRowsAction: async () => ({ data: null }),
+  movePageRowAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
+}));
+// The live follower opens a socket and loads server actions, which a test of the route does not need.
+mock.module('@/modules/pages/collections/components/pages.collection.live-follower', () => ({
+  PagesCollectionLiveFollower: () => null,
+}));
+mock.module('@/modules/pages/collections/components/pages.collection.computed-sources-follower', () => ({
+  PagesCollectionComputedSourcesFollower: () => null,
 }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   createPageAction: async () => ({ data: { id: 'row-new' } }),
@@ -108,7 +156,11 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
 }));
 mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({
   getSpaceMembers: async () => ({ getValue: () => [], isOk: () => true }),
-  getSpaces: async () => ({ getValue: () => [{ id: spaceId, name: 'Engineering' }], isOk: () => true }),
+  getSpaces: async () => ({
+    getValue: () => [{ id: spaceId, name: 'Engineering' }],
+    isFail: () => false,
+    isOk: () => true,
+  }),
 }));
 
 const { default: Page } = await import('@/app/[locale]/(portal)/spaces/[spaceId]/pages/[pageId]/page');

@@ -13,14 +13,21 @@ import type {
   PageBoardColumnMode,
   PageBoardDragController,
 } from '../types/pages.board-drag.types';
-import type { PagePersonOption, PageSchemaProperty, PageViewGroup } from '../types/pages.schema.types';
-import { PagesCollectionBoardCard } from './pages.collection.board.card';
+import type {
+  PagePersonOption,
+  PageSchemaProperty,
+  PageViewAggregates,
+  PageViewGroup,
+} from '../types/pages.schema.types';
+import { PagesCollectionBoardColumnCards } from './pages.collection.board.column.cards';
 import { PagesCollectionBoardColumnFolded } from './pages.collection.board.column.folded';
 import { PagesCollectionBoardColumnHeader } from './pages.collection.board.column-header';
 import { PagesCollectionBoardColumnRemoveDialog } from './pages.collection.board.column-remove.dialog';
+import { PagesCollectionLoadMoreButton } from './pages.collection.load-more.button';
 import { PagesCollectionNewRow } from './pages.collection.new-row';
 
 interface IProps {
+  readonly aggregates: Promise<PageViewAggregates | null>;
   /** Empty when the board has no bands. */
   readonly bandKey: string;
   readonly canDrag: boolean;
@@ -32,8 +39,10 @@ interface IProps {
   readonly group: PageViewGroup;
   readonly isCollapsed: boolean;
   readonly isCreating: boolean;
+  readonly isLoadingMore: boolean;
   readonly isNaming: boolean;
   readonly onCreate: (title: string) => void;
+  readonly onLoadMore: () => void;
   readonly onNameCancel: () => void;
   readonly onNameStart: () => void;
   readonly personOptions: readonly PagePersonOption[];
@@ -43,6 +52,7 @@ interface IProps {
 
 /** Rendered even when empty, since an empty column is still a drop target; the same piece is reused inside bands. */
 export const PagesCollectionBoardColumn = ({
+  aggregates,
   bandKey,
   canDrag,
   canEdit,
@@ -52,8 +62,10 @@ export const PagesCollectionBoardColumn = ({
   group,
   isCollapsed,
   isCreating,
+  isLoadingMore,
   isNaming,
   onCreate,
+  onLoadMore,
   onNameCancel,
   onNameStart,
   personOptions,
@@ -74,12 +86,14 @@ export const PagesCollectionBoardColumn = ({
 
   const renameTo = (name: string): void => {
     setMode('NAMED');
-    if (name.trim() !== '' && name !== group.key) columns?.renameColumn(group.key, name.trim());
+    if (name.trim() !== '' && name !== group.label) columns?.renameColumn(group.key, name.trim());
   };
 
   if (isCollapsed) {
     return (
       <PagesCollectionBoardColumnFolded
+        aggregates={aggregates}
+        bandKey={bandKey}
         columnDrag={columnDrag}
         group={group}
         label={label}
@@ -121,6 +135,8 @@ export const PagesCollectionBoardColumn = ({
     >
       <div className="flex items-center gap-2 px-3 pt-3 pb-2">
         <PagesCollectionBoardColumnHeader
+          aggregates={aggregates}
+          bandKey={bandKey}
           canEdit={canEdit}
           columns={columns}
           group={group}
@@ -159,28 +175,17 @@ export const PagesCollectionBoardColumn = ({
         {group.rows.length === 0 && (
           <p className="px-1 py-2 text-muted-foreground text-xs">{t('collection.emptyColumn')}</p>
         )}
-        {group.rows.map((row, position) => (
-          <div key={row.id}>
-            <div
-              aria-hidden="true"
-              className={cn('h-0.5 rounded-full transition-colors', isAimingAt(row.id) && 'bg-primary')}
-              data-active={isAimingAt(row.id)}
-              data-testid="board-drop-gap"
-            />
-            <PagesCollectionBoardCard
-              bandKey={bandKey}
-              canEdit={canDrag}
-              drag={drag}
-              groupKey={group.key}
-              isCarryingColumn={columnDrag.carried !== null}
-              nextRowId={group.rows[position + 1]?.id ?? null}
-              personOptions={personOptions}
-              properties={properties}
-              row={row}
-              spaceId={spaceId}
-            />
-          </div>
-        ))}
+        <PagesCollectionBoardColumnCards
+          bandKey={bandKey}
+          canDrag={canDrag}
+          drag={drag}
+          group={group}
+          isAimingAt={isAimingAt}
+          isCarryingColumn={columnDrag.carried !== null}
+          personOptions={personOptions}
+          properties={properties}
+          spaceId={spaceId}
+        />
         <div
           aria-hidden="true"
           className={cn(
@@ -188,6 +193,9 @@ export const PagesCollectionBoardColumn = ({
             isAimingAt(null) && group.rows.length > 0 && 'bg-primary',
           )}
         />
+        {(group.nextCursor ?? null) !== null && (
+          <PagesCollectionLoadMoreButton isLoading={isLoadingMore} onLoad={onLoadMore} />
+        )}
         {isNaming && (
           <PagesCollectionNewRow
             disabled={isCreating}

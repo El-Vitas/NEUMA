@@ -1,0 +1,25 @@
+// use prisma-8
+
+/// Something that happened to a person (ADR 023). Unread ones are never deleted; read ones are removed 90 days after `readAt`.
+/// `PAGE_CHANGE` is reserved and nothing creates it yet.
+model Notification {
+  id           String                  @id(map: "Notification_pkey") @default(uuid(7))
+  recipientId  String
+  kind         pg.enum(NotificationKind)
+  blockId      String
+  discussionId String?
+  commentId    String?
+  actorId      String
+  readAt       TimestamptzJsDate?
+  createdAt    TimestamptzJsDate       @default(now())
+  recipient    User                    @relation(fields: [recipientId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Notification_recipientId_fkey", index: false)
+  block        Block                   @relation(fields: [blockId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Notification_blockId_fkey", index: "Notification_blockId_idx")
+  discussion   Discussion?             @relation(fields: [discussionId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Notification_discussionId_fkey", index: "Notification_discussionId_idx")
+  comment      Comment?                @relation(fields: [commentId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Notification_commentId_fkey", index: "Notification_commentId_idx")
+
+  @@index([recipientId, readAt, createdAt], map: "Notification_recipientId_readAt_createdAt_idx")
+  @@index([readAt], map: "Notification_readAt_idx")
+  @@index([blockId], map: "Notification_blockId_idx")
+  @@index([discussionId], map: "Notification_discussionId_idx")
+  @@index([commentId], map: "Notification_commentId_idx")
+}

@@ -13,6 +13,16 @@ mock.module('next/navigation', () => ({
   unstable_rethrow: () => undefined,
   usePathname: () => '/',
   useRouter: () => ({ push: () => undefined, refresh: () => undefined, replace: () => undefined }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+mock.module('@/modules/pages/discussions/server/actions/pages.discussions.actions', () => ({
+  editCommentAction: async () => ({ serverError: 'unexpected' }),
+  openDiscussionAction: async () => ({ serverError: 'unexpected' }),
+  readPageDiscussionsAction: async () => ({ data: [] }),
+  removeCommentAction: async () => ({ serverError: 'unexpected' }),
+  reopenDiscussionAction: async () => ({ serverError: 'unexpected' }),
+  replyToDiscussionAction: async () => ({ serverError: 'unexpected' }),
+  resolveDiscussionAction: async () => ({ serverError: 'unexpected' }),
 }));
 
 mock.module('@/modules/pages/hooks/use.pages.mention-search', () => ({
@@ -51,6 +61,8 @@ mock.module('@/modules/pages/appearance/server/actions/pages.icon.actions', () =
 }));
 
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   createPageCollectionAction: async () => ({ data: undefined }),
   readPageCollectionAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: undefined }),
@@ -80,6 +92,7 @@ const SPACE_ID = '33333333-3333-4333-8333-333333333333';
 const PAGE_ID = '22222222-2222-4222-8222-222222222222';
 
 const buildPage = (): PageSummary => ({
+  canEdit: true,
   content: createEmptyPageContent(),
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
@@ -99,7 +112,7 @@ describe('a file inserted directly in the page content', () => {
   it('also shows up in the attachments panel, without asking to upload it twice', async () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <PagesEditor canEdit page={buildPage()} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+        <PagesEditor ancestors={[]} canEdit page={buildPage()} references={[]} spaceId={SPACE_ID} />
       </NextIntlClientProvider>,
     );
 
@@ -117,7 +130,7 @@ describe('a file inserted directly in the page content', () => {
   it('also shows up when the file arrives by dragging it onto the writing surface', async () => {
     const { container } = render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <PagesEditor canEdit page={buildPage()} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+        <PagesEditor ancestors={[]} canEdit page={buildPage()} references={[]} spaceId={SPACE_ID} />
       </NextIntlClientProvider>,
     );
 

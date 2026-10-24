@@ -1,8 +1,7 @@
 import type { Models, Scalars } from '@neuma/db';
-import type { Result, UserRole } from '@neuma/shared';
+import type { UserRole } from '@neuma/shared';
 import type { FILE_ASSET_METADATA_FIELDS } from '../constants/files.constants';
 import type { FileAssetMetadata, FileAssetSummary } from '../domain/files.domain.types';
-import type { FileAccessDeniedError, FileStorageError, FileValidationError } from '../domain/files.error';
 
 export interface CreateFileAssetInput {
   readonly buffer: Buffer;
@@ -40,6 +39,12 @@ export interface FileAssetRepository {
     userId: string,
     role: UserRole,
   ) => Promise<FileAssetSummary | null>;
+  readonly findDeletable: (
+    assetId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<FileAssetSummary | null>;
   readonly findByPage: (
     pageId: string,
     workspaceId: string,
@@ -63,8 +68,3 @@ export interface FileDownload {
 export interface FileLogger {
   readonly error: (context: Record<string, unknown>, message: string) => void;
 }
-
-export type FileOperationResult = Result<
-  FileAssetSummary,
-  FileAccessDeniedError | FileStorageError | FileValidationError
->;

@@ -14,11 +14,13 @@ import { duplicatePageAction, restorePageAction } from '@/modules/pages/server/a
 import { PagesTrashConfirmDialog } from '@/modules/pages/trash/components/pages.trash.confirm.dialog';
 import { usePageRestoreNotice } from '@/modules/pages/trash/hooks/use.pages.trash.restore-notice';
 import type { TrashRestoreOutcome } from '@/modules/pages/trash/types/pages.trash.types';
+import type { PagesTreeSpaceView } from '@/modules/pages/tree/types/pages.tree.types';
 import {
   buildPortalSidebarPageTree,
   getPortalSidebarExpandedPageIds,
   getPortalSidebarSelectedPageId,
   handleSidebarPageTreeKeyDown,
+  shouldLoadPortalSidebarChildren,
 } from '@/modules/portal/lib/portal.sidebar.lib';
 import { summarizePortalSidebarSelectionOutcome } from '@/modules/portal/lib/portal.sidebar.selection.lib';
 import type { PortalPageBatchOutcome } from '@/modules/portal/types/portal.sidebar.selection.types';
@@ -27,7 +29,7 @@ import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { usePagesStart } from '@/shared/hooks/use.pages-start.hook';
 import { useSidebarPageDrag } from '@/shared/hooks/use.sidebar-page-drag.hook';
 import { useSidebarPageSelection } from '@/shared/hooks/use.sidebar-page-selection.hook';
-import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { SidebarPageBatchMoveDialog } from './sidebar-page-batch-move-dialog';
 import { SidebarPageBatchTrashDialog } from './sidebar-page-batch-trash-dialog';
@@ -35,17 +37,19 @@ import { SidebarPageIconDialog } from './sidebar-page-icon-dialog';
 import { SidebarPageRenameDialog } from './sidebar-page-rename-dialog';
 import { SidebarPageSelectionToolbar } from './sidebar-page-selection-toolbar';
 import { SidebarPageTreeItem } from './sidebar-page-tree-item';
+import { SidebarPageTreeMore } from './sidebar-page-tree-more';
 import { SidebarPageTreeRootDropZone } from './sidebar-page-tree-root-drop-zone';
 
 interface IProps {
   readonly id: string;
   readonly onNavigate?: () => void;
-  readonly pages: readonly PortalSidebarPage[];
   readonly role: UserRole;
   readonly spaceId: string;
+  readonly treeView: PagesTreeSpaceView;
 }
 
-export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps) => {
+export const SidebarPageTree = ({ id, onNavigate, role, spaceId, treeView }: IProps) => {
+  const pages: readonly PortalSidebarPage[] = treeView.entries;
   const t = useTranslations('pages');
   const tDuplicate = useTranslations('pages.duplicate');
   const pathname = usePathname();
@@ -63,12 +67,12 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
   const drag = useSidebarPageDrag(pages, spaceId);
   const selection = useSidebarPageSelection();
   const [activeBatchDialog, setActiveBatchDialog] = useState<'move' | 'trash' | null>(null);
-  const tree = useMemo(() => buildPortalSidebarPageTree(pages), [pages]);
   const spacePath = ROUTES.PORTAL_SPACE(spaceId);
   const selectedPageId = useMemo(
     () => getPortalSidebarSelectedPageId(pathname, pages, spacePath),
     [pages, pathname, spacePath],
   );
+  const tree = useMemo(() => buildPortalSidebarPageTree(pages, selectedPageId), [pages, selectedPageId]);
   const selectedPathIds = useMemo(() => getPortalSidebarExpandedPageIds(tree, selectedPageId), [selectedPageId, tree]);
   const expansionKey = `${pathname}:${selectedPathIds.join(':')}`;
   const [expansionState, setExpansionState] = useState(() => ({
@@ -81,6 +85,7 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
       : new Set([...expansionState.pageIds, ...selectedPathIds]);
 
   const togglePage = (pageId: string): void => {
+    if (shouldLoadPortalSidebarChildren(pages, expandedPageIds, pageId)) treeView.loadChildren(pageId);
     setExpansionState(() => {
       const next = new Set(expandedPageIds);
       if (next.has(pageId)) next.delete(pageId);
@@ -88,6 +93,8 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
       return { key: expansionKey, pageIds: next };
     });
   };
+
+  const rootBounds = treeView.readBounds(null);
 
   const restorePage = (page: PortalSidebarPage): void => {
     if (undoingPageIdRef.current === page.id) return;
@@ -112,12 +119,14 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
   const duplicatePage = (page: PortalSidebarPage, includeChildren: boolean): void => {
     setPageToDuplicate(null);
     startTransition(async () => {
-      const result = await duplicatePageAction({
-        includeChildren,
-        pageId: page.id,
-        spaceId,
-        title: tDuplicate('copyName', { title: page.title.length > 0 ? page.title : t('untitled') }),
-      });
+      const result = await callAction(() =>
+        duplicatePageAction({
+          includeChildren,
+          pageId: page.id,
+          spaceId,
+          title: tDuplicate('copyName', { title: page.title.length > 0 ? page.title : t('untitled') }),
+        }),
+      );
       if (hasActionError(result)) {
         toast.error(tDuplicate('error'));
         return;
@@ -229,6 +238,14 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
         />
       )}
       <ul aria-label={t('pageTree')} className="space-y-px pb-1" data-page-tree="true" id={id}>
+        <SidebarPageTreeMore
+          bounds={rootBounds}
+          depth={0}
+          direction="previous"
+          isLoading={treeView.isLoading(null)}
+          loadedCount={tree.length}
+          onLoad={() => treeView.loadMore(null, 'previous')}
+        />
         {tree.map((treeItem) => (
           <SidebarPageTreeItem
             canEdit={canEdit}
@@ -253,8 +270,17 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
             selectionMode={selection.isActive}
             spaceId={spaceId}
             treeItem={treeItem}
+            treeView={treeView}
           />
         ))}
+        <SidebarPageTreeMore
+          bounds={rootBounds}
+          depth={0}
+          direction="next"
+          isLoading={treeView.isLoading(null)}
+          loadedCount={tree.length}
+          onLoad={() => treeView.loadMore(null, 'next')}
+        />
       </ul>
       {activeBatchDialog === 'trash' && (
         <SidebarPageBatchTrashDialog

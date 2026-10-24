@@ -5,13 +5,18 @@ import type {
   PageSchema,
   PageSchemaProperty,
   PageSchemaView,
+  PageViewAggregates,
   PageViewBandedOutcome,
   PageViewFlatOutcome,
   PageViewGroupedOutcome,
 } from './pages.schema.types';
 
 export interface PageViewRenderInput<TOutcome> {
+  /** The counts and calculations, which arrive after the rows. */
+  readonly aggregates: Promise<PageViewAggregates | null>;
   readonly canEdit: boolean;
+  /** Where to read what changed after these rows were read; null when the view cannot follow changes. */
+  readonly changesCursor: null | string;
   readonly outcome: TOutcome;
   readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
@@ -19,6 +24,8 @@ export interface PageViewRenderInput<TOutcome> {
   readonly schema: PageSchema;
   readonly spaceId: string;
   readonly view: PageSchemaView;
+  /** Who looks; null when not known (a read-only embed), and a filter that names the reader goes to the server. */
+  readonly viewerId: null | string;
 }
 
 /**

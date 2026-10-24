@@ -16,9 +16,11 @@ describe('toSchemaViewDefinition', () => {
           operator: 'AND',
         },
       },
+      id: 'view-1',
       isDefault: true,
       name: 'Table',
       type: 'TABLE',
+      version: 0,
     });
 
     expect(view?.configuration).toEqual({
@@ -33,17 +35,40 @@ describe('toSchemaViewDefinition', () => {
   it('keeps a null a view stores at the top of its configuration', () => {
     const view = toSchemaViewDefinition({
       configuration: { groupBy: null, sorts: [] },
+      id: 'view-1',
       isDefault: true,
       name: 'Table',
       type: 'TABLE',
+      version: 0,
     });
 
     expect(view?.configuration).toEqual({ groupBy: null, sorts: [] });
   });
 
+  it('carries the id and the version the view has in storage', () => {
+    const view = toSchemaViewDefinition({
+      configuration: {},
+      id: 'view-9',
+      isDefault: false,
+      name: 'Board',
+      type: 'BOARD',
+      version: 4,
+    });
+
+    expect(view?.id).toBe('view-9');
+    expect(view?.version).toBe(4);
+  });
+
   it('refuses a configuration that is not an object at all', () => {
     expect(
-      toSchemaViewDefinition({ configuration: 'nonsense', isDefault: true, name: 'Table', type: 'TABLE' }),
+      toSchemaViewDefinition({
+        configuration: 'nonsense',
+        id: 'view-1',
+        isDefault: true,
+        name: 'Table',
+        type: 'TABLE',
+        version: 0,
+      }),
     ).toBeNull();
   });
 });

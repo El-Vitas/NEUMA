@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import { PAGE_PROPERTY_TYPE } from '../types/page-schema.types.js';
-import { computePageCalculation, listPageCalculationsFor } from './page-view.calculation.lib.js';
+import {
+  computePageCalculation,
+  isPageCalculationAPortion,
+  listPageCalculationsFor,
+} from './page-view.calculation.lib.js';
 import { PAGE_VIEW_CALCULATION } from './page-view.types.js';
 
 describe('listPageCalculationsFor', () => {
@@ -10,6 +14,8 @@ describe('listPageCalculationsFor', () => {
       PAGE_VIEW_CALCULATION.COUNT_ALL,
       PAGE_VIEW_CALCULATION.COUNT_FILLED,
       PAGE_VIEW_CALCULATION.COUNT_EMPTY,
+      PAGE_VIEW_CALCULATION.PERCENT_FILLED,
+      PAGE_VIEW_CALCULATION.PERCENT_EMPTY,
     ]);
   });
 
@@ -35,6 +41,16 @@ describe('computePageCalculation', () => {
     const values = ['written', '', undefined, 'also written'];
     expect(computePageCalculation(PAGE_VIEW_CALCULATION.COUNT_FILLED, PAGE_PROPERTY_TYPE.RICH_TEXT, values)).toBe(2);
     expect(computePageCalculation(PAGE_VIEW_CALCULATION.COUNT_EMPTY, PAGE_PROPERTY_TYPE.RICH_TEXT, values)).toBe(2);
+  });
+
+  it('reads the filled and empty portions as parts of one', () => {
+    const values = ['written', '', undefined, 'also written'];
+    expect(computePageCalculation(PAGE_VIEW_CALCULATION.PERCENT_FILLED, PAGE_PROPERTY_TYPE.RICH_TEXT, values)).toBe(
+      0.5,
+    );
+    expect(computePageCalculation(PAGE_VIEW_CALCULATION.PERCENT_EMPTY, PAGE_PROPERTY_TYPE.RICH_TEXT, values)).toBe(0.5);
+    expect(computePageCalculation(PAGE_VIEW_CALCULATION.PERCENT_FILLED, PAGE_PROPERTY_TYPE.RICH_TEXT, [])).toBeNull();
+    expect(isPageCalculationAPortion(PAGE_VIEW_CALCULATION.PERCENT_EMPTY)).toBe(true);
   });
 
   it('adds, averages and takes the ends of what the rows hold', () => {

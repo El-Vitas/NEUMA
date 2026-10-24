@@ -1,5 +1,10 @@
 import type { PageCollectionReference, Result } from '@neuma/shared';
-import { canEditContent, canManageWorkspace, extractPageCollectionReferences, USER_ROLE } from '@neuma/shared';
+import {
+  canManageWorkspace,
+  extractPageCollectionReferences,
+  isPageComputedPropertyType,
+  USER_ROLE,
+} from '@neuma/shared';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
@@ -12,27 +17,47 @@ import { resolveBlockEditorStart, withBlockEditorContent } from '@/modules/pages
 import { getPageBlocks } from '@/modules/pages/block-sync/server/lib/block-sync.reading.server';
 import { PagesCollectionEmbed } from '@/modules/pages/collections/components/pages.collection.embed';
 import { PagesCollectionSection } from '@/modules/pages/collections/components/pages.collection.section';
-import { PAGE_COLLECTION_VIEW_SEARCH_PARAM } from '@/modules/pages/collections/constants/pages.collections.constants';
-import { resolveActiveCollectionView } from '@/modules/pages/collections/lib/pages.collection.view-selection.lib';
+import {
+  PAGE_COLLECTION_DAY_SEARCH_PARAM,
+  PAGE_COLLECTION_MONTH_SEARCH_PARAM,
+  PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM,
+  PAGE_COLLECTION_ROW_SEARCH_PARAM,
+  PAGE_COLLECTION_VIEW_SEARCH_PARAM,
+  UNSEARCHED_ROWS_REQUEST,
+} from '@/modules/pages/collections/constants/pages.collections.constants';
+import {
+  readCollectionDay,
+  readCollectionMonth,
+  readCollectionQuickFilter,
+  readCollectionSearch,
+  resolveActiveCollectionView,
+} from '@/modules/pages/collections/lib/pages.collection.view-selection.lib';
 import { readEmbeddedCollectionKey } from '@/modules/pages/collections/lib/pages.collections.lib';
 import {
   getEditableSchemaProperties,
   schemaNeedsPersonOptions,
 } from '@/modules/pages/collections/lib/pages.properties.lib';
-import { getPageSchema, getPageView } from '@/modules/pages/collections/server/queries/pages.schema.queries';
+import { readPageViewReading } from '@/modules/pages/collections/server/lib/pages.view-reading.server';
+import { getPageSchema } from '@/modules/pages/collections/server/queries/pages.schema.queries';
 import type { PagePersonOption, PageSchema } from '@/modules/pages/collections/types/pages.schema.types';
 import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
 import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants';
 import { buildPageDocumentTitle, canEditPage } from '@/modules/pages/lib/pages.lib';
 import { getPageBacklinks } from '@/modules/pages/links/server/queries/pages.backlinks.queries';
 import type { PagesEditorBundle, PagesSidePanelBundle } from '@/modules/pages/navigation/types/pages.side-panel.types';
-import { getPageSpaceId, getPages, getPagesHolding } from '@/modules/pages/server/queries/pages.queries';
-import type { PageSummary } from '@/modules/pages/types/pages.types';
+import { getPage, getPageComputedValues, getPageSpaceId } from '@/modules/pages/server/queries/pages.queries';
+import { EMPTY_PAGE_REFERENCES_READ } from '@/modules/pages/tree/constants/pages.tree.constants';
+import { listRelatedPageIds, toBreadcrumbParents } from '@/modules/pages/tree/lib/pages.references.lib';
+import { getPageReferences } from '@/modules/pages/tree/server/lib/pages.references.server';
+import { getPageAncestors, getPagePath } from '@/modules/pages/tree/server/queries/pages.tree.queries';
+import type { PageBreadcrumbParent, PageReferencesRead } from '@/modules/pages/tree/types/pages.tree.types';
+import type { PageReference, PageSummary } from '@/modules/pages/types/pages.types';
 import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 import type { FavoritePage } from '@/shared/types/favorites.types';
 import type { RouteSearchParams, RouteSearchParamValue } from '@/shared/types/route-search-params.types';
+import type { PageViewing } from './types/page.viewing.types';
 
 interface IProps {
   readonly params: Promise<{ pageId: string; spaceId: string }>;
@@ -49,15 +74,10 @@ const resolveRequestedViewName = (rawViewParam: RouteSearchParamValue): null | s
   return candidate === undefined || candidate === '' ? null : candidate;
 };
 
-const resolvePanelPageId = (
-  rawPanelParam: RouteSearchParamValue,
-  pages: readonly PageSummary[],
-  pageId: string,
-): string | null => {
+const resolvePanelPageId = (rawPanelParam: RouteSearchParamValue, pageId: string): string | null => {
   const candidate = Array.isArray(rawPanelParam) ? rawPanelParam[0] : rawPanelParam;
   if (candidate === undefined || candidate === pageId) return null;
-  if (!z.uuid().safeParse(candidate).success) return null;
-  return pages.some((page) => page.id === candidate) ? candidate : null;
+  return z.uuid().safeParse(candidate).success ? candidate : null;
 };
 
 /** Links written before a page moved to another space still point at the old one; a miss is left to the caller. */
@@ -69,21 +89,12 @@ const followThePageToItsSpace = async (pageId: string, spaceId: string): Promise
   redirect({ href: ROUTES.PORTAL_SPACE_PAGE(currentSpaceId, pageId), locale: await getLocale() });
 };
 
-/** The cached list can predate a page just created outside the portal (by an agent), so it is re-read on a miss. */
-const readPagesHolding = async (spaceId: string, pageId: string): Promise<readonly PageSummary[] | null> => {
-  const listedResult = await getPages(spaceId);
-  const listed = listedResult.isOk() ? listedResult.getValue() : null;
-  if (listed === null || listed.some((page) => page.id === pageId)) return listed;
-  const rereadResult = await getPagesHolding(spaceId, pageId);
-  return rereadResult.isOk() ? rereadResult.getValue() : listed;
-};
-
 export const generateMetadata = async ({ params }: IProps): Promise<Metadata> => {
   const { pageId, spaceId } = await params;
   if (!areRecordIds(pageId, spaceId)) return {};
-  const [pages, t] = await Promise.all([readPagesHolding(spaceId, pageId), getTranslations('pages')]);
-  const page = pages?.find((candidate) => candidate.id === pageId);
-  if (page === undefined) return {};
+  const [pageResult, t] = await Promise.all([getPage(spaceId, pageId), getTranslations('pages')]);
+  const page = pageResult.isOk() ? pageResult.getValue() : null;
+  if (page === null) return {};
   return { title: buildPageDocumentTitle(page.title, t('untitled')) };
 };
 
@@ -94,13 +105,27 @@ const renderEmbeddedCollection = async (reference: PageCollectionReference, titl
   const schema = schemaResult.getValue();
   const view = schema.views.find((candidate) => candidate.name === reference.viewName) ?? schema.views[0];
   if (view === undefined) return null;
-  const readingResult = await getPageView(reference.spaceId, reference.pageId, view.name);
-  const reading = readingResult.isOk() ? readingResult.getValue() : null;
+  const t = await getTranslations('pages.collection');
+  const properties = getEditableSchemaProperties(schema);
+  const reading = await readPageViewReading(
+    reference.spaceId,
+    reference.pageId,
+    view,
+    properties,
+    (group) => t(`statusGroups.${group}`),
+    UNSEARCHED_ROWS_REQUEST,
+  );
 
   return (
     <PagesCollectionEmbed
+      aggregates={reading === null ? undefined : reading.aggregates}
+      lookups={
+        reading === null
+          ? undefined
+          : { attachedFiles: reading.attachedFiles, people: [], relatedRows: reading.relatedRows }
+      }
       outcome={reading === null ? null : reading.outcome}
-      properties={getEditableSchemaProperties(schema)}
+      properties={properties}
       schema={schema}
       spaceId={reference.spaceId}
       title={title}
@@ -134,25 +159,38 @@ const resolvePersonOptionsIfNeeded = async (
 /** Reads only the active view: reading every view of a collection costs one round trip each. */
 const buildCollectionSection = async (
   ownSchema: PageSchema | null,
-  spaceId: string,
-  pageId: string,
-  requestedViewName: null | string,
+  location: { readonly pageId: string; readonly spaceId: string },
+  viewing: Pick<PageViewing, 'requestedViewName' | 'rowsRequest' | 'viewerId'>,
   canEdit: boolean,
   personOptions: readonly PagePersonOption[],
 ): Promise<ReactNode> => {
+  const { pageId, spaceId } = location;
+  const { requestedViewName, rowsRequest, viewerId } = viewing;
   if (ownSchema === null || ownSchema.properties.length === 0) return null;
   const activeView = resolveActiveCollectionView(ownSchema.views, requestedViewName);
   if (activeView === null) return null;
-  const readingResult = await getPageView(spaceId, pageId, activeView.name);
+  const t = await getTranslations('pages.collection');
+  const properties = getEditableSchemaProperties(ownSchema);
+  const reading = await readPageViewReading(
+    spaceId,
+    pageId,
+    activeView,
+    properties,
+    (group) => t(`statusGroups.${group}`),
+    rowsRequest,
+  );
   return (
     <PagesCollectionSection
       activeView={activeView}
       canEdit={canEdit}
       personOptions={personOptions}
-      properties={getEditableSchemaProperties(ownSchema)}
-      reading={readingResult.isOk() ? readingResult.getValue() : null}
+      properties={properties}
+      quickFilter={rowsRequest.quickFilter}
+      reading={reading}
       schema={ownSchema}
+      search={rowsRequest.search}
       spaceId={spaceId}
+      viewerId={viewerId}
       views={ownSchema.views}
     />
   );
@@ -160,11 +198,11 @@ const buildCollectionSection = async (
 
 const buildEmbeddedCollections = async (
   page: PageSummary,
-  pages: readonly PageSummary[],
+  references: readonly PageReference[],
 ): Promise<Readonly<Record<string, ReactNode>>> => {
   const entries = await Promise.all(
     extractPageCollectionReferences(page.content).map(async (reference) => {
-      const title = pages.find((candidate) => candidate.id === reference.pageId)?.title ?? reference.pageId;
+      const title = references.find((candidate) => candidate.id === reference.pageId)?.title ?? reference.pageId;
       return [
         readEmbeddedCollectionKey(reference.pageId, reference.viewName),
         await renderEmbeddedCollection(reference, title),
@@ -174,14 +212,20 @@ const buildEmbeddedCollections = async (
   return Object.fromEntries(entries);
 };
 
+/** The names of the pages it draws, in two requests however many there are; a failure leaves the page without them. */
+const readPageReferences = async (page: PageSummary, parentSchema: PageSchema | null): Promise<PageReferencesRead> => {
+  const relatedIds = listRelatedPageIds(getEditableSchemaProperties(parentSchema), page.propertyValues);
+  const result = await getPageReferences(page.content, relatedIds);
+  return result.isOk() ? result.getValue() : EMPTY_PAGE_REFERENCES_READ;
+};
+
 const buildPageEditorBundle = async (
   spaceId: string,
   targetPage: PageSummary,
-  pages: readonly PageSummary[],
-  canEditRole: boolean,
-  favoritesResult: Result<readonly FavoritePage[], Error>,
-  requestedViewName: null | string,
+  ancestors: readonly PageBreadcrumbParent[],
+  viewing: PageViewing,
 ): Promise<PagesEditorBundle> => {
+  const { favoritesResult } = viewing;
   const [attachmentsResult, backlinksResult, ownSchemaResult, parentSchema] = await Promise.all([
     getPageAttachments(targetPage.id),
     getPageBacklinks(targetPage.id),
@@ -189,45 +233,65 @@ const buildPageEditorBundle = async (
     resolveParentSchema(spaceId, targetPage.parentId),
   ]);
   const ownSchema = ownSchemaResult.isOk() ? ownSchemaResult.getValue() : null;
-  const personOptions = await resolvePersonOptionsIfNeeded(
-    spaceId,
-    [ownSchema, parentSchema],
-    canEditPage(canEditRole, targetPage.lifecycle),
-  );
+  const [pageWithComputed, personOptions, referencesRead] = await Promise.all([
+    withComputedValues(spaceId, targetPage, parentSchema),
+    resolvePersonOptionsIfNeeded(spaceId, [ownSchema, parentSchema], canEditPage(targetPage)),
+    readPageReferences(targetPage, parentSchema),
+  ]);
   const [collectionSection, embeddedCollections] = await Promise.all([
     buildCollectionSection(
       ownSchema,
-      spaceId,
-      targetPage.id,
-      requestedViewName,
-      canEditPage(canEditRole, targetPage.lifecycle),
+      { pageId: targetPage.id, spaceId },
+      viewing,
+      canEditPage(targetPage),
       personOptions,
     ),
-    buildEmbeddedCollections(targetPage, pages),
+    buildEmbeddedCollections(targetPage, referencesRead.references),
   ]);
 
   return {
+    ancestors,
     attachments: attachmentsResult.isOk() ? attachmentsResult.getValue() : [],
     backlinks: backlinksResult.isOk() ? backlinksResult.getValue() : EMPTY_PAGE_BACKLINKS,
     collectionSection,
     embeddedCollections,
     isFavorite: resolveIsFavorite(favoritesResult, targetPage.id),
-    page: targetPage,
+    page: pageWithComputed,
     parentSchema,
     personOptions,
+    references: referencesRead.references,
+    relatedRows: referencesRead.relatedRows,
+    syncedSources: referencesRead.syncedSources,
   };
+};
+
+/** The list leaves out the formulas and rollups, so a row that has some asks for its own values. */
+const withComputedValues = async (
+  spaceId: string,
+  page: PageSummary,
+  parentSchema: PageSchema | null,
+): Promise<PageSummary> => {
+  const hasComputedProperties = parentSchema?.properties.some((property) => isPageComputedPropertyType(property.type));
+  if (hasComputedProperties !== true) return page;
+  const computed = await getPageComputedValues(spaceId, page.id);
+  if (computed.isFail()) return page;
+  const { computedErrors, propertyValues } = computed.getValue();
+  return { ...page, ...(computedErrors === undefined ? {} : { computedErrors }), propertyValues };
 };
 
 /** The panel edits its page through the block channel too, so it starts from that page's own blocks. */
 const buildPanelBundle = async (
   spaceId: string,
   panelPage: PageSummary,
-  pages: readonly PageSummary[],
-  canEditRole: boolean,
-  favoritesResult: Result<readonly FavoritePage[], Error>,
+  viewing: PageViewing,
 ): Promise<PagesSidePanelBundle> => {
+  const ancestors = await readPageAncestors(spaceId, panelPage.id);
   const [bundle, blocksResult] = await Promise.all([
-    buildPageEditorBundle(spaceId, panelPage, pages, canEditRole, favoritesResult, null),
+    buildPageEditorBundle(spaceId, panelPage, ancestors, {
+      ...viewing,
+      requestedViewName: null,
+      rowsRequest: UNSEARCHED_ROWS_REQUEST,
+    }),
     getPageBlocks(panelPage.id),
   ]);
   const blockStart = resolveBlockEditorStart(blocksResult, panelPage.id);
@@ -239,6 +303,24 @@ const buildPanelBundle = async (
   };
 };
 
+const readPageAncestors = async (spaceId: string, pageId: string): Promise<readonly PageBreadcrumbParent[]> => {
+  const result = await getPageAncestors(spaceId, pageId);
+  return result.isOk() ? toBreadcrumbParents(result.getValue() ?? []) : [];
+};
+
+/** The page the panel asks for with all it draws; null when it does not exist or is closed to the reader. */
+const buildPanelBundleFor = async (
+  spaceId: string,
+  panelPageId: string | null,
+  viewing: PageViewing,
+): Promise<PagesSidePanelBundle | null> => {
+  if (panelPageId === null) return null;
+  const panelResult = await getPage(spaceId, panelPageId);
+  const panelPage = panelResult.isOk() ? panelResult.getValue() : null;
+  if (panelPage === null) return null;
+  return buildPanelBundle(spaceId, panelPage, viewing);
+};
+
 /** Depends on the session and the space, so it resolves fully before responding. */
 export const instant = false;
 
@@ -246,54 +328,71 @@ export default async function Page({ params, searchParams }: IProps) {
   const { pageId, spaceId } = await params;
   if (!areRecordIds(pageId, spaceId)) notFound();
 
-  const [spacesResult, user, pages, favoritesResult, resolvedSearchParams, blockSyncResult] = await Promise.all([
-    getSpaces(),
-    getCurrentUser(),
-    readPagesHolding(spaceId, pageId),
-    getFavoritePages(),
-    searchParams ?? Promise.resolve<RouteSearchParams>({}),
-    getPageBlocks(pageId),
-  ]);
-  const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
-  const selectedPage = pages?.find((page) => page.id === pageId);
-  if (selectedPage === undefined) await followThePageToItsSpace(pageId, spaceId);
-  if (space === undefined || pages === null || selectedPage === undefined) notFound();
+  const [spacesResult, user, pageResult, pathResult, favoritesResult, resolvedSearchParams, blockSyncResult] =
+    await Promise.all([
+      getSpaces(),
+      getCurrentUser(),
+      getPage(spaceId, pageId),
+      getPagePath(spaceId, pageId),
+      getFavoritePages(),
+      searchParams ?? Promise.resolve<RouteSearchParams>({}),
+      getPageBlocks(pageId),
+    ]);
+  if (spacesResult.isFail()) throw spacesResult.getError();
+  if (pageResult.isFail()) throw pageResult.getError();
+  const space = spacesResult.getValue().find((candidate) => candidate.id === spaceId);
+  const selectedPage = pageResult.getValue();
+  if (selectedPage === null) await followThePageToItsSpace(pageId, spaceId);
+  if (space === undefined || selectedPage === null) notFound();
 
+  const path = pathResult.isOk() ? pathResult.getValue() : null;
   const blockStart = resolveBlockEditorStart(blockSyncResult, pageId);
-  const canEditRole = canEditContent(user?.role ?? USER_ROLE.CLIENT);
   const canSeePageUsage = canManageWorkspace(user?.role ?? USER_ROLE.CLIENT);
-  const panelPageId = resolvePanelPageId(resolvedSearchParams?.panel, pages, pageId);
-  const panelPage = panelPageId === null ? undefined : pages.find((page) => page.id === panelPageId);
+  const panelPageId = resolvePanelPageId(resolvedSearchParams?.panel, pageId);
 
   const requestedViewName = resolveRequestedViewName(resolvedSearchParams?.[PAGE_COLLECTION_VIEW_SEARCH_PARAM]);
+  const viewerId = user?.id ?? null;
+  const viewing: PageViewing = {
+    favoritesResult,
+    requestedViewName,
+    rowsRequest: {
+      day: readCollectionDay(resolvedSearchParams?.[PAGE_COLLECTION_DAY_SEARCH_PARAM]),
+      month: readCollectionMonth(resolvedSearchParams?.[PAGE_COLLECTION_MONTH_SEARCH_PARAM]),
+      quickFilter: readCollectionQuickFilter(resolvedSearchParams?.[PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM]),
+      search: readCollectionSearch(resolvedSearchParams?.[PAGE_COLLECTION_ROW_SEARCH_PARAM]),
+    },
+    viewerId,
+  };
   const [mainBundle, panelBundle] = await Promise.all([
-    buildPageEditorBundle(spaceId, selectedPage, pages, canEditRole, favoritesResult, requestedViewName),
-    panelPage === undefined
-      ? Promise.resolve(null)
-      : buildPanelBundle(spaceId, panelPage, pages, canEditRole, favoritesResult),
+    buildPageEditorBundle(spaceId, selectedPage, toBreadcrumbParents(path?.ancestors ?? []), viewing),
+    buildPanelBundleFor(spaceId, panelPageId, viewing),
   ]);
 
   return (
     <main className="min-h-full">
       <PagesWorkspace
+        ancestors={mainBundle.ancestors}
         attachments={mainBundle.attachments}
         backlinks={mainBundle.backlinks}
         blockSync={blockStart.blocks}
         blockSyncFailed={blockStart.isFailed}
-        canEditContent={canEditRole}
         canSeePageUsage={canSeePageUsage}
         collectionSection={mainBundle.collectionSection}
         currentUserDisplayName={user?.name}
         currentUserId={user?.id}
         embeddedCollections={mainBundle.embeddedCollections}
         isFavorite={mainBundle.isFavorite}
-        pages={withBlockEditorContent(pages, pageId, blockStart)}
+        page={withBlockEditorContent(mainBundle.page, blockStart)}
         panelBundle={panelBundle}
         parentSchema={mainBundle.parentSchema}
         personOptions={mainBundle.personOptions}
-        selectedPageId={selectedPage.id}
+        references={mainBundle.references}
+        relatedRows={mainBundle.relatedRows}
         spaceId={spaceId}
         spaceName={space.name}
+        syncedSources={mainBundle.syncedSources}
+        treeLevels={path?.levels}
+        treeOpenPage={path?.page}
       />
     </main>
   );

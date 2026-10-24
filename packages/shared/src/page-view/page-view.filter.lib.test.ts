@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { PagePropertyValue } from '../page-property/page-property.types.js';
-import { PAGE_PROPERTY_LOGICAL_TYPE } from '../page-property/page-property.types.js';
+import { PAGE_PROPERTY_LOGICAL_TYPE, PAGE_STATUS_GROUP } from '../page-property/page-property.types.js';
 import { PAGE_PROPERTY_TYPE } from '../types/page-schema.types.js';
 import { getPageFilterOperators, hasPageFilterPredicate, matchesPageFilter } from './page-view.filter.lib.js';
 import type { PageFilter, PageFilterCondition, PageFilterOperator, PageViewProperty } from './page-view.types.js';
@@ -13,13 +13,31 @@ const properties: readonly PageViewProperty[] = [
   { key: 'estimate', type: PAGE_PROPERTY_TYPE.NUMBER },
   { key: 'done', type: PAGE_PROPERTY_TYPE.CHECKBOX },
   { key: 'dueDate', type: PAGE_PROPERTY_TYPE.DATE },
+  { key: 'owners', type: PAGE_PROPERTY_TYPE.PERSON },
+  { key: 'related', type: PAGE_PROPERTY_TYPE.RELATION },
+  { key: 'attachments', type: PAGE_PROPERTY_TYPE.FILES },
+  {
+    key: 'stage',
+    options: [
+      { color: null, group: PAGE_STATUS_GROUP.TO_DO, id: 'todo0001', value: 'Backlog' },
+      { color: null, group: PAGE_STATUS_GROUP.IN_PROGRESS, id: 'doing001', value: 'Doing' },
+      { color: null, group: PAGE_STATUS_GROUP.COMPLETE, id: 'done0001', value: 'Done' },
+    ],
+    type: PAGE_PROPERTY_TYPE.STATUS,
+  },
+  { key: 'createdAt', type: PAGE_PROPERTY_TYPE.CREATED_TIME },
 ];
 
 const row = {
+  attachments: ['file-1'],
+  createdAt: { start: '2026-08-10T14:30:00Z' },
   done: false,
-  dueDate: '2026-08-11',
+  dueDate: { start: '2026-08-11' },
   estimate: 5,
   labels: ['backend', 'urgent'],
+  owners: ['user-1', 'user-2'],
+  related: ['row-1'],
+  stage: 'doing001',
   status: 'doing',
   title: 'Ship the migration',
 };
@@ -71,6 +89,102 @@ describe('filtering rows by a single condition', () => {
   test('matches a checkbox by its state', () => {
     expect(matchesPageFilter(condition('done', PAGE_FILTER_OPERATOR.IS, false), row, properties)).toBe(true);
     expect(matchesPageFilter(condition('done', PAGE_FILTER_OPERATOR.IS, true), row, properties)).toBe(false);
+  });
+
+  test('matches a person list by the people it holds', () => {
+    expect(matchesPageFilter(condition('owners', PAGE_FILTER_OPERATOR.CONTAINS, 'user-2'), row, properties)).toBe(true);
+    expect(matchesPageFilter(condition('owners', PAGE_FILTER_OPERATOR.NOT_CONTAINS, 'user-2'), row, properties)).toBe(
+      false,
+    );
+    expect(matchesPageFilter(condition('owners', PAGE_FILTER_OPERATOR.CONTAINS, 'user-9'), row, properties)).toBe(
+      false,
+    );
+  });
+
+  test('matches a relation by the rows it points to', () => {
+    expect(matchesPageFilter(condition('related', PAGE_FILTER_OPERATOR.CONTAINS, 'row-1'), row, properties)).toBe(true);
+    expect(matchesPageFilter(condition('related', PAGE_FILTER_OPERATOR.NOT_CONTAINS, 'row-1'), row, properties)).toBe(
+      false,
+    );
+  });
+
+  test('matches files only by whether there are any', () => {
+    expect(matchesPageFilter(condition('attachments', PAGE_FILTER_OPERATOR.IS_NOT_EMPTY, null), row, properties)).toBe(
+      true,
+    );
+    expect(
+      matchesPageFilter(condition('attachments', PAGE_FILTER_OPERATOR.IS_EMPTY, null), { attachments: [] }, properties),
+    ).toBe(true);
+  });
+});
+
+describe('filtering rows by status', () => {
+  test('matches one option by its id', () => {
+    expect(matchesPageFilter(condition('stage', PAGE_FILTER_OPERATOR.IS, 'doing001'), row, properties)).toBe(true);
+    expect(matchesPageFilter(condition('stage', PAGE_FILTER_OPERATOR.IS_NOT, 'doing001'), row, properties)).toBe(false);
+  });
+
+  test('matches a whole group', () => {
+    expect(
+      matchesPageFilter(
+        condition('stage', PAGE_FILTER_OPERATOR.IS_IN_GROUP, PAGE_STATUS_GROUP.IN_PROGRESS),
+        row,
+        properties,
+      ),
+    ).toBe(true);
+    expect(
+      matchesPageFilter(
+        condition('stage', PAGE_FILTER_OPERATOR.IS_IN_GROUP, PAGE_STATUS_GROUP.COMPLETE),
+        row,
+        properties,
+      ),
+    ).toBe(false);
+    expect(
+      matchesPageFilter(
+        condition('stage', PAGE_FILTER_OPERATOR.IS_NOT_IN_GROUP, PAGE_STATUS_GROUP.COMPLETE),
+        row,
+        properties,
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('filtering rows by date ranges', () => {
+  const trip = { dueDate: { end: '2026-08-20', start: '2026-08-15' } };
+
+  test('a day is in the range when it falls between the ends, ends included', () => {
+    expect(matchesPageFilter(condition('dueDate', PAGE_FILTER_OPERATOR.IS, '2026-08-15'), trip, properties)).toBe(true);
+    expect(matchesPageFilter(condition('dueDate', PAGE_FILTER_OPERATOR.IS, '2026-08-17'), trip, properties)).toBe(true);
+    expect(matchesPageFilter(condition('dueDate', PAGE_FILTER_OPERATOR.IS, '2026-08-21'), trip, properties)).toBe(
+      false,
+    );
+  });
+
+  test('a range is before a day only when it ends before it', () => {
+    expect(
+      matchesPageFilter(condition('dueDate', PAGE_FILTER_OPERATOR.IS_BEFORE, '2026-08-21'), trip, properties),
+    ).toBe(true);
+    expect(
+      matchesPageFilter(condition('dueDate', PAGE_FILTER_OPERATOR.IS_BEFORE, '2026-08-18'), trip, properties),
+    ).toBe(false);
+  });
+
+  test('a range is after a day only when it starts after it', () => {
+    expect(matchesPageFilter(condition('dueDate', PAGE_FILTER_OPERATOR.IS_AFTER, '2026-08-14'), trip, properties)).toBe(
+      true,
+    );
+    expect(matchesPageFilter(condition('dueDate', PAGE_FILTER_OPERATOR.IS_AFTER, '2026-08-15'), trip, properties)).toBe(
+      false,
+    );
+  });
+
+  test('an instant of creation matches the day it fell on', () => {
+    expect(matchesPageFilter(condition('createdAt', PAGE_FILTER_OPERATOR.IS, '2026-08-10'), row, properties)).toBe(
+      true,
+    );
+    expect(
+      matchesPageFilter(condition('createdAt', PAGE_FILTER_OPERATOR.IS_AFTER, '2026-08-10'), row, properties),
+    ).toBe(false);
   });
 });
 
@@ -129,6 +243,55 @@ describe('filtering rows by nested groups', () => {
     const filter: PageFilter = { conditions: [], kind: 'GROUP', operator: PAGE_FILTER_GROUP_OPERATOR.AND };
 
     expect(matchesPageFilter(filter, row, properties)).toBe(true);
+  });
+});
+
+describe('filtering rows that have no value for the property', () => {
+  const bare = {};
+
+  test('does not match a condition that asks for something to be there', () => {
+    expect(matchesPageFilter(condition('status', PAGE_FILTER_OPERATOR.IS, 'doing'), bare, properties)).toBe(false);
+    expect(matchesPageFilter(condition('title', PAGE_FILTER_OPERATOR.CONTAINS, 'a'), bare, properties)).toBe(false);
+    expect(matchesPageFilter(condition('labels', PAGE_FILTER_OPERATOR.CONTAINS, 'urgent'), bare, properties)).toBe(
+      false,
+    );
+    expect(matchesPageFilter(condition('owners', PAGE_FILTER_OPERATOR.CONTAINS, 'user-1'), bare, properties)).toBe(
+      false,
+    );
+    expect(matchesPageFilter(condition('estimate', PAGE_FILTER_OPERATOR.IS_GREATER_THAN, 1), bare, properties)).toBe(
+      false,
+    );
+    expect(
+      matchesPageFilter(condition('dueDate', PAGE_FILTER_OPERATOR.IS_BEFORE, '2026-09-01'), bare, properties),
+    ).toBe(false);
+    expect(
+      matchesPageFilter(
+        condition('stage', PAGE_FILTER_OPERATOR.IS_IN_GROUP, PAGE_STATUS_GROUP.TO_DO),
+        bare,
+        properties,
+      ),
+    ).toBe(false);
+  });
+
+  test('matches a condition that asks for something not to be there', () => {
+    expect(matchesPageFilter(condition('status', PAGE_FILTER_OPERATOR.IS_NOT, 'doing'), bare, properties)).toBe(true);
+    expect(matchesPageFilter(condition('title', PAGE_FILTER_OPERATOR.NOT_CONTAINS, 'a'), bare, properties)).toBe(true);
+    expect(matchesPageFilter(condition('owners', PAGE_FILTER_OPERATOR.NOT_CONTAINS, 'user-1'), bare, properties)).toBe(
+      true,
+    );
+    expect(matchesPageFilter(condition('estimate', PAGE_FILTER_OPERATOR.IS_NOT, 5), bare, properties)).toBe(true);
+    expect(
+      matchesPageFilter(
+        condition('stage', PAGE_FILTER_OPERATOR.IS_NOT_IN_GROUP, PAGE_STATUS_GROUP.COMPLETE),
+        bare,
+        properties,
+      ),
+    ).toBe(true);
+  });
+
+  test('reads a checkbox that was never touched as unchecked', () => {
+    expect(matchesPageFilter(condition('done', PAGE_FILTER_OPERATOR.IS, false), bare, properties)).toBe(true);
+    expect(matchesPageFilter(condition('done', PAGE_FILTER_OPERATOR.IS, true), bare, properties)).toBe(false);
   });
 });
 

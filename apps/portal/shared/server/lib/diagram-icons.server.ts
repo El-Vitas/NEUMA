@@ -10,4 +10,6 @@ const booksOfPictures: Record<string, IconifyJSON> = {
   [DIAGRAM_MATERIAL_ICONS_NAME]: materialIcons,
 };
 
-export const readDiagramIcons = (name: string): IconifyJSON | null => booksOfPictures[name] ?? null;
+/** The name comes from the URL, so inherited keys such as `constructor` must not count as packs. */
+export const readDiagramIcons = (name: string): IconifyJSON | null =>
+  Object.hasOwn(booksOfPictures, name) ? (booksOfPictures[name] ?? null) : null;

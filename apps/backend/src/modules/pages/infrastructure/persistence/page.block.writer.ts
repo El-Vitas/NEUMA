@@ -8,10 +8,12 @@ import {
   type PageIcon,
   pageContentSchema,
   Result,
+  readPageDefaultTemplateId,
+  readPageTemplate,
 } from '@neuma/shared';
 import { BLOCK_WRITER } from '../../../../common/constants/block-writer.constants';
 import { readBlockTitle } from '../../../../common/domain/block-access.domain';
-import type { BlockWriter } from '../../../../common/types/block-writer.types';
+import type { BlockWriter, BlockWriteWithin } from '../../../../common/types/block-writer.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { PAGE_TRANSACTION_KIND } from '../../constants/pages.constants';
 import { readPageCover, readPageIcon, readPageValues } from '../../domain/page.block.domain';
@@ -23,6 +25,7 @@ import { PageLifecycleError } from '../../domain/page.error';
 import {
   buildCoverOperation,
   buildCreatePageOperations,
+  buildDefaultTemplateOperation,
   buildIconOperation,
   buildLifecycleOperation,
   buildLockOperation,
@@ -42,6 +45,7 @@ import type {
   NewPageInput,
   PageContentRewrite,
   PageContentWriter,
+  PageMoveInput,
   PagePropertyValuesMerge,
   PageRestoreOutcome,
   PageSummary,
@@ -75,7 +79,11 @@ export class PageBlockWriter {
 
   async create(input: NewPageInput): Promise<PageSummary | null> {
     const viewer = toViewer(input.workspaceId, input.userId, input.role);
-    const pageId = randomUUID();
+    const pageId = input.pageId ?? randomUUID();
+    if (input.pageId !== undefined) {
+      const existing = await this.readSummary(pageId, viewer);
+      if (existing !== null) return existing;
+    }
     const content = await this.makeIdsFresh(input.content, new Set());
     const tree = buildPageTree({
       content,
@@ -85,11 +93,13 @@ export class PageBlockWriter {
       parentId: input.parentId,
       propertyValues: input.propertyValues,
       spaceId: input.spaceId,
+      template: input.template ?? null,
       title: input.title,
     });
     if (tree.isFail()) throw tree.getError();
     const operations = buildCreatePageOperations(tree.getValue(), { afterSiblingId: null });
-    if (!(await this.apply(viewer, input.spaceId, operations))) return null;
+    const transactionId = input.pageId === undefined ? randomUUID() : `${PAGE_TRANSACTION_KIND.create}:${pageId}`;
+    if (!(await this.apply(viewer, input.spaceId, operations, transactionId))) return null;
     await this.versionRepository.record(pageId, input.createdById);
     return this.readSummary(pageId, viewer);
   }
@@ -162,6 +172,18 @@ export class PageBlockWriter {
     ]);
   }
 
+  async setDefaultTemplate(
+    collectionId: string,
+    templateId: null | string,
+    userId: string,
+    workspaceId: string,
+    role: PageViewer['role'],
+  ): Promise<PageSummary | null> {
+    return this.changePage(collectionId, toViewer(workspaceId, userId, role), () => [
+      buildDefaultTemplateOperation(collectionId, templateId),
+    ]);
+  }
+
   async setOwner(
     pageId: string,
     ownerId: null | string,
@@ -186,31 +208,39 @@ export class PageBlockWriter {
     const operations = [
       ...(input.title === undefined ? [] : [buildTitleOperation(input.pageId, input.title)]),
       ...buildValueChangeOperations(input.pageId, diffPageValues(current, merged.getValue())),
+      ...(input.extraOperations ?? []),
     ];
-    if (operations.length > 0 && !(await this.apply(viewer, page.block.spaceId, operations))) return null;
+    const expected =
+      input.expectedVersion === undefined ? undefined : { blockId: input.pageId, version: input.expectedVersion };
+    const hasApplied =
+      operations.length === 0 ||
+      (await this.apply(viewer, page.block.spaceId, operations, randomUUID(), undefined, expected));
+    if (!hasApplied) return null;
     const summary = await this.readSummary(input.pageId, viewer);
     return summary === null ? null : Result.ok(summary);
   }
 
   /** A page goes last among the pages of its new parent; one that changes space goes with everything below it. */
-  async move(
-    pageId: string,
-    parentId: null | string,
-    targetSpaceId: string,
-    userId: string,
-    workspaceId: string,
-    role: PageViewer['role'],
-    mutationId: string,
-  ): Promise<PageSummary | null> {
+  async move({
+    expectedVersion,
+    mutationId,
+    pageId,
+    parentId,
+    role,
+    targetSpaceId,
+    userId,
+    workspaceId,
+  }: PageMoveInput): Promise<PageSummary | null> {
     const viewer = toViewer(workspaceId, userId, role);
     const page = await this.findPage(pageId, viewer);
     if (page === null || page.access.isInTrash) return null;
     const readableSpaceIds = await this.blockReader.readReadableSpaceIds([targetSpaceId], viewer);
     if (!readableSpaceIds.has(targetSpaceId)) return null;
+    const expected = expectedVersion === null ? undefined : { blockId: pageId, version: expectedVersion };
     const isMoved =
       targetSpaceId === page.block.spaceId
-        ? await this.moveWithinSpace(page, parentId, viewer, mutationId)
-        : await this.moveToSpace(page, parentId, targetSpaceId, viewer, mutationId);
+        ? await this.moveWithinSpace(page, parentId, viewer, mutationId, expected)
+        : await this.moveToSpace(page, parentId, targetSpaceId, viewer, mutationId, expected);
     return isMoved ? this.readSummary(pageId, viewer) : null;
   }
 
@@ -307,11 +337,13 @@ export class PageBlockWriter {
     const viewer = toViewer(workspaceId, userId, role);
     const page = await this.findPage(pageId, viewer);
     if (page === null) return null;
-    if ((await this.applyContent(pageId, viewer, content)) === 'DENIED') return null;
+    await this.versionRepository.record(pageId, userId, { fold: false });
+    if ((await this.applyContent(pageId, viewer, content, false)) === 'DENIED') return null;
     if (readBlockTitle(page.block.properties) !== title) {
       const renamed = await this.apply(viewer, page.block.spaceId, [buildTitleOperation(pageId, title)]);
       if (!renamed) return null;
     }
+    await this.versionRepository.record(pageId, userId, { fold: false });
     return this.readSummary(pageId, viewer);
   }
 
@@ -331,6 +363,7 @@ export class PageBlockWriter {
     parentId: null | string,
     viewer: PageViewer,
     mutationId: string,
+    expected?: { readonly blockId: string; readonly version: number },
   ): Promise<boolean> {
     const spaceId = page.block.spaceId;
     const operations = buildMoveOperations(
@@ -339,7 +372,7 @@ export class PageBlockWriter {
       { parentId, spaceId },
     );
     const transactionId = `${PAGE_TRANSACTION_KIND.move}:${page.block.id}:${mutationId}`;
-    return this.apply(viewer, page.block.spaceId, operations, transactionId);
+    return this.apply(viewer, page.block.spaceId, operations, transactionId, undefined, expected);
   }
 
   /** One transaction: the page and its branch change space and land under their new parent, or at the top. */
@@ -349,12 +382,13 @@ export class PageBlockWriter {
     targetSpaceId: string,
     viewer: PageViewer,
     mutationId: string,
+    expected?: { readonly blockId: string; readonly version: number },
   ): Promise<boolean> {
     const operations = [
       buildSpaceMoveOperation(page.block.id, { parentId, spaceId: targetSpaceId }, page.block.parentId),
     ];
     const transactionId = `${PAGE_TRANSACTION_KIND.move}:${page.block.id}:${mutationId}`;
-    return this.apply(viewer, page.block.spaceId, operations, transactionId);
+    return this.apply(viewer, page.block.spaceId, operations, transactionId, undefined, expected);
   }
 
   private async findRestoreParent(page: AccessiblePage): Promise<{ isInTrash: boolean; title: null | string }> {
@@ -367,7 +401,7 @@ export class PageBlockWriter {
   }
 
   private async listTrashedDescendantIds(page: AccessiblePage): Promise<string[]> {
-    const pages = await this.blockReader.readSpacePageBlocks(page.block.spaceId);
+    const pages = await this.blockReader.readSpacePageBlocks(page.block.spaceId, { includeTemplates: true });
     const lifecycleById = new Map(pages.map((entry) => [entry.id, entry.lifecycle]));
     return collectDescendantIds(page.block.id, pages).filter((id) => lifecycleById.get(id) === PageLifecycle.TRASHED);
   }
@@ -384,7 +418,7 @@ export class PageBlockWriter {
     viewer: PageViewer,
   ): Promise<AccessiblePage[]> {
     if (!includeChildren) return [original];
-    const pages = await this.blockReader.readSpacePageBlocks(original.block.spaceId);
+    const pages = await this.blockReader.readSpacePageBlocks(original.block.spaceId, { includeTemplates: true });
     const belowIds = new Set(collectDescendantIds(original.block.id, pages));
     const accessible = await this.blockReader.keepAccessible(
       pages.filter((entry) => belowIds.has(entry.id)),
@@ -420,11 +454,13 @@ export class PageBlockWriter {
       const tree = buildPageTree({
         content: rewritten.getValue(),
         cover: readPageCover(page.block.format),
+        defaultTemplateId: maps.pages.get(readPageDefaultTemplateId(page.block.properties) ?? '') ?? null,
         icon: readPageIcon(page.block.format),
         pageId: copyId,
         parentId: index === 0 ? page.block.parentId : (maps.pages.get(page.block.parentId ?? '') ?? null),
         propertyValues: readPageValues(page.block.properties),
         spaceId: page.block.spaceId,
+        template: readPageTemplate(page.block.properties),
         title:
           index === 0 ? (rootTitle ?? readBlockTitle(page.block.properties)) : readBlockTitle(page.block.properties),
       });
@@ -476,6 +512,7 @@ export class PageBlockWriter {
     pageId: string,
     viewer: PageViewer,
     content: PageContent,
+    shouldRecord = true,
   ): Promise<'APPLIED' | 'DENIED' | 'UNCHANGED'> {
     const viewed = await this.findPage(pageId, viewer);
     if (viewed === null) return 'DENIED';
@@ -503,7 +540,7 @@ export class PageBlockWriter {
     const operations = planContentOperations(snapshot, tree.getValue());
     if (operations.length === 0) return 'UNCHANGED';
     if (!(await this.apply(viewer, page.spaceId, operations))) return 'DENIED';
-    await this.versionRepository.record(pageId, viewer.userId);
+    if (shouldRecord) await this.versionRepository.record(pageId, viewer.userId);
     return 'APPLIED';
   }
 
@@ -531,8 +568,15 @@ export class PageBlockWriter {
     spaceId: string,
     operations: readonly PageBlockOperation[],
     transactionId: string = randomUUID(),
+    within?: BlockWriteWithin,
+    expectedVersion?: { readonly blockId: string; readonly version: number },
   ): Promise<boolean> {
-    const response = await this.blockWriter.applyTrusted([{ id: transactionId, operations, spaceId }], viewer);
+    const expectedVersions = expectedVersion === undefined ? [] : [expectedVersion];
+    const requests = [{ expectedVersions, id: transactionId, operations, spaceId }];
+    const response =
+      within === undefined
+        ? await this.blockWriter.applyTrusted(requests, viewer)
+        : await this.blockWriter.applyTrustedWithin(requests, viewer, within);
     const [outcome] = response.transactions;
     if (outcome === undefined) throw new PageBlockWriteError('NO_OUTCOME', 'The blocks module answered nothing', null);
     if (!('error' in outcome)) return true;

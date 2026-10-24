@@ -3,20 +3,33 @@ import { UNASSIGNED_GROUP_KEY } from '@neuma/shared';
 import { cleanup, createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps } from 'react';
+import { NO_PAGE_AGGREGATES } from '@/modules/pages/collections/constants/pages.aggregates.constants';
 import type {
   PageSchema,
   PageSchemaProperty,
-  PageSchemaView,
   PageViewGroup,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
-import { asPropertyOptions } from '../lib/pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
+import { buildView } from '../lib/pages.views.fixture';
 
-const moved: { pageId: string; propertyValues: Record<string, unknown>; spaceId: string }[] = [];
+interface MovedRow {
+  after?: string;
+  before?: string;
+  listChanges?: Record<string, { add: string[]; remove: string[] }>;
+  pageId: string;
+  rowId: string;
+  spaceId: string;
+  values: Record<string, unknown>;
+  viewId: string;
+}
+
+const moved: MovedRow[] = [];
 const reordered: { beforePageId?: string; pageId: string; spaceId: string }[] = [];
 const created: { parentId?: string; propertyValues?: Record<string, unknown>; title?: string }[] = [];
-const rewritten: { from: string; to: null | string }[] = [];
+const rewritten: { optionId: string; to: null | string }[] = [];
 const reshaped: { properties: unknown }[] = [];
+const viewOperations: { operations: { args: unknown; command: string; path: string[] }[] }[] = [];
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
@@ -28,7 +41,9 @@ mock.module('@/i18n/navigation', () => ({
 // The address selects the board view.
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams('view=Board') }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
-  rewritePageCollectionOptionAction: async (input: { from: string; to: null | string }) => {
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
+  rewritePageCollectionOptionAction: async (input: { optionId: string; to: null | string }) => {
     rewritten.push(input);
     return { data: null };
   },
@@ -36,15 +51,25 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
     reshaped.push(input);
     return { data: { pageId: 'collection-1', properties: input.properties, spaceId: 'space-1', views: [] } };
   },
-  updatePageViewConfigurationAction: async () => ({ data: { ...schema } }),
-  updatePageRowPropertiesAction: async (input: {
-    pageId: string;
-    propertyValues: Record<string, unknown>;
-    spaceId: string;
+  applyPageViewOperationsAction: async (input: {
+    operations: { args: unknown; command: string; path: string[] }[];
   }) => {
-    moved.push(input);
-    return { data: null };
+    viewOperations.push(input);
+    return { data: { configuration: {}, id: view.id, version: 1 } };
   },
+  loadMorePageRowsAction: async () => ({ data: null }),
+  readEveryPageRowAction: async () => ({ data: null }),
+  readPageCollectionAction: async () => ({ data: null }),
+  readPageCollectionChangesAction: async () => ({ data: null }),
+  readPageMatchingRowsAction: async () => ({ data: null }),
+  readPageViewAggregatesAction: async () => ({ data: null }),
+  refreshPageCollectionAction: async () => ({ data: null }),
+  refreshPageRowsAction: async () => ({ data: null }),
+  movePageRowAction: async (input: MovedRow) => {
+    moved.push(input);
+    return { data: { configuration: {}, id: input.viewId, version: 1 } };
+  },
+  updatePageRowPropertiesAction: async () => ({ data: null }),
 }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   createPageAction: async (input: { parentId?: string; propertyValues?: Record<string, unknown>; title: string }) => {
@@ -69,6 +94,7 @@ const { PagesCollectionBoardMissingGrouping } = await import(
 const firstRow = {
   id: 'row-1',
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues: {},
@@ -105,10 +131,18 @@ const giveCardHeight = (card: HTMLElement, box: { height: number; top: number })
 };
 
 const shownProperties: PageSchemaProperty[] = [
-  { key: 'priority', label: 'Priority', options: asPropertyOptions('low', 'high'), required: false, type: 'SELECT' },
+  {
+    config: defaultConfig,
+    key: 'priority',
+    label: 'Priority',
+    options: asPropertyOptions('low', 'high'),
+    required: false,
+    type: 'SELECT',
+  },
 ];
 
 const statusProperty: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'status',
   label: 'Status',
   options: asPropertyOptions('todo', 'done'),
@@ -116,7 +150,7 @@ const statusProperty: PageSchemaProperty = {
   type: 'SELECT',
 };
 
-const view: PageSchemaView = { configuration: { groupBy: 'status' }, isDefault: true, name: 'Board', type: 'BOARD' };
+const view = buildView('Board', 'BOARD', { configuration: { groupBy: 'status' }, isDefault: true });
 
 const schema: PageSchema = {
   pageId: 'collection-1',
@@ -134,13 +168,18 @@ const drawBoard = (
     <NextIntlClientProvider locale="en" messages={en}>
       <PagesCollectionBoard
         activeViewName="Board"
+        aggregates={NO_PAGE_AGGREGATES}
         bands={[{ color: null, groups: boardGroups, key: '', label: '' }]}
         canEdit={canEdit}
+        changesCursor={null}
         groupByKey="status"
+        isManualOrder
         properties={properties}
         schema={schema}
         spaceId="space-1"
         subGroupByKey=""
+        view={view}
+        viewId={view.id}
       />
     </NextIntlClientProvider>,
   );
@@ -174,7 +213,14 @@ describe('PagesCollectionBoard', () => {
     fireEvent.drop(done);
 
     await waitFor(() => expect(moved).toHaveLength(1));
-    expect(moved[0]).toEqual({ pageId: 'row-1', propertyValues: { status: 'done' }, spaceId: 'space-1' });
+    expect(moved[0]).toEqual({
+      listChanges: {},
+      pageId: 'collection-1',
+      rowId: 'row-1',
+      spaceId: 'space-1',
+      values: { status: 'done' },
+      viewId: view.id,
+    });
   });
 
   it('does not write anything when a card is dropped on its own column', async () => {
@@ -248,9 +294,17 @@ describe('PagesCollectionBoard', () => {
 
     fireEvent.drop(screen.getByRole('region', { name: 'todo' }));
 
-    await waitFor(() => expect(reordered).toHaveLength(1));
-    expect(reordered[0]).toEqual({ beforePageId: 'row-1', pageId: 'row-2', spaceId: 'space-1' });
-    expect(moved).toHaveLength(0);
+    await waitFor(() => expect(moved).toHaveLength(1));
+    expect(moved[0]).toEqual({
+      before: 'row-1',
+      listChanges: {},
+      pageId: 'collection-1',
+      rowId: 'row-2',
+      spaceId: 'space-1',
+      values: {},
+      viewId: view.id,
+    });
+    expect(reordered).toHaveLength(0);
   });
 
   it('moves a card with the keyboard, for whoever cannot drag', async () => {
@@ -260,7 +314,7 @@ describe('PagesCollectionBoard', () => {
     fireEvent.keyDown(screen.getByTestId('collection-board-card'), { altKey: true, key: 'ArrowRight' });
 
     await waitFor(() => expect(moved).toHaveLength(1));
-    expect(moved[0]?.propertyValues).toEqual({ status: 'done' });
+    expect(moved[0]?.values).toEqual({ status: 'done' });
   });
 
   it('leaves the cards alone for whoever cannot edit the page', () => {
@@ -275,7 +329,7 @@ describe('PagesCollectionBoard', () => {
     ] as PageViewGroup[];
     drawBoard(false, withPriority, shownProperties);
 
-    expect(screen.getByText('High')).toBeDefined();
+    expect(screen.getByText('high')).toBeDefined();
   });
 
   it('leaves out of the card a property the row did not answer', () => {
@@ -327,7 +381,7 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
 
     await waitFor(() => expect(rewritten).toHaveLength(1));
-    expect(rewritten[0]).toMatchObject({ from: 'todo', propertyKey: 'status', to: 'pendiente' });
+    expect(rewritten[0]).toMatchObject({ optionId: 'todo', propertyKey: 'status', to: 'pendiente' });
   });
 
   it('asks before removing a column, saying how many rows are left without a value', async () => {
@@ -342,7 +396,7 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove the column' }));
     await waitFor(() => expect(rewritten).toHaveLength(1));
-    expect(rewritten[0]).toMatchObject({ from: 'todo', propertyKey: 'status', to: null });
+    expect(rewritten[0]).toMatchObject({ optionId: 'todo', propertyKey: 'status', to: null });
   });
 
   it('refuses a name another column already answers to, without asking the server', async () => {
@@ -361,18 +415,23 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
   });
 
   it('folds a column into a strip that still says its name and how many it holds', async () => {
-    const collapsed: PageSchemaView = { ...view, configuration: { ...view.configuration, collapsedGroups: ['todo'] } };
+    const collapsed = { ...view, configuration: { ...view.configuration, collapsedGroups: ['todo'] } };
     render(
       <NextIntlClientProvider locale="en" messages={en}>
         <PagesCollectionBoard
           activeViewName={collapsed.name}
+          aggregates={NO_PAGE_AGGREGATES}
           bands={[{ color: null, groups, key: '', label: '' }]}
           canEdit
+          changesCursor={null}
           groupByKey="status"
+          isManualOrder
           properties={[]}
           schema={{ ...schema, views: [collapsed] }}
           spaceId="space-1"
           subGroupByKey=""
+          view={collapsed}
+          viewId={collapsed.id}
         />
       </NextIntlClientProvider>,
     );
@@ -384,19 +443,24 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
   });
 
   it('says a column is over its limit without keeping anyone from dropping there', () => {
-    const limited: PageSchemaView = { ...view, configuration: { ...view.configuration, columnLimits: { todo: 1 } } };
+    const limited = { ...view, configuration: { ...view.configuration, columnLimits: { todo: 1 } } };
     const crowded = [{ ...groups[0], rows: [...(groups[0]?.rows ?? []), { ...groups[0]?.rows[0], id: 'row-3' }] }];
     render(
       <NextIntlClientProvider locale="en" messages={en}>
         <PagesCollectionBoard
           activeViewName={limited.name}
+          aggregates={NO_PAGE_AGGREGATES}
           bands={[{ color: null, groups: crowded as PageViewGroup[], key: '', label: '' }]}
           canEdit
+          changesCursor={null}
           groupByKey="status"
+          isManualOrder
           properties={[]}
           schema={{ ...schema, views: [limited] }}
           spaceId="space-1"
           subGroupByKey=""
+          view={limited}
+          viewId={limited.id}
         />
       </NextIntlClientProvider>,
     );
@@ -461,9 +525,73 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
 
     await waitFor(() => expect(reshaped).toHaveLength(1));
-    expect(reshaped[0]?.properties).toEqual([
-      { ...statusProperty, options: [...asPropertyOptions('todo', 'done'), { color: 'ORANGE', value: 'blocked' }] },
-    ]);
+    const savedProperties = (reshaped[0]?.properties ?? []) as PageSchemaProperty[];
+    const saved = savedProperties.at(0);
+    expect(saved?.options?.slice(0, 2)).toEqual([...asPropertyOptions('todo', 'done')]);
+    expect(saved?.options?.[2]).toMatchObject({ color: 'ORANGE', group: null, value: 'blocked' });
+    expect(saved?.options?.[2]?.id).toStartWith('draft-');
+  });
+});
+
+describe('PagesCollectionBoard — grupos ocultos, bandas y portadas', () => {
+  it('hides a group from its menu, as a change of that one list of the view', async () => {
+    viewOperations.length = 0;
+    drawBoard(true);
+
+    openColumnMenu();
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Hide the group' }));
+
+    await waitFor(() => expect(viewOperations).toHaveLength(1));
+    expect(viewOperations[0]?.operations).toHaveLength(1);
+    expect(viewOperations[0]?.operations[0]).toMatchObject({
+      args: { id: 'todo' },
+      path: ['configuration', 'hiddenGroups'],
+    });
+  });
+
+  it('lists the hidden groups apart, with a way to show each again', async () => {
+    const hidden = { ...view, configuration: { ...view.configuration, hiddenGroups: ['done'] } };
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesCollectionBoard
+          activeViewName={hidden.name}
+          aggregates={NO_PAGE_AGGREGATES}
+          bands={[{ color: null, groups: [groups[0] as PageViewGroup], key: '', label: '' }]}
+          canEdit
+          changesCursor={null}
+          groupByKey="status"
+          isManualOrder
+          properties={[]}
+          schema={{ ...schema, views: [hidden] }}
+          spaceId="space-1"
+          subGroupByKey=""
+          view={hidden}
+          viewId={hidden.id}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: '1 hidden group' }), {
+      button: 0,
+      ctrlKey: false,
+      pointerType: 'mouse',
+    });
+
+    expect(await screen.findByRole('menuitem', { name: /Show “done”/ })).toBeDefined();
+  });
+
+  it('offers no way to hide groups to whoever cannot edit', () => {
+    cleanup();
+    drawBoard(false);
+
+    expect(screen.queryByRole('button', { name: 'How the cards look' })).toBeNull();
+  });
+
+  it('offers the size and the cover of the cards to whoever may edit', () => {
+    cleanup();
+    drawBoard(true);
+
+    expect(screen.getByRole('button', { name: 'How the cards look' })).toBeDefined();
   });
 });
 

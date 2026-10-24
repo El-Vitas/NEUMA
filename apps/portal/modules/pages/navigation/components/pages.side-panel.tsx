@@ -10,18 +10,14 @@ import { useThemeRoot } from '@/shared/hooks/use.theme-root.hook';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { PagesEditor } from '../../editor/components/pages.editor';
 import { canEditPage } from '../../lib/pages.lib';
-import type { PageSummary } from '../../types/pages.types';
 import { usePagesSidePanel } from '../hooks/use.pages.side-panel';
 import type { PagesSidePanelBundle } from '../types/pages.side-panel.types';
 import { PagesSidePanelResizeHandle } from './pages.side-panel.resize-handle';
 
 interface IProps {
   readonly bundle: PagesSidePanelBundle;
-  readonly canEditContent: boolean;
   readonly currentUserDisplayName?: string;
   readonly currentUserId?: string;
-  readonly pages: readonly PageSummary[];
-  readonly parentBreadcrumbPages: readonly PageSummary[];
   readonly spaceId: string;
   readonly spaceName?: string;
 }
@@ -30,17 +26,9 @@ interface IProps {
  * Built on Radix's non-modal `Dialog`: the page behind keeps its scroll and focus, Escape and outside clicks
  * close it, menus opened inside it do not count as outside, and no overlay is drawn.
  */
-export const PagesSidePanel = ({
-  bundle,
-  canEditContent,
-  currentUserDisplayName,
-  currentUserId,
-  pages,
-  parentBreadcrumbPages,
-  spaceId,
-  spaceName,
-}: IProps) => {
+export const PagesSidePanel = ({ bundle, currentUserDisplayName, currentUserId, spaceId, spaceName }: IProps) => {
   const {
+    ancestors,
     attachments,
     backlinks,
     blockSync,
@@ -51,6 +39,9 @@ export const PagesSidePanel = ({
     page,
     parentSchema,
     personOptions,
+    references,
+    relatedRows,
+    syncedSources,
   } = bundle;
   const t = useTranslations('pages.sidePanel');
   const router = useRouter();
@@ -111,10 +102,11 @@ export const PagesSidePanel = ({
           {/* Navigating inside the panel keeps the same address, so the editor needs a key to remount per page. */}
           <div className="min-h-0 flex-1 overflow-y-auto">
             <PagesEditor
+              ancestors={ancestors}
               attachments={attachments}
               backlinks={backlinks}
               blockSync={blockSync}
-              canEdit={canEditPage(canEditContent, page.lifecycle) && !blockSyncFailed}
+              canEdit={canEditPage(page) && !blockSyncFailed}
               collectionSection={collectionSection}
               currentUserDisplayName={currentUserDisplayName}
               currentUserId={currentUserId}
@@ -125,13 +117,14 @@ export const PagesSidePanel = ({
               onNavigateToPage={sidePanel.navigateWithinPanel}
               onSaved={handleSaved}
               page={page}
-              pages={pages}
-              parentBreadcrumbPages={parentBreadcrumbPages}
               parentSchema={parentSchema}
               personOptions={personOptions}
               ref={editorHandleRef}
+              references={references}
+              relatedRows={relatedRows}
               spaceId={spaceId}
               spaceName={spaceName}
+              syncedSources={syncedSources}
             />
           </div>
         </DialogPrimitive.Content>

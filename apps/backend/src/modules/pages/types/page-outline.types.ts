@@ -3,8 +3,8 @@ import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.
 import type { SearchTokenScope } from '../../../common/types/search.types';
 
 export interface PageOutlineEntry {
-  /** Counts only children the reader can see. */
-  readonly childCount: number;
+  /** A page the reader can see sits right under it: a flag, since counting them would read every child. */
+  readonly hasChildren: boolean;
   readonly id: string;
   readonly isCollection: boolean;
   readonly propertyValues: SchemaPropertyValues | null;
@@ -15,11 +15,6 @@ export interface PageOutlineEntry {
 export type PageAncestor =
   | { readonly id: string; readonly isReadable: true; readonly title: string }
   | { readonly id: null; readonly isReadable: false; readonly title: null };
-
-export interface PageAncestorRow {
-  readonly id: string;
-  readonly title: string;
-}
 
 export interface PageOutlinePlace {
   readonly id: string;

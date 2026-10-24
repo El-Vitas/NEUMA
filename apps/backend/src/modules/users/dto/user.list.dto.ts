@@ -4,6 +4,7 @@ import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validato
 import {
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
+  MAX_PAGE,
   MAX_PAGE_SIZE,
   MIN_PAGE,
   MIN_PAGE_SIZE,
@@ -14,6 +15,7 @@ import { trimText } from '../../../common/utils/normalize.utils';
 export class ListUsersDto {
   @IsInt()
   @IsOptional()
+  @Max(MAX_PAGE)
   @Min(MIN_PAGE)
   @Type(() => Number)
   page: number = DEFAULT_PAGE;

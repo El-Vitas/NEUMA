@@ -1,6 +1,7 @@
 import { Result } from '@neuma/shared';
 import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 import type { DomainError } from '../../../common/domain/domain.error';
+import { compareCodeUnits } from '../../../common/utils/compare.utils';
 import { BLOCK_TEXT_STATE_MAX_BYTES } from '../constants/block.transaction.constants';
 import type {
   BlockTextEngine,
@@ -42,7 +43,7 @@ const toStableJson = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(toStableJson).join(',')}]`;
   if (!isRecord(value)) return JSON.stringify(value);
   const entries = Object.keys(value)
-    .toSorted()
+    .toSorted(compareCodeUnits)
     .map((key) => `${JSON.stringify(key)}:${toStableJson(value[key])}`);
   return `{${entries.join(',')}}`;
 };

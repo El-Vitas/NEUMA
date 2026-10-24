@@ -6,7 +6,7 @@ import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { setPageLockAction } from '../server/actions/pages.actions';
 import type { PageSummary } from '../types/pages.types';
 
@@ -23,7 +23,7 @@ export const PagesLockToggle = ({ isLocked, onLockChange, pageId, spaceId }: IPr
 
   const toggleLock = (): void => {
     startTransition(async () => {
-      const result = await setPageLockAction({ locked: !isLocked, pageId, spaceId });
+      const result = await callAction(() => setPageLockAction({ locked: !isLocked, pageId, spaceId }));
       if (!isActionSuccess<PageSummary>(result)) {
         toast.error(t('error'));
         return;

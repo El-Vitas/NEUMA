@@ -102,7 +102,7 @@ export class FilesService {
     role: UserRole,
   ): Promise<Result<true, FileAccessDeniedError | FileStorageError>> {
     if (role === USER_ROLE.CLIENT) return Result.fail(new FileAccessDeniedError());
-    const asset = await this.fileAssetRepository.findAccessible(assetId, workspaceId, userId, role);
+    const asset = await this.fileAssetRepository.findDeletable(assetId, workspaceId, userId, role);
     if (asset === null) return Result.fail(new FileAccessDeniedError());
     const markedDeleted = await this.fileAssetRepository.markDeleted(assetId, workspaceId, userId);
     if (!markedDeleted) return Result.fail(new FileAccessDeniedError());

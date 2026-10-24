@@ -29,6 +29,10 @@ export const readSettingsTitle = (
   }
 };
 
+/** The first thing that keeps the shape from being saved, said in words; null when nothing does. */
+export const readWhatIsMissing = (...reasons: readonly (string | null)[]): string | null =>
+  reasons.find((reason) => reason !== null) ?? null;
+
 export const readSettingsStepBack = (route: PagesSchemaSettingsRoute): PagesSchemaSettingsRoute => {
   if (route.level === 'OPTION') return { level: 'PROPERTY', propertyKey: route.propertyKey };
   if (route.level === 'PROPERTY') return { level: 'PROPERTIES' };

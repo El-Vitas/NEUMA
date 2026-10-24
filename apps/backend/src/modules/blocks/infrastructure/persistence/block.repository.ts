@@ -2,8 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { BLOCK_TYPE, blockPermissionsSchema } from '@neuma/shared';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { BLOCK_RELATION, BLOCK_SUBTREE_MAX_BLOCKS, BLOCK_TREE_MAX_DEPTH } from '../../constants/blocks.constants';
+import {
+  BLOCK_RELATION,
+  BLOCK_SUBTREE_MAX_BLOCKS,
+  BLOCK_SYNC_MAX_ROWS,
+  BLOCK_TREE_MAX_DEPTH,
+} from '../../constants/blocks.constants';
 import type { BlockRecord } from '../../domain/block.domain.types';
+import { listReadableSpaceIdsByUser } from '../../domain/block.space-access.domain';
 import {
   blockChildrenSchema,
   blockJsonObjectSchema,
@@ -76,7 +82,7 @@ export class BlockRepository implements BlockRepositoryContract {
         "block"."parentId", "block"."type", to_jsonb("block"."children") AS "children", "block"."properties",
         "block"."format", "block"."text", "block"."alive", "block"."lifecycle"::text AS "lifecycle",
         "block"."lockedAt", "block"."version", "block"."createdById", "block"."editedById", "block"."createdAt",
-        "block"."editedAt", "block"."permissions", "block"."textState"
+        "block"."editedAt", "block"."permissions", coalesce(octet_length("block"."textState"), 0) AS "textStateBytes"
       FROM "member"
       CROSS JOIN "overflow"
       INNER JOIN "Block" AS "block" ON "block"."id" = "member"."id"
@@ -138,16 +144,44 @@ export class BlockRepository implements BlockRepositoryContract {
         "block"."parentId", "block"."type", to_jsonb("block"."children") AS "children", "block"."properties",
         "block"."format", "block"."text", "block"."alive", "block"."lifecycle"::text AS "lifecycle",
         "block"."lockedAt", "block"."version", "block"."createdById", "block"."editedById", "block"."createdAt",
-        "block"."editedAt", "block"."permissions", "block"."textState"
+        "block"."editedAt", "block"."permissions", coalesce(octet_length("block"."textState"), 0) AS "textStateBytes"
       FROM "member"
       CROSS JOIN "overflow"
       INNER JOIN "Block" AS "block" ON "block"."id" = "member"."id"
       ORDER BY "member"."relation", "block"."id"
+      LIMIT ${BLOCK_SYNC_MAX_ROWS + 1}
     `
         .returnsRow(this.describeRow())
         .build(),
     );
     return toReadResult(rows);
+  }
+
+  async findReadableSpaceIdsByReader(
+    spaceIds: readonly string[],
+    readers: readonly BlockReader[],
+  ): Promise<ReadonlyMap<string, ReadonlySet<string>>> {
+    if (spaceIds.length === 0 || readers.length === 0) {
+      return new Map(readers.map((reader) => [reader.userId, new Set<string>()]));
+    }
+    const spaces = await this.prisma.models.Space.select('id', 'ownerId', 'visibility', 'workspaceId')
+      .where((space) => space.id.in([...spaceIds]))
+      .all();
+    const memberships = await this.prisma.models.SpaceMember.select('spaceId', 'userId')
+      .where((member) => member.spaceId.in([...spaceIds]))
+      .where((member) => member.userId.in(readers.map((reader) => reader.userId)))
+      .all();
+    return listReadableSpaceIdsByUser({ memberships, readers, spaces });
+  }
+
+  async readTextStates(blockIds: readonly string[]): Promise<ReadonlyMap<string, Uint8Array>> {
+    if (blockIds.length === 0) return new Map();
+    const rows = await this.prisma.models.Block.select('id', 'textState')
+      .where((block) => block.id.in([...blockIds]))
+      .all();
+    return new Map(
+      rows.flatMap((row) => (row.textState === null ? [] : [[row.id, new Uint8Array(row.textState)] as const])),
+    );
   }
 
   async findReadableSpaceIds(spaceIds: readonly string[], reader: BlockReader): Promise<ReadonlySet<string>> {
@@ -181,7 +215,7 @@ export class BlockRepository implements BlockRepositoryContract {
       relation: 'pg/text@1',
       spaceId: columns.spaceId,
       text: columns.text,
-      textState: columns.textState,
+      textStateBytes: columns.version,
       type: columns.type,
       version: columns.version,
     } as const;
@@ -214,8 +248,8 @@ const toReadResult = (rows: readonly BlockRow[]): BlockReadResult => {
     context: rows.filter((row) => blockRelationSchema.parse(row.relation) === BLOCK_RELATION.context).map(toRecord),
     isDepthExceeded: rows.some((row) => row.isDepthExceeded),
     targets: targetRows.map(toRecord),
-    textStates: new Map(
-      targetRows.flatMap((row) => (row.textState === null ? [] : [[row.id, new Uint8Array(row.textState)] as const])),
+    textStateBytes: new Map(
+      targetRows.flatMap((row) => (row.textStateBytes === 0 ? [] : [[row.id, row.textStateBytes] as const])),
     ),
   };
 };

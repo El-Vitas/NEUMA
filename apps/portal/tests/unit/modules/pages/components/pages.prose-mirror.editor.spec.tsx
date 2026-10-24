@@ -38,6 +38,8 @@ mock.module('@/modules/pages/attachments/server/actions/pages.attachments.action
 }));
 
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   createPageCollectionAction: async () => ({ data: { id: 'page-3', title: 'Colección' } }),
   readPageCollectionAction: async () => ({ data: null }),
 }));
@@ -66,6 +68,26 @@ const { createPageAssetInsertCommand } = await import('@/modules/pages/editor/li
 const { pageEditorSchema } = await import('@/modules/pages/editor/lib/pages.editor.schema');
 
 const { PagesProseMirrorEditor } = await import('@/modules/pages/components/pages.prose-mirror.editor');
+const { PagesDiscussionsProvider } = await import('@/modules/pages/discussions/components/pages.discussions.provider');
+
+const unused = (): Promise<never> => Promise.reject(new Error('Not used in this test'));
+
+const noDiscussions = {
+  api: {
+    discussions: [],
+    edit: unused,
+    open: unused,
+    refresh: () => Promise.resolve(),
+    remove: unused,
+    reopen: unused,
+    reply: unused,
+    resolve: unused,
+    status: 'ready' as const,
+    summary: { openCounts: new Map<string, number>(), openMarkIds: new Set<string>() },
+  },
+  currentUserId: null,
+  personOptions: [],
+};
 
 const renderEditor = (props: {
   readonly canEdit: boolean;
@@ -79,14 +101,16 @@ const renderEditor = (props: {
   } | null>();
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <PagesProseMirrorEditor
-        canEdit={props.canEdit}
-        content={createEmptyPageContent()}
-        onContentChange={props.onContentChange}
-        pageId={props.pageId}
-        ref={ref}
-        spaceId="space-1"
-      />
+      <PagesDiscussionsProvider value={noDiscussions}>
+        <PagesProseMirrorEditor
+          canEdit={props.canEdit}
+          content={createEmptyPageContent()}
+          onContentChange={props.onContentChange}
+          pageId={props.pageId}
+          ref={ref}
+          spaceId="space-1"
+        />
+      </PagesDiscussionsProvider>
     </NextIntlClientProvider>,
   );
   return ref;
@@ -417,7 +441,7 @@ describe('PagesProseMirrorEditor block menu', () => {
 
     fireEvent.click(screen.getByRole('menuitem', { name: 'Comment' }));
 
-    await waitFor(() => expect(screen.getByText('Block comments')).toBeDefined());
+    await waitFor(() => expect(screen.getByText('Comments on this block')).toBeDefined());
   });
 
   it('opens where the block is going when its menu asks to move it', async () => {

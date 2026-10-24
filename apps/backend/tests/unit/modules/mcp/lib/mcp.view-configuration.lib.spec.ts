@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PagePropertyType } from '@neuma/shared';
+import { DEFAULT_PAGE_PROPERTY_CONFIG, type PagePropertyType } from '@neuma/shared';
 import { hideMcpNames, listMcpNames } from '@/modules/mcp/lib/mcp.columns.lib';
 import { buildMcpViewConfiguration } from '@/modules/mcp/lib/mcp.view-configuration.lib';
 import type { McpColumn } from '@/modules/mcp/types/mcp.collections.types';
@@ -10,9 +10,10 @@ const column = (
   type: PagePropertyType,
   options: readonly string[] | null = null,
 ): McpColumn => ({
+  config: DEFAULT_PAGE_PROPERTY_CONFIG,
   key,
   label,
-  options: options?.map((value) => ({ color: null, value })) ?? null,
+  options: options?.map((value, index) => ({ color: null, group: null, id: `${key}-${String(index)}`, value })) ?? null,
   required: false,
   type,
 });
@@ -23,7 +24,7 @@ const columns = [
   column('owner', 'Responsable', 'PERSON'),
   column('due', 'Vence', 'DATE'),
 ];
-const people = [{ id: 'u-1', name: 'Ana Pérez' }];
+const people = [{ email: 'ana@example.com', id: 'u-1', name: 'Ana Pérez' }];
 
 const known = { columns, listNames: listMcpNames };
 
@@ -45,7 +46,7 @@ describe('buildMcpViewConfiguration', () => {
     expect(built.getValue()).toEqual({
       filter: {
         conditions: [
-          { kind: 'CONDITION', operator: 'IS', propertyKey: 'status', value: 'Por hacer' },
+          { kind: 'CONDITION', operator: 'IS', propertyKey: 'status', value: 'status-0' },
           { kind: 'CONDITION', operator: 'IS', propertyKey: 'owner', value: 'u-1' },
           { kind: 'CONDITION', operator: 'CONTAINS', propertyKey: 'title', value: 'plan' },
         ],

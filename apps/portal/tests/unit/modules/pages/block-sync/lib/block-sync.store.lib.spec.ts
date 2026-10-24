@@ -29,6 +29,18 @@ describe('createBlockStore', () => {
     expect(store.readVersion('p1')).toBe(1);
   });
 
+  it('reads only the snapshots asked for, with the unsent text in them', () => {
+    const store = createBlockStore(
+      syncedBlocksOf(documentOf(paragraph('p1', text('Hello')), paragraph('p2', text('World')))),
+    );
+    store.textWriter.write('p1', 'title', plain('Hello!'));
+
+    const snapshots = store.readSnapshotsOf(['p1', 'missing']);
+
+    expect([...snapshots.keys()]).toEqual(['p1']);
+    expect(snapshots.get('p1')?.properties.title).toEqual(plain('Hello!'));
+  });
+
   it('reads the text from the local Yjs documents, so unsent edits are part of it', () => {
     const store = createBlockStore(syncedBlocksOf(documentOf(paragraph('p1', text('Hello')))));
 
@@ -204,6 +216,20 @@ describe('blocks known to be dead', () => {
     expect(store.readSnapshots().has('p2')).toBe(false);
     expect(store.readBuried().has('p2')).toBe(true);
     expect(store.readVersion('p2')).toBe(2);
+  });
+
+  it('are not buried by a dead notice older than the live version already known', () => {
+    const blocks = syncedBlocksOf(content);
+    const store = createBlockStore(blocks);
+    store.mergeBlocks({ blocks: blocks.map((block) => (block.id === 'p2' ? { ...block, version: 5 } : block)) });
+
+    store.mergeBlocks({
+      blocks: blocks.map((block) => (block.id === 'p2' ? { ...block, alive: false, version: 3 } : block)),
+    });
+    store.replacePage(blocks.map((block) => (block.id === 'p2' ? { ...block, alive: false, version: 3 } : block)));
+
+    expect(store.readSnapshots().has('p2')).toBe(true);
+    expect(store.readVersion('p2')).toBe(5);
   });
 
   it('are remembered when a page read lists them as dead', () => {

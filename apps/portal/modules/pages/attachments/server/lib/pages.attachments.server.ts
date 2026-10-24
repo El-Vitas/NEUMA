@@ -52,11 +52,16 @@ export const uploadPageImageAssetId = async (
 
 const decodeFilename = (contentDisposition: string | null): string => {
   const encodedFilename = contentDisposition?.match(ATTACHMENT_FILENAME_PATTERN)?.[1];
-  return encodedFilename === undefined ? 'download' : decodeURIComponent(encodedFilename);
+  if (encodedFilename === undefined) return 'download';
+  try {
+    return decodeURIComponent(encodedFilename);
+  } catch {
+    return 'download';
+  }
 };
 
 const readAttachmentDownload = async (response: Response): Promise<AttachmentDownload> => ({
-  body: Array.from(new Uint8Array(await response.arrayBuffer())),
+  base64: Buffer.from(await response.arrayBuffer()).toString('base64'),
   mimeType: response.headers.get('content-type') ?? 'application/octet-stream',
   originalFilename: decodeFilename(response.headers.get('content-disposition')),
 });

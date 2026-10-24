@@ -10,6 +10,21 @@ import type { PagePropertyValue, PageSchemaProperty } from './pages.schema.types
 /** Child indexes from the root group down. Stored conditions carry no ids, so the position acts as the identity. */
 export type PageFilterPath = readonly number[];
 
+/** What the editor of conditions needs, so it edits the filter of a view and a quick filter alike. */
+export type PagesFilterEditing = Pick<
+  PagesViewFiltering,
+  | 'addCondition'
+  | 'addGroup'
+  | 'clearConditions'
+  | 'conditionCount'
+  | 'isSaving'
+  | 'removeNode'
+  | 'root'
+  | 'setConditionOperator'
+  | 'setConditionValue'
+  | 'setGroupOperator'
+>;
+
 export interface PagesViewFiltering {
   readonly addCondition: (path: PageFilterPath, property: PageSchemaProperty) => void;
   readonly addGroup: (path: PageFilterPath) => void;

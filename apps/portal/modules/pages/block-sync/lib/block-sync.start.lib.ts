@@ -7,15 +7,9 @@ import { buildContentFromSnapshots } from './block-sync.rows.lib';
 const toSnapshotMap = (blocks: readonly SyncedBlock[]): ReadonlyMap<string, BlockSnapshot> =>
   new Map(blocks.filter((block) => block.alive).map((block) => [block.id, block]));
 
-/** The pages with the selected one holding the document the blocks say; untouched when there is none. */
-export const withBlockEditorContent = (
-  pages: readonly PageSummary[],
-  pageId: string,
-  start: BlockEditorStart,
-): readonly PageSummary[] =>
-  start.content === null
-    ? pages
-    : pages.map((page) => (page.id === pageId ? { ...page, content: start.content ?? page.content } : page));
+/** The page holding the document the blocks say; untouched when there is none. */
+export const withBlockEditorContent = (page: PageSummary, start: BlockEditorStart): PageSummary =>
+  start.content === null ? page : { ...page, content: start.content };
 
 /**
  * What the block editor starts from, read on the server: the blocks and the document they say. Any failure,

@@ -1,4 +1,3 @@
-import { computeCollaborationReconnectDelayMs } from '../../lib/pages.collaboration.lib';
 import {
   BLOCK_SYNC_ACCESS_DENIED_CODE,
   BLOCK_SYNC_CLOSE_CODE,
@@ -13,10 +12,11 @@ import type {
   BlockLiveServerMessage,
   BlockLiveSession,
   BlockLiveSessionOptions,
-  BlockLiveSocket,
+  LiveSocketLoop,
   BlockPendingRequest as PendingRequest,
 } from '../types/block-sync.types';
 import { BlockLiveRequestError } from './block-sync.errors.lib';
+import { createLiveSocketLoop } from './block-sync.live-socket.lib';
 
 const parseServerMessage = (text: string): BlockLiveServerMessage | null => {
   let raw: unknown;
@@ -37,28 +37,19 @@ const isRateLimitClose = (code: number): boolean =>
  * good for opening the socket. Requests are matched to their answers by id; a closed socket fails them all.
  */
 export const createBlockLiveSession = ({
+  collectionId,
   handlers,
+  onCollectionMessage,
+  onAccessChanged,
+  onDiscussionChanged,
   openSocket,
   pageId,
   requestToken,
   url,
 }: BlockLiveSessionOptions): BlockLiveSession => {
-  let socket: BlockLiveSocket | null = null;
   let isReady = false;
-  let isDestroyed = false;
-  let attempts = 0;
   let requestCounter = 0;
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  let pingTimer: ReturnType<typeof setInterval> | null = null;
   const pending = new Map<string, PendingRequest>();
-
-  const send = (message: Record<string, unknown>): void => socket?.send(JSON.stringify(message));
-
-  const stopPing = (): void => {
-    if (pingTimer === null) return;
-    clearInterval(pingTimer);
-    pingTimer = null;
-  };
 
   const failAllRequests = (): void => {
     for (const request of pending.values()) {
@@ -78,9 +69,7 @@ export const createBlockLiveSession = ({
 
   const handleSubscribed = (): void => {
     isReady = true;
-    attempts = 0;
-    stopPing();
-    pingTimer = setInterval(() => send({ type: 'ping' }), BLOCK_SYNC_PING_INTERVAL_MS);
+    loop.markReady();
     handlers.onStatusChange('connected');
     handlers.onConnected();
   };
@@ -99,10 +88,18 @@ export const createBlockLiveSession = ({
     if (message === null) return;
     switch (message.type) {
       case 'ready':
-        send({ pageId, type: 'subscribe' });
+        send(
+          collectionId === undefined ? { pageId, type: 'subscribe' } : { collectionId, type: 'subscribe-collection' },
+        );
         return;
       case 'subscribed':
+      case 'subscribed-collection':
         handleSubscribed();
+        return;
+      case 'collection-changes':
+      case 'collection-resync':
+      case 'collection-revoked':
+        onCollectionMessage?.(message);
         return;
       case 'versions':
         handlers.onVersions(message.blocks);
@@ -113,8 +110,14 @@ export const createBlockLiveSession = ({
       case 'revoked':
         handlers.onRevoked();
         return;
+      case 'access-changed':
+        onAccessChanged?.();
+        return;
       case 'presence':
         handlers.onPresence(message.users);
+        return;
+      case 'discussion':
+        onDiscussionChanged?.();
         return;
       case 'transactionsResult':
         settleRequest(message.requestId, (request) =>
@@ -138,22 +141,8 @@ export const createBlockLiveSession = ({
     }
   };
 
-  const scheduleReconnect = (minimumDelayMs: number): void => {
-    if (isDestroyed) return;
-    attempts += 1;
-    handlers.onStatusChange('reconnecting');
-    const delay = Math.max(computeCollaborationReconnectDelayMs(attempts), minimumDelayMs);
-    reconnectTimer = setTimeout(() => {
-      reconnectTimer = null;
-      void connect();
-    }, delay);
-  };
-
-  const handleClose = (closed: BlockLiveSocket, code: number): void => {
-    if (socket !== closed || isDestroyed) return;
-    socket = null;
+  const handleClosed = (code: number, closedLoop: LiveSocketLoop): void => {
     isReady = false;
-    stopPing();
     failAllRequests();
     handlers.onDisconnected();
     if (code === BLOCK_SYNC_CLOSE_CODE.unauthorized) {
@@ -162,37 +151,25 @@ export const createBlockLiveSession = ({
     }
     if (code === BLOCK_SYNC_CLOSE_CODE.reconnectRequired) {
       handlers.onStatusChange('reconnecting');
-      void connect();
+      closedLoop.reconnectForced();
       return;
     }
-    scheduleReconnect(isRateLimitClose(code) ? BLOCK_SYNC_RATE_LIMIT_BASE_DELAY_MS : 0);
+    closedLoop.reconnectLater(isRateLimitClose(code) ? BLOCK_SYNC_RATE_LIMIT_BASE_DELAY_MS : 0);
   };
 
-  const fetchToken = async (): Promise<string | null> => {
-    try {
-      return await requestToken();
-    } catch {
-      return null;
-    }
-  };
-
-  const connect = async (): Promise<void> => {
-    if (isDestroyed) return;
-    if (attempts === 0) handlers.onStatusChange('connecting');
-    const token = await fetchToken();
-    if (isDestroyed) return;
-    if (token === null) {
-      scheduleReconnect(0);
-      return;
-    }
-    const opened = openSocket(url);
-    socket = opened;
-    opened.listen({
-      onClose: (code) => handleClose(opened, code),
-      onMessage: handleMessage,
-      onOpen: () => send({ token, type: 'auth' }),
-    });
-  };
+  const loop = createLiveSocketLoop({
+    onClosed: handleClosed,
+    onConnectStart: (attempts) => {
+      if (attempts === 0) handlers.onStatusChange('connecting');
+    },
+    onMessage: handleMessage,
+    onReconnectScheduled: () => handlers.onStatusChange('reconnecting'),
+    openSocket,
+    pingIntervalMs: BLOCK_SYNC_PING_INTERVAL_MS,
+    requestToken,
+    url,
+  });
+  const send = loop.send;
 
   const request = (message: BlockLiveRequestMessage): Promise<BlockLiveReply> => {
     if (!isReady) return Promise.reject(new BlockLiveRequestError('closed'));
@@ -208,17 +185,13 @@ export const createBlockLiveSession = ({
     });
   };
 
-  void connect();
+  void loop.connect();
 
   return {
     destroy: () => {
-      isDestroyed = true;
       isReady = false;
-      stopPing();
-      if (reconnectTimer !== null) clearTimeout(reconnectTimer);
       failAllRequests();
-      socket?.close();
-      socket = null;
+      loop.destroy();
     },
     request,
     sendPresence: (blockId) => {

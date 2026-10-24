@@ -1,4 +1,12 @@
-import type { PagePropertyOption, PagePropertyType, PageViewType } from '@neuma/shared';
+import type {
+  PageFilter,
+  PageOptionColor,
+  PagePropertyConfig,
+  PagePropertyType,
+  PageStatusGroup,
+  PageViewType,
+} from '@neuma/shared';
+import type { PageComputedDraft } from './pages.schema.types';
 
 export interface PageCollectionWording {
   readonly firstProperty: string;
@@ -6,11 +14,24 @@ export interface PageCollectionWording {
   readonly titleProperty: string;
 }
 
+/** A new option has no id yet, and the server gives it one. */
+export interface PageCollectionOption {
+  readonly color: PageOptionColor | null;
+  readonly group?: PageStatusGroup | null;
+  readonly id?: string | null;
+  readonly value: string;
+}
+
+/** What the collection is created or saved with. */
 export interface PageCollectionProperty {
+  /** A formula or rollup being given or changed; absent when the one the property has is kept. */
+  readonly computedDraft?: PageComputedDraft;
+  readonly config?: PagePropertyConfig;
   readonly key: string;
   readonly label: string;
-  readonly options: readonly PagePropertyOption[] | null;
+  readonly options: readonly PageCollectionOption[] | null;
   readonly required: boolean;
+  readonly twoWay?: boolean;
   readonly type: PagePropertyType;
 }
 
@@ -24,6 +45,24 @@ export interface PageCollectionView {
 export interface PageCollectionShape {
   readonly properties: readonly PageCollectionProperty[];
   readonly views: readonly PageCollectionView[];
+}
+
+/** What the address asks of the rows a view is read with: the words searched, and the month of a calendar. */
+export interface CollectionRowsRequest {
+  /** The day a week or a timeline is drawn around, as `YYYY-MM-DD`. */
+  readonly day: null | string;
+  readonly month: null | string;
+  /** A filter on top of the view that is not saved, so it is for whoever put it there. */
+  readonly quickFilter: null | PageFilter;
+  readonly search: string;
+}
+
+/** What an address to a view can carry besides the view: the words searched, the quick filter and the month. */
+export interface CollectionHrefOptions {
+  readonly day?: string;
+  readonly month?: string;
+  readonly quickFilter?: null | PageFilter;
+  readonly search?: string;
 }
 
 export interface PageCollectionInsert {

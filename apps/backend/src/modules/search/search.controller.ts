@@ -1,6 +1,7 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
+import { SearchThrottlerGuard } from '../../common/infrastructure/guards/search-throttler.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { SearchQueryDto } from './dto/search.query.dto';
@@ -16,7 +17,7 @@ export class SearchController {
   ) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, SearchThrottlerGuard)
   async search(@Query() dto: SearchQueryDto, @User('payload') payload: TokenPayload): Promise<SearchPageWithContext> {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     return this.searchService.search({

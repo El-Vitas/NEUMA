@@ -23,6 +23,13 @@ const versionSchema = z.strictObject({
   version: z.number().int().min(0).max(BLOCK_VERSION_MAX),
 });
 
+const notifiedBlockSchema = versionSchema.extend({
+  hasAccessChange: z.literal(true).optional(),
+  previousParentId: blockIdSchema.nullable().optional(),
+});
+
+const notifiedViewSchema = versionSchema.extend({ pageId: blockIdSchema });
+
 /**
  * The same bounds as `ApplyBlockTransactionsDto` and `SyncBlocksDto`, read from the same constants. The HTTP endpoints
  * keep their class-validator DTOs because Nest's `ValidationPipe` runs those; the two cannot share one schema.
@@ -37,6 +44,17 @@ const requestAndOtherMessagesSchema = z.discriminatedUnion('type', [
   z.strictObject({ token: z.string().min(1).max(BLOCK_LIVE_TOKEN_MAX_LENGTH), type: z.literal('auth') }),
   z.strictObject({ pageId: blockIdSchema, type: z.literal('subscribe') }),
   z.strictObject({ pageId: blockIdSchema, type: z.literal('unsubscribe') }),
+  z.strictObject({ collectionId: blockIdSchema, type: z.literal('subscribe-collection') }),
+  z.strictObject({ collectionId: blockIdSchema, type: z.literal('unsubscribe-collection') }),
+  z.strictObject({
+    since: z
+      .string()
+      .regex(/^\d{1,19}$/)
+      .optional(),
+    spaceId: blockIdSchema,
+    type: z.literal('subscribe-tree'),
+  }),
+  z.strictObject({ spaceId: blockIdSchema, type: z.literal('unsubscribe-tree') }),
   z.strictObject({ blockId: blockIdSchema.nullable(), pageId: blockIdSchema, type: z.literal('presence') }),
   z.strictObject({ type: z.literal('ping') }),
   z.strictObject({
@@ -57,17 +75,36 @@ export const blockLiveClientMessageSchema: z.ZodType<BlockLiveClientMessage> = z
   }),
 ]);
 
-/** What `pg_notify` carries: the touched blocks, or only that they were too many to fit. */
+/**
+ * What `pg_notify` carries: the touched blocks, or only that they were too many to fit. The server writes the
+ * transaction id, and the ones it makes for a move or a trash (a kind and two ids) are longer than a client's.
+ */
 export const blockVersionNotificationSchema = z.union([
   z.object({
-    blocks: z.array(versionSchema),
+    blocks: z.array(notifiedBlockSchema),
     spaceId: z.string().min(1),
-    transactionId: z.string().min(1).max(BLOCK_TRANSACTION_ID_MAX_LENGTH),
+    transactionId: z.string().min(1),
+    views: z.array(notifiedViewSchema).default([]),
   }),
   z.object({
     spaceId: z.string().min(1),
-    transactionId: z.string().min(1).max(BLOCK_TRANSACTION_ID_MAX_LENGTH),
+    transactionId: z.string().min(1),
     truncated: z.literal(true),
+  }),
+]);
+
+/** What `pg_notify` carries on the comment channel: a notification for one person, or a discussion that changed. */
+export const commentEventSchema = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('notification'),
+    notificationId: z.string().min(1),
+    recipientId: z.string().min(1),
+  }),
+  z.strictObject({
+    blockId: z.string().min(1),
+    discussionId: z.string().min(1),
+    kind: z.literal('discussion'),
+    spaceId: z.string().min(1),
   }),
 ]);
 

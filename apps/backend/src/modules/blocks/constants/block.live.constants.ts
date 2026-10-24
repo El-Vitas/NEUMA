@@ -6,6 +6,7 @@ import { BLOCK_TREE_MAX_DEPTH } from './blocks.constants';
 /** With no block ids to check there is nothing to read, and every block id is hidden. */
 export const BLOCK_LIVE_EMPTY_ACCESS_CONTEXT: LiveAccessContext = {
   maxDepth: BLOCK_TREE_MAX_DEPTH,
+  readableSpaceIdsByUserId: new Map(),
   rolesByUserId: new Map(),
   rowsById: new Map(),
 };
@@ -13,6 +14,11 @@ export const BLOCK_LIVE_EMPTY_ACCESS_CONTEXT: LiveAccessContext = {
 export const BLOCK_LIVE_SETTINGS = 'BLOCK_LIVE_SETTINGS';
 
 export const BLOCK_PRESENCE_STORE = 'BLOCK_PRESENCE_STORE';
+
+export const BLOCK_LISTEN_CLIENT_FACTORY = 'BLOCK_LISTEN_CLIENT_FACTORY';
+
+/** The listen connection sends itself a message here: if it does not come back, the connection is dead. */
+export const BLOCK_LIVE_HEARTBEAT_CHANNEL = 'block_live_heartbeat';
 
 export const BLOCK_LIVE_PATH = '/api/v1/blocks/live';
 
@@ -40,7 +46,25 @@ export const BLOCK_LIVE_REQUEST_ID_MAX_LENGTH = 64;
 
 export const BLOCK_LIVE_MAX_SUBSCRIPTIONS_PER_CONNECTION = 50;
 
+/** Views of many collections can be open on one page, each one following its collection. */
+export const BLOCK_LIVE_MAX_COLLECTION_SUBSCRIPTIONS_PER_CONNECTION = 20;
+
+/** A sidebar follows the tree of each space the person has open (ADR 030). */
+export const BLOCK_LIVE_MAX_TREE_SUBSCRIPTIONS_PER_CONNECTION = 20;
+
 export const BLOCK_LIVE_MAX_CONNECTIONS_PER_USER = 10;
+
+/** Sockets still waiting to authenticate: each costs an entry and two timers for the whole auth timeout. */
+export const BLOCK_LIVE_MAX_UNAUTHENTICATED_CONNECTIONS = 200;
+
+/**
+ * Messages that may wait behind the one being handled. They are processed one at a time, so a client that sends
+ * faster than the database answers would otherwise grow the memory of the server without bound.
+ */
+export const BLOCK_LIVE_MAX_QUEUED_MESSAGES = 20;
+
+/** What may wait unsent to one client; past it the client reads too slowly to be kept (4 MiB). */
+export const BLOCK_LIVE_MAX_BUFFERED_BYTES = 4_194_304;
 
 /** A client that pings every 30 s and sends presence on every move stays far below this. */
 export const BLOCK_LIVE_RATE_LIMIT = { maxMessages: 120, windowMs: 10_000 } as const;
@@ -76,7 +100,11 @@ export const BLOCK_LIVE_SOCKET_OPEN_STATE = 1;
 
 export const BLOCK_LIVE_DEFAULT_SETTINGS: BlockLiveSettings = {
   authTimeoutMs: 10_000,
+  deliveryTimeoutMs: 20_000,
+  heartbeatIntervalMs: 30_000,
+  heartbeatTimeoutMs: 10_000,
   idleTimeoutMs: 90_000,
+  keepAliveInitialDelayMs: 10_000,
   maxConnectionAgeMs: 3_600_000,
   presenceSweepIntervalMs: 5000,
   presenceTimeToLiveMs: 60_000,

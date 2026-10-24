@@ -1,11 +1,17 @@
-import type { JsonObject, PageLifecycle } from '@neuma/db';
-import type { UserRole } from '@neuma/shared';
+import type { PageLifecycle } from '@neuma/db';
+import type { PageFormulaCellError, UserRole } from '@neuma/shared';
 import type {
   SchemaPropertyDefinition,
   SchemaPropertyValues,
   SchemaViewDefinition,
 } from '../../../common/domain/schema.domain.types';
 import type { SCHEMA_CHANGED_MEANWHILE, SCHEMA_OPTION_ALREADY_MOVED } from '../constants/pages.constants';
+import type {
+  ComputedDraft,
+  PageSchemaSideEffects,
+  RollupDependent,
+  SchemaPropertyDraft,
+} from '../domain/page-schema.domain.types';
 import type { PageViewer } from './page.block.types';
 
 export type {
@@ -35,13 +41,37 @@ export interface DefinePageSchemaInput {
   readonly workspaceId: string;
   readonly userId: string;
   readonly role: UserRole;
-  readonly properties: readonly SchemaPropertyDefinition[];
+  readonly properties: readonly SchemaPropertyDraft[];
   readonly views: readonly SchemaViewDefinition[];
   /** The shape the caller based this on; if the stored shape differs, nothing is saved. */
   readonly readShape?: PageSchemaShape;
 }
 
-export interface PageRowSummary {
+/** A formula or rollup to check against a collection without saving it. */
+export interface PreviewComputedInput {
+  readonly computedDraft: ComputedDraft;
+  readonly pageId: string;
+  readonly role: UserRole;
+  readonly userId: string;
+  readonly workspaceId: string;
+}
+
+export interface PreviewedSchema {
+  /** The schema with the checked column last, its formula or rollup planned. */
+  readonly properties: readonly SchemaPropertyDefinition[];
+  readonly spaceId: string;
+}
+
+export interface PageRowAuthorshipSummary {
+  readonly createdAt: Date;
+  readonly createdById: string;
+  readonly editedAt: Date;
+  readonly editedById: string;
+}
+
+export interface PageRowSummary extends PageRowAuthorshipSummary {
+  /** The formulas and rollups of the row that could not be computed, with why (ADR 028). */
+  readonly computedErrors?: Readonly<Record<string, PageFormulaCellError>> | undefined;
   readonly id: string;
   readonly parentId: null | string;
   readonly spaceId: string;
@@ -49,43 +79,23 @@ export interface PageRowSummary {
   readonly propertyValues: SchemaPropertyValues | null;
   readonly order: number;
   readonly lifecycle: PageLifecycle;
+  /** The version of the row's block, which grows with every change to it; a copy older than this is stale. */
+  readonly version: number;
 }
 
 /** `hasMore` travels with the rows so a truncated list is not read as the whole collection. */
 export interface PageRowsPage {
+  /** The files the rows attach, with the facts a cell shows. */
+  readonly attachedFiles: readonly { id: string; mimeType: string; name: string; size: number }[];
   readonly hasMore: boolean;
+  /** The rows the relation cells point to that the reader may open, so a cell can show their titles. */
+  readonly relatedRows: readonly { id: string; title: string }[];
   readonly rows: readonly PageRowSummary[];
 }
 
-/** With neither a view name nor a configuration, all rows are returned. */
-export interface QueryPageRowsInput {
-  /** Custom filter and sort, shaped like a view configuration. */
-  readonly configuration: unknown;
-  readonly pageId: string;
-  readonly role: UserRole;
-  readonly userId: string;
-  readonly viewName: string | null;
-  readonly workspaceId: string;
-}
-
-export interface PageRowsSummary {
-  readonly hasMore: boolean;
-  readonly spaceId: string;
-  readonly rows: readonly PageRowSummary[];
-}
-
-export interface SetPageViewConfigurationInput {
-  readonly configuration: JsonObject;
-  readonly pageId: string;
-  readonly role: UserRole;
-  readonly userId: string;
-  readonly viewName: string;
-  readonly workspaceId: string;
-}
-
-/** A null `to` removes the option and clears it from the rows. */
+/** A null `to` removes the option and clears it from the rows; a name only renames it, and no row moves. */
 export interface RewritePageOptionInput {
-  readonly from: string;
+  readonly optionId: string;
   readonly pageId: string;
   readonly propertyKey: string;
   readonly role: UserRole;
@@ -99,30 +109,42 @@ export interface PageSchemaRepositoryContract {
   readonly defineSchema: (
     pageId: string,
     shape: PageSchemaShape,
-    readShape?: PageSchemaShape,
+    readShape: PageSchemaShape | undefined,
+    sideEffects: PageSchemaSideEffects,
+    writer: PageViewer,
   ) => Promise<PageSchemaDefinition | typeof SCHEMA_CHANGED_MEANWHILE>;
-  /** Rewrites schema and row values together, otherwise rows would keep the old option name. */
+  /** A removal also clears the rows that held the option, so none keeps an id the schema dropped. */
   readonly rewriteOption: (
     pageId: string,
     propertyKey: string,
-    rename: { readonly from: string; readonly to: null | string },
+    change: {
+      readonly optionId: string;
+      readonly replacementId: null | string;
+      readonly to: null | string;
+    },
     properties: readonly SchemaPropertyDefinition[],
     writer: PageViewer,
   ) => Promise<PageSchemaDefinition | typeof SCHEMA_OPTION_ALREADY_MOVED>;
-  readonly setViewConfiguration: (
-    pageId: string,
-    viewName: string,
-    configuration: JsonObject,
-  ) => Promise<PageSchemaDefinition>;
   readonly getSchema: (pageId: string) => Promise<PageSchemaDefinition>;
+  /** The rollups of other collections that read a property of this one. */
+  readonly listRollupDependents: (pageId: string) => Promise<readonly RollupDependent[]>;
   readonly resolveSchemaProperties: (pageId: null | string) => Promise<readonly SchemaPropertyDefinition[]>;
   readonly listPersonPropertyKeys: (pageIds: readonly string[]) => Promise<ReadonlyMap<string, readonly string[]>>;
-  readonly listRows: (
+  readonly readRowsById: (
     pageId: string,
+    rowIds: readonly string[],
     workspaceId: string,
     userId: string,
     role: UserRole,
-    limit: number,
   ) => Promise<PageRowsPage>;
   readonly listWorkspaceMemberIds: (workspaceId: string) => Promise<readonly string[]>;
+  /** The pages of the space that carry a shape, that is, its collections, without reading any other page. */
+  readonly listCollectionIdsInSpace: (spaceId: string) => Promise<readonly string[]>;
+  /** The files among `fileIds` the writer may attach: active, in the workspace, and theirs or already the page's. */
+  readonly findAttachableFileIds: (
+    fileIds: readonly string[],
+    scope: { readonly pageId: null | string; readonly userId: string; readonly workspaceId: string },
+  ) => Promise<ReadonlySet<string>>;
+  /** A file attached to a row belongs to that row from then on, so removing the row cleans it up. */
+  readonly attachFilesToPage: (pageId: string, fileIds: readonly string[]) => Promise<void>;
 }

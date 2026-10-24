@@ -43,7 +43,7 @@ export const toPageResult = (candidate: SearchCandidate): SearchResultWithContex
 
 /** Where the next page starts: after this result, in the order the statement sorts by. */
 export const toPosition = (candidate: SearchCandidate, granularity: SearchGranularity): SearchCursorPosition => ({
-  id: granularity === 'page' ? candidate.pageId : candidate.blockId,
+  id: granularity === 'page' ? candidate.pageBestId : candidate.blockId,
   rank: candidate.pageRank,
 });
 

@@ -1,6 +1,6 @@
 import {
+  COMMENT_TEXT_MAX_LENGTH,
   PAGE_BLOCK_COLORS,
-  PAGE_BLOCK_COMMENT_BODY_MOST,
   PAGE_BUTTON_PLACES,
   PAGE_CALLOUT_ICONS,
   PAGE_CODE_LANGUAGES,
@@ -220,7 +220,7 @@ export const updateBlockInputSchema = z.object({
   page: pageAddressSchema,
   replacement: blockInputSchema
     .optional()
-    .describe('A whole new block in its place; it keeps the id, its comments and its colours.'),
+    .describe('A whole new block in its place; it keeps the id, so its discussions stay, and its colours.'),
   summary: toggleSummarySchema.optional().describe('New title for a toggle.'),
   text: inlineTextSchema
     .optional()
@@ -312,6 +312,9 @@ export const listTrashOutputSchema = z.object({
         deletedAt: z.iso.datetime(),
         deletedBy: z.object({ id: mcpIdSchema, name: z.string().max(MCP_TITLE_MAX_LENGTH) }).nullable(),
         id: mcpIdSchema,
+        isTemplate: z
+          .boolean()
+          .describe('True for a template of a collection: restore_page puts it back among its templates.'),
         spaceId: mcpIdSchema,
         title: z.string().max(MCP_TITLE_MAX_LENGTH),
         trashedChildCount: z.number().int().nonnegative(),
@@ -372,7 +375,7 @@ export const commentOnBlockInputSchema = z.object({
     .describe(
       'Words of the block the comment is about, as plain text without Markdown signs; they get marked. Leave it out to comment on the whole block.',
     ),
-  text: z.string().trim().min(1).max(PAGE_BLOCK_COMMENT_BODY_MOST).describe('What the comment says, as plain words.'),
+  text: z.string().trim().min(1).max(COMMENT_TEXT_MAX_LENGTH).describe('What the comment says, as plain words.'),
   ...mcpRequestIdShape,
 });
 
@@ -382,14 +385,62 @@ export const deleteCommentInputSchema = z.object({
   page: pageAddressSchema,
 });
 
+const discussionCommentSchema = z.object({
+  author: z.string(),
+  createdAt: z.string(),
+  id: z.string().describe('The comment id; delete_comment takes it.'),
+  isDeleted: z.boolean(),
+  text: z.string(),
+});
+
+export const discussionSchema = z.object({
+  blockId: z.string(),
+  comments: z.array(discussionCommentSchema),
+  id: z.string().describe('The discussion id; reply_to_discussion takes it.'),
+  isResolved: z.boolean(),
+  quote: z
+    .string()
+    .nullable()
+    .describe('The words of the block the discussion is about; null if it is about the block.'),
+});
+
 export const commentedBlockOutputSchema = writtenBlocksOutputSchema.extend({
-  comment: z.object({
-    author: z.string(),
-    blockId: z.string(),
-    body: z.string(),
-    createdAt: z.string(),
-    id: z.string(),
-  }),
+  comment: discussionCommentSchema.extend({ blockId: z.string(), discussionId: z.string() }),
+});
+
+export const listDiscussionsInputSchema = z.object({
+  cursor: z
+    .string()
+    .max(MCP_ID_MAX_LENGTH * 2)
+    .optional()
+    .describe('The nextCursor of the previous answer, to read on.'),
+  includeResolved: z
+    .boolean()
+    .optional()
+    .describe('Also list the discussions that were marked as resolved. By default only the open ones come back.'),
+  page: pageAddressSchema,
+});
+
+export const listDiscussionsOutputSchema = z.object({
+  discussions: z.array(discussionSchema),
+  nextCursor: z.string().optional().describe('Present when there are more discussions; pass it back as cursor.'),
+  page: writtenPageSchema,
+});
+
+export const replyToDiscussionInputSchema = z.object({
+  discussion: z
+    .string()
+    .trim()
+    .min(1)
+    .max(MCP_ID_MAX_LENGTH)
+    .describe('The discussion id, as list_discussions or fetch lists it.'),
+  text: z.string().trim().min(1).max(COMMENT_TEXT_MAX_LENGTH).describe('What the reply says, as plain words.'),
+  ...mcpRequestIdShape,
+});
+
+export const repliedDiscussionOutputSchema = z.object({
+  discussion: discussionSchema,
+  page: writtenPageSchema,
 });
 
 export const searchDiagramIconsInputSchema = z.object({

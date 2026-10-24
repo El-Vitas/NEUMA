@@ -144,12 +144,48 @@ export class PageExportTooLargeError extends DomainError {
   }
 }
 
+export class PageVersionConflictError extends DomainError {
+  public readonly code = 'PAGE_VERSION_CONFLICT';
+  public readonly httpStatus = 409;
+
+  constructor() {
+    super('The page changed since it was read. Read it again before changing it.');
+  }
+}
+
 export class PageLockedError extends DomainError {
   public readonly code = 'PAGE_LOCKED';
   public readonly httpStatus = 409;
 
   constructor() {
     super('This page is locked against edits.');
+  }
+}
+
+export class PageTemplateNotFoundError extends DomainError {
+  public readonly code = 'PAGE_TEMPLATE_NOT_FOUND';
+  public readonly httpStatus = 404;
+
+  constructor() {
+    super('The collection has no template with that id');
+  }
+}
+
+export class PageTemplateInvalidError extends DomainError {
+  public readonly code = 'PAGE_TEMPLATE_INVALID';
+  public readonly httpStatus = 400;
+
+  constructor(details: string) {
+    super(`The template cannot be saved that way: ${details}`, details);
+  }
+}
+
+export class PageTemplateLimitError extends DomainError {
+  public readonly code = 'PAGE_TEMPLATE_LIMIT';
+  public readonly httpStatus = 409;
+
+  constructor(limit: number) {
+    super(`A collection keeps at most ${String(limit)} templates`);
   }
 }
 

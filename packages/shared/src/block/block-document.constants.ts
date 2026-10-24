@@ -1,5 +1,5 @@
-import { BLOCK_TYPE } from './block-type.constants.js';
 import type { BlockType } from './block-content.types.js';
+import { BLOCK_TYPE } from './block-type.constants.js';
 
 export const BLOCK_DOCUMENT_ERROR_CODE = {
   brokenTree: 'broken_tree',
@@ -12,7 +12,10 @@ export const BLOCK_DOCUMENT_ERROR_CODE = {
 export const BLOCK_DOCUMENT_ID_ATTRIBUTE = 'id';
 
 /** The attributes every document node can carry besides its id; they live in the block format. */
-export const BLOCK_DOCUMENT_ANNOTATION_KEYS = ['backgroundColor', 'comments', 'textColor'] as const;
+export const BLOCK_DOCUMENT_ANNOTATION_KEYS = ['backgroundColor', 'textColor'] as const;
+
+/** Comments were once an attribute of the node. They are discussions now (ADR 023), so they are read past. */
+export const BLOCK_DOCUMENT_LEGACY_COMMENTS_ATTRIBUTE = 'comments';
 
 export const BLOCK_DOCUMENT_ORDER_ATTRIBUTE = 'order';
 export const BLOCK_DOCUMENT_SUMMARY_ATTRIBUTE = 'summary';
@@ -45,7 +48,7 @@ export const BLOCK_DOCUMENT_ATTRIBUTE_ROUTES: Readonly<Partial<Record<string, At
   audio: ASSET_ATTRIBUTES,
   blockquote: NO_ATTRIBUTES,
   bookmark: { format: [], properties: ['description', 'icon', 'title', 'url'] },
-  button: { format: [], properties: ['deed', 'label', 'pageId', 'place', 'spaceId'] },
+  button: { format: [], properties: ['deed', 'label', 'pageId', 'place', 'spaceId', 'templateId'] },
   callout: { format: ['icon'], properties: [] },
   code_block: { format: ['frameHeight', 'shown', 'wrapped'], properties: ['language'] },
   collection: { format: [], properties: ['pageId', 'spaceId', 'viewName'] },

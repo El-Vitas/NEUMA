@@ -2,10 +2,11 @@ import type { PageEditorMarkdownMarkKind } from '../types/pages.editor.paste.typ
 
 export const PAGE_EDITOR_LINE_BREAK_PATTERN = /\r\n|\r|\n/;
 
-export const PAGE_EDITOR_MARKDOWN_HEADING_LINE = /^(#{1,3})\s+(.*)$/;
-export const PAGE_EDITOR_MARKDOWN_BULLET_LINE = /^\s*[-+*]\s+(.*)$/;
-export const PAGE_EDITOR_MARKDOWN_ORDERED_LINE = /^\s*(\d+)\.\s+(.*)$/;
-export const PAGE_EDITOR_MARKDOWN_TASK_LINE = /^\s*\[([ xX]?)]\s+(.*)$/;
+/** The text is `[\s\S]*`, not `.*`: a dot stops at a Unicode line separator and the engine backtracks over spaces. */
+export const PAGE_EDITOR_MARKDOWN_HEADING_LINE = /^(#{1,3})\s+([\s\S]*)$/;
+export const PAGE_EDITOR_MARKDOWN_BULLET_LINE = /^\s*[-+*]\s+([\s\S]*)$/;
+export const PAGE_EDITOR_MARKDOWN_ORDERED_LINE = /^\s*(\d+)\.\s+([\s\S]*)$/;
+export const PAGE_EDITOR_MARKDOWN_TASK_LINE = /^\s*\[([ xX]?)]\s+([\s\S]*)$/;
 export const PAGE_EDITOR_MARKDOWN_QUOTE_LINE = /^\s*>\s?(.*)$/;
 export const PAGE_EDITOR_MARKDOWN_DIVIDER_LINE = /^---$/;
 export const PAGE_EDITOR_MARKDOWN_CODE_FENCE_LINE = /^```([\w-]+)?\s*$/;

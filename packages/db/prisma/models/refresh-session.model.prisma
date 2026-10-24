@@ -1,0 +1,19 @@
+// use prisma-8
+
+/// One refresh token of one device (ADR 018). The row id is the token's `jti`; every token a login or a renewal
+/// issues belongs to the family of that login. A used row stays until it expires so presenting it again is noticed.
+model RefreshSession {
+  id           String             @id(map: "RefreshSession_pkey") @default(uuid(7))
+  userId       String
+  familyId     String
+  /// The row issued when this one was exchanged; null while the token has not been used.
+  replacedById String?
+  usedAt       TimestamptzJsDate?
+  expiresAt    TimestamptzJsDate
+  createdAt    TimestamptzJsDate  @default(now())
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "RefreshSession_userId_fkey", index: "RefreshSession_userId_idx")
+
+  @@index([userId], map: "RefreshSession_userId_idx")
+  @@index([familyId], map: "RefreshSession_familyId_idx")
+  @@index([expiresAt], map: "RefreshSession_expiresAt_idx")
+}

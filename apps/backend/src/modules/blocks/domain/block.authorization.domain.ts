@@ -59,7 +59,7 @@ const authorizeExisting = (
   spaceId: string = input.spaceId,
 ): Result<void, DomainError> => {
   const role = block === undefined ? BLOCK_ROLE.none : (input.rolesById.get(block.id) ?? BLOCK_ROLE.none);
-  if (block === undefined || block.spaceId !== spaceId || !canReadBlock(role)) {
+  if (block?.spaceId !== spaceId || !canReadBlock(role)) {
     return Result.fail(new BlockAccessDeniedError());
   }
   if (!hasPower(power, block, input)) {
@@ -75,6 +75,7 @@ const authorizeExisting = (
 const listToleratedBlockers = (operation: BlockPageOperation): readonly WriteBlocker[] => {
   switch (operation.command) {
     case 'mergePageValues':
+    case 'changeValueList':
       return BLOCK_NO_TOLERATED_BLOCKERS;
     case 'rewritePageValues':
       return ['locked', 'trashed'];
@@ -121,18 +122,42 @@ const authorizeCreation = (
   return Result.fail(canReadBlock(role) ? new BlockAlreadyExistsError() : new BlockAccessDeniedError());
 };
 
-const authorizeOperation = (
+/**
+ * A block made in this transaction takes its edit power from its parent, checked later. Declaring who may open it is
+ * managing permissions, so it asks the parent for that power, as it would of a block that already exists.
+ */
+const authorizeCreatedBlock = (
   operation: BlockOperation,
-  createdIds: ReadonlySet<string>,
+  parentId: string | null,
+  createdParents: ReadonlyMap<string, string | null>,
   input: AuthorizationInput,
 ): Result<void, DomainError> => {
-  const isCreatedHere = createdIds.has(operation.blockId);
+  if (operation.command !== 'setPermissions' || (parentId !== null && createdParents.has(parentId))) return ok();
+  if (parentId !== null) {
+    return authorizeExisting(input.recordsById.get(parentId), 'manage', input, BLOCK_NO_TOLERATED_BLOCKERS);
+  }
+  const rootRole = resolveBlockRole({ canReadSpace: input.isSpaceReadable, chain: [], viewer: input.viewer });
+  return canManageBlockPermissions(rootRole) ? ok() : Result.fail(new BlockPermissionsForbiddenError());
+};
+
+const authorizeOperation = (
+  operation: BlockOperation,
+  createdParents: ReadonlyMap<string, string | null>,
+  input: AuthorizationInput,
+): Result<void, DomainError> => {
+  const isCreatedHere = createdParents.has(operation.blockId);
   if (operation.command === 'create') return authorizeCreation(operation.blockId, isCreatedHere, input);
-  if (isCreatedHere) return ok();
+  if (isCreatedHere) {
+    return authorizeCreatedBlock(operation, createdParents.get(operation.blockId) ?? null, createdParents, input);
+  }
   if (isPageOperation(operation)) return authorizePageCommand(operation, input);
   const power: AuthorizationPower = operation.command === 'setPermissions' ? 'manage' : 'edit';
   return authorizeExisting(input.before.get(operation.blockId), power, input, BLOCK_NO_TOLERATED_BLOCKERS);
 };
+
+/** A view changes with its collection: the viewer needs edit on it, and it may not be locked or trashed. */
+export const authorizeCollectionEdit = (collectionId: string, input: AuthorizationInput): Result<void, DomainError> =>
+  authorizeExisting(input.recordsById.get(collectionId), 'edit', input, BLOCK_NO_TOLERATED_BLOCKERS);
 
 /**
  * Before anything is applied: every block an operation points at must exist, be readable and editable by the
@@ -143,11 +168,11 @@ export const authorizeTargets = (
   operations: readonly BlockOperation[],
   input: AuthorizationInput,
 ): Result<void, DomainError> => {
-  const createdIds = new Set<string>();
+  const createdParents = new Map<string, string | null>();
   for (const operation of operations) {
-    const checked = authorizeOperation(operation, createdIds, input);
+    const checked = authorizeOperation(operation, createdParents, input);
     if (checked.isFail()) return checked;
-    if (operation.command === 'create') createdIds.add(operation.blockId);
+    if (operation.command === 'create') createdParents.set(operation.blockId, operation.fields.parentId);
   }
   return ok();
 };

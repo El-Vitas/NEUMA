@@ -88,7 +88,12 @@ export const PortalLayout = ({ children, favorites, role, spaces, themeChoice, u
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar onMenuClick={() => setMobileNavOpen(true)} onSearchClick={() => setCommandBarOpen(true)} />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden focus:outline-none" ref={mainRef} tabIndex={-1}>
+        <main
+          className="flex-1 overflow-y-auto overflow-x-hidden focus:outline-none"
+          data-scroll-container="page"
+          ref={mainRef}
+          tabIndex={-1}
+        >
           {children}
         </main>
       </div>

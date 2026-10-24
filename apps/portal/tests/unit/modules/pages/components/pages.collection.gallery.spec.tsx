@@ -1,14 +1,22 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
+import { PagesCollectionCardAppearanceProvider } from '@/modules/pages/collections/components/pages.collection.card-appearance.provider';
+import { NO_PAGE_AGGREGATES } from '@/modules/pages/collections/constants/pages.aggregates.constants';
+import { EMPTY_PAGE_COLLECTION_LOOKUPS } from '@/modules/pages/collections/constants/pages.lookups.constants';
+import { PAGE_COLLECTION_LOOKUPS_CONTEXT } from '@/modules/pages/collections/constants/pages.lookups.context.constants';
 import type {
+  PageAttachedFile,
   PagePersonOption,
+  PageSchema,
   PageSchemaProperty,
   PageViewGroup,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
-import { asPropertyOptions } from '../lib/pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
+import { buildView } from '../lib/pages.views.fixture';
+import { COLLECTION_ACTION_STUBS, PAGE_ACTION_STUBS } from '../stubs/pages.actions.stubs';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
@@ -18,11 +26,54 @@ mock.module('@/i18n/navigation', () => ({
   useRouter: () => ({ refresh: () => undefined }),
 }));
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
+const asked: Record<string, unknown>[] = [];
+mock.module('@/modules/pages/server/actions/pages.actions', () => PAGE_ACTION_STUBS);
+mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  ...COLLECTION_ACTION_STUBS,
+  applyPageViewOperationsAction: async () => ({ data: { configuration: {}, id: 'view-gallery', version: 1 } }),
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
+  readEveryPageRowAction: async () => ({ data: null }),
+  readPageCollectionAction: async () => ({ data: null }),
+  readPageCollectionChangesAction: async () => ({ data: null }),
+  readPageMatchingRowsAction: async () => ({ data: null }),
+  readPageViewAggregatesAction: async () => ({ data: null }),
+  refreshPageRowsAction: async () => ({ data: null }),
+  loadMorePageRowsAction: async (input: Record<string, unknown>) => {
+    asked.push(input);
+    return {
+      data: {
+        attachedFiles: [],
+        nextCursor: null,
+        relatedRows: [],
+        rows: [
+          {
+            id: 'row-3',
+            lifecycle: 'ACTIVE',
+            order: 2,
+            parentId: 'collection-1',
+            propertyValues: { status: 'todo' },
+            spaceId: 'space-1',
+            title: 'Third task',
+          },
+        ],
+      },
+    };
+  },
+  updatePageRowPropertiesAction: async () => ({ data: null }),
+}));
 
 const { PagesCollectionGallery } = await import('@/modules/pages/collections/components/pages.collection.gallery');
 
 const properties: PageSchemaProperty[] = [
-  { key: 'status', label: 'Status', options: asPropertyOptions('todo', 'done'), required: true, type: 'SELECT' },
+  {
+    config: defaultConfig,
+    key: 'status',
+    label: 'Status',
+    options: asPropertyOptions('todo', 'done'),
+    required: true,
+    type: 'SELECT',
+  },
 ];
 
 const personOptions: readonly PagePersonOption[] = [];
@@ -30,6 +81,7 @@ const personOptions: readonly PagePersonOption[] = [];
 const rowIn = (id: string, title: string, status: string) => ({
   id,
   lifecycle: 'ACTIVE' as const,
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues: { status },
@@ -58,12 +110,87 @@ const renderWithMessages = (ui: ReactNode) =>
     </NextIntlClientProvider>,
   );
 
-const drawGallery = async (groups: PageViewGroup[], isGrouped: boolean) => {
+const drawGallery = async (
+  groups: PageViewGroup[],
+  isGrouped: boolean,
+  nextCursor: null | string = null,
+  extra: { cardSize?: 'LARGE' | 'MEDIUM' | 'SMALL'; coverProperty?: null | string; files?: PageAttachedFile[] } = {},
+) => {
   cleanup();
+  const view = buildView('Gallery', 'GALLERY', {
+    configuration: { cardSize: extra.cardSize ?? 'MEDIUM', ...(isGrouped ? { groupBy: 'status' } : {}) },
+  });
+  const schema: PageSchema = { pageId: 'collection-1', properties, spaceId: 'space-1', views: [view] };
   return renderWithMessages(
-    await PagesCollectionGallery({ groups, isGrouped, personOptions, properties, spaceId: 'space-1' }),
+    <PAGE_COLLECTION_LOOKUPS_CONTEXT value={{ ...EMPTY_PAGE_COLLECTION_LOOKUPS, attachedFiles: extra.files ?? [] }}>
+      <PagesCollectionCardAppearanceProvider
+        coverProperty={extra.coverProperty ?? null}
+        size={extra.cardSize ?? 'MEDIUM'}
+      >
+        <PagesCollectionGallery
+          activeViewName="Gallery"
+          aggregates={NO_PAGE_AGGREGATES}
+          bands={[
+            {
+              color: null,
+              groups: isGrouped ? groups : groups.map((group) => ({ ...group, nextCursor })),
+              key: '',
+              label: '',
+            },
+          ]}
+          canEdit
+          changesCursor={null}
+          personOptions={personOptions}
+          properties={properties}
+          schema={schema}
+          spaceId="space-1"
+          view={view}
+        />
+      </PagesCollectionCardAppearanceProvider>
+    </PAGE_COLLECTION_LOOKUPS_CONTEXT>,
   );
 };
+
+describe('the size and the cover of the cards of a gallery', () => {
+  const photographed: PageViewGroup[] = [
+    {
+      color: null,
+      key: '',
+      label: '',
+      rows: [
+        { ...rowIn('row-1', 'With a photo', 'todo'), propertyValues: { photos: ['file-1'], status: 'todo' } },
+        { ...rowIn('row-2', 'Without', 'todo'), propertyValues: { photos: [], status: 'todo' } },
+      ],
+    },
+  ];
+  const files = [{ id: 'file-1', mimeType: 'image/png', name: 'a.png', size: 10 }];
+
+  it('draws a cover only on the cards whose row has an image in the property of the view', async () => {
+    await drawGallery(photographed, false, null, { coverProperty: 'photos', files });
+
+    expect(screen.getAllByTestId('collection-card-cover')).toHaveLength(1);
+  });
+
+  it('draws no cover when the view names none', async () => {
+    await drawGallery(photographed, false, null, { files });
+
+    expect(screen.queryByTestId('collection-card-cover')).toBeNull();
+  });
+
+  it('packs more cards in a row the smaller they are', async () => {
+    await drawGallery(ungrouped, false, null, { cardSize: 'SMALL' });
+    expect(screen.getAllByTestId('collection-gallery-card')[0]?.parentElement?.className).toContain('10rem');
+
+    await drawGallery(ungrouped, false, null, { cardSize: 'LARGE' });
+    expect(screen.getAllByTestId('collection-gallery-card')[0]?.parentElement?.className).toContain('22rem');
+  });
+
+  it('offers to change both to whoever may edit the view', async () => {
+    await drawGallery(ungrouped, false);
+
+    expect(screen.getByRole('button', { name: 'How the cards look' })).toBeDefined();
+  });
+});
 
 describe('PagesCollectionGallery', () => {
   it('gives every row a card of its own', async () => {
@@ -84,5 +211,31 @@ describe('PagesCollectionGallery', () => {
     await drawGallery([{ color: null, key: '', label: '', rows: [] }], false);
 
     expect(screen.queryByTestId('collection-gallery')).toBeNull();
+  });
+
+  it('offers no way to load more when the cards drawn are all there are', async () => {
+    await drawGallery(ungrouped, false);
+
+    expect(screen.queryByTestId('collection-load-more')).toBeNull();
+  });
+
+  it('asks for the rows after the cursor and draws their cards after the first ones', async () => {
+    asked.length = 0;
+    await drawGallery(ungrouped, false, 'cursor-1');
+
+    fireEvent.click(screen.getByTestId('collection-load-more'));
+
+    expect(await screen.findByText('Third task')).toBeDefined();
+    expect(asked).toEqual([
+      {
+        cursor: 'cursor-1',
+        pageId: 'collection-1',
+        quickFilter: null,
+        search: '',
+        spaceId: 'space-1',
+        viewId: 'view-gallery',
+      },
+    ]);
+    expect(screen.getAllByTestId('collection-gallery-card')).toHaveLength(3);
   });
 });

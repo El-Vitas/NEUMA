@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { addFavoriteAction, removeFavoriteAction } from '@/modules/favorites/server/actions/favorites.actions';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
-import { hasActionError } from '@/shared/lib/action-result';
+import { callAction, hasActionError } from '@/shared/lib/action-result';
 
 interface IProps {
   readonly isFavorite: boolean;
@@ -27,7 +27,9 @@ export const PageFavoriteToggle = ({ isFavorite, pageId, title }: IProps) => {
     const nextFavorite = !favorite;
     startTransition(async () => {
       showFavorite(nextFavorite);
-      const result = nextFavorite ? await addFavoriteAction({ pageId }) : await removeFavoriteAction({ pageId });
+      const result = nextFavorite
+        ? await callAction(() => addFavoriteAction({ pageId }))
+        : await callAction(() => removeFavoriteAction({ pageId }));
       if (hasActionError(result)) {
         toast.error(t('permissionError'));
         return;

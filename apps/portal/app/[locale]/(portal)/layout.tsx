@@ -3,11 +3,17 @@ import { getLocale } from 'next-intl/server';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.queries';
-import { getPages } from '@/modules/pages/server/queries/pages.queries';
+import { PagesCollectionCacheProvider } from '@/modules/pages/collections/components/pages.collection.cache.provider';
+import { PagesTreeLive } from '@/modules/pages/tree/components/pages.tree.live';
+import { PagesTreeProvider } from '@/modules/pages/tree/components/pages.tree.provider';
+import { EMPTY_TREE_ROOTS } from '@/modules/pages/tree/constants/pages.tree.constants';
+import { listPageTreeWatermarks } from '@/modules/pages/tree/lib/pages.tree.lib';
+import { getTreeRoots } from '@/modules/pages/tree/server/queries/pages.tree.queries';
 import { PortalSkeleton } from '@/modules/portal/components/portal.skeleton';
 import { PortalLayout } from '@/modules/portal/layout/portal.layout';
 import { resolvePortalSpaceKind } from '@/modules/portal/lib/portal.sidebar.lib';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
+import { RecentsOwnerProvider } from '@/shared/components/portal/recents-owner.provider';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 import { readRequestTheme } from '@/shared/server/lib/theme.server';
@@ -20,37 +26,44 @@ const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) =
     return null;
   }
 
-  const [spacesResult, favoritesResult] = await Promise.all([getSpaces(), getFavoritePages()]);
+  const [spacesResult, favoritesResult, theme] = await Promise.all([
+    getSpaces(),
+    getFavoritePages(),
+    readRequestTheme(),
+  ]);
   const spaceSummaries = spacesResult.isOk() ? spacesResult.getValue() : [];
   const favorites = favoritesResult.isOk() ? favoritesResult.getValue() : [];
-  const spaces = await Promise.all(
+  const spaceRoots = await Promise.all(
     spaceSummaries.map(async (space) => {
-      const pagesResult = await getPages(space.id);
-      return {
-        icon: space.icon,
-        id: space.id,
-        kind: resolvePortalSpaceKind(space.visibility, space.ownerId, user.id),
-        name: space.name,
-        pages: pagesResult.isOk()
-          ? pagesResult.getValue().map((page) => ({
-              icon: page.icon ?? null,
-              id: page.id,
-              lifecycle: page.lifecycle,
-              order: page.order,
-              parentId: page.parentId,
-              title: page.title,
-            }))
-          : [],
-      };
+      const rootsResult = await getTreeRoots(space.id);
+      return { id: space.id, roots: rootsResult.isOk() ? rootsResult.getValue() : EMPTY_TREE_ROOTS };
     }),
   );
+  const spaces = spaceSummaries.map((space) => ({
+    icon: space.icon,
+    id: space.id,
+    kind: resolvePortalSpaceKind(space.visibility, space.ownerId, user.id),
+    name: space.name,
+  }));
   const portalUser = { email: user.email, name: user.name };
-  const theme = await readRequestTheme();
 
   return (
-    <PortalLayout favorites={favorites} role={user.role} spaces={spaces} themeChoice={theme.choice} user={portalUser}>
-      {children}
-    </PortalLayout>
+    <RecentsOwnerProvider userId={user.id}>
+      <PagesCollectionCacheProvider userId={user.id}>
+        <PagesTreeProvider spaces={spaceRoots}>
+          <PagesTreeLive spaceIds={spaces.map((space) => space.id)} watermarks={listPageTreeWatermarks(spaceRoots)} />
+          <PortalLayout
+            favorites={favorites}
+            role={user.role}
+            spaces={spaces}
+            themeChoice={theme.choice}
+            user={portalUser}
+          >
+            {children}
+          </PortalLayout>
+        </PagesTreeProvider>
+      </PagesCollectionCacheProvider>
+    </RecentsOwnerProvider>
   );
 };
 

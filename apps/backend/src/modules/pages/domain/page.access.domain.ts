@@ -1,4 +1,4 @@
-import { type BlockViewer, canReadBlock, PAGE_LIFECYCLE } from '@neuma/shared';
+import { type BlockViewer, canEditBlock, canReadBlock, PAGE_LIFECYCLE } from '@neuma/shared';
 import { findDeclaringInChain, resolveRoleFromDeclaring } from '../../../common/domain/block-access.domain';
 import type { PageAccessProfile, PageAncestryLink } from './page.access.domain.types';
 
@@ -17,3 +17,5 @@ export const describePageAccess = (
 };
 
 export const canReadPage = (profile: PageAccessProfile): boolean => canReadBlock(profile.role);
+
+export const canEditPage = (profile: PageAccessProfile): boolean => canEditBlock(profile.role) && !profile.isInTrash;

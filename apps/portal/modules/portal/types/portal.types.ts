@@ -20,10 +20,15 @@ export interface PortalLayoutSpace {
   readonly id: string;
   readonly kind: PortalSpaceKind;
   readonly name: string;
-  readonly pages: readonly PortalSidebarPage[];
 }
 
 export interface PortalSidebarPage {
+  /** True when the member's role on this page lets them create and change pages under it. */
+  readonly canEdit: boolean;
+  /** True when the page declares its own access instead of following its parent or the space. */
+  readonly hasOwnPermissions?: boolean;
+  /** The chevron shows without the children loaded; a collection never has any here (ADR 030). */
+  readonly hasChildren?: boolean;
   readonly icon: null | PageIcon;
   readonly id: string;
   readonly lifecycle: PageLifecycle;

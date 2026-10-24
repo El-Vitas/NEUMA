@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { PAGE_APPEARANCE_DEFAULT_PREFERENCES } from '@/modules/pages/appearance/constants/pages.appearance.constants';
 import type { PagesAppearanceResult } from '@/modules/pages/appearance/types/pages.appearance.types';
@@ -8,6 +8,13 @@ import { APP_TIME_ZONE } from '@/shared/constants/date.constants';
 import en from '../../../../../messages/en.json';
 
 mock.module('server-only', () => ({}));
+mock.module('next/navigation', () => ({
+  permanentRedirect: () => undefined,
+  redirect: () => undefined,
+  unstable_rethrow: () => undefined,
+  usePathname: () => '/',
+  useRouter: () => ({ push: () => undefined, refresh: () => undefined }),
+}));
 mock.module('@/modules/pages/appearance/server/actions/pages.icon.actions', () => ({
   removePageIconAction: async () => ({ data: undefined }),
   setPageIconEmojiAction: async () => ({ data: undefined }),
@@ -47,6 +54,7 @@ const { PagesHeader } = await import('@/modules/pages/appearance/components/page
 
 const PARENT_PAGES: readonly PageSummary[] = [
   {
+    canEdit: true,
     content: { content: [], schemaVersion: 1, type: 'doc' },
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     createdBy: null,
@@ -142,6 +150,15 @@ describe('PagesHeader', () => {
     });
 
     expect(screen.getByRole('button', { name: 'Info' })).toBeDefined();
+  });
+
+  it('offers the version history only for a page that was saved', () => {
+    renderHeader({ pageId: 'page-1' });
+    expect(screen.getByRole('button', { name: 'Version history' })).toBeDefined();
+
+    cleanup();
+    renderHeader({ pageId: null });
+    expect(screen.queryByRole('button', { name: 'Version history' })).toBeNull();
   });
 
   it('mounts the favorite star and the recent-visit mark once it has what they need', () => {

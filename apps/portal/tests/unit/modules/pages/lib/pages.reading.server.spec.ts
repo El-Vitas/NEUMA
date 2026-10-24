@@ -16,6 +16,7 @@ mock.module('server-only', () => ({}));
 const { readPagesThatCanBeRead } = await import('@/modules/pages/server/lib/pages.reading.server');
 
 const aPage = (id: string, title: string) => ({
+  canEdit: true,
   content: {
     content: [{ content: [{ text: title, type: 'text' }], type: 'paragraph' }],
     schemaVersion: 1,
@@ -24,6 +25,7 @@ const aPage = (id: string, title: string) => ({
   createdAt: '2026-01-01T00:00:00.000Z',
   createdBy: { id: 'user-a', name: 'Alguien' },
   cover: null,
+  hasOwnPermissions: false,
   icon: null,
   id,
   lifecycle: 'ACTIVE',

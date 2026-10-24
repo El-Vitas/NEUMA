@@ -13,13 +13,19 @@ import { buildMcpViewConfiguration } from '../lib/mcp.view-configuration.lib';
 import { addMcpView } from '../lib/mcp.views.lib';
 import { collectionOutputSchema, createViewInputSchema } from '../schemas/mcp.collections.schemas';
 import type { McpCollectionOutput, McpCreateViewInput, McpOpenCollection } from '../types/mcp.collections.types';
-import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+import type {
+  McpAssignablePerson,
+  McpCall,
+  McpServerDependencies,
+  McpToolDefinition,
+  McpWriteSession,
+} from '../types/mcp.types';
 
 const addView = (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
-  people: readonly McpPerson[],
+  people: readonly McpAssignablePerson[],
   input: McpCreateViewInput,
 ): Promise<McpOpenCollection> => {
   const { properties, views } = collection.shape;
@@ -57,7 +63,7 @@ export const createViewTool: McpToolDefinition = {
       MCP_TOOL_NAMES.createView,
       {
         description:
-          'Add a view to a collection: a new way to look at its rows, such as a board grouped by status or a table of what is due this week. A board or chart needs groupBy. Name columns, options and people as get_collection shows them.',
+          'Add a view to a collection: a new way to look at its rows, such as a board grouped by status or a table of what is due this week. A board or chart needs groupBy. A timeline needs dateColumn (and endDateColumn when rows end in another column); a calendar needs dateColumn; the scale is day, week or month. Name columns, options and people as get_collection shows them.',
         inputSchema: createViewInputSchema,
         outputSchema: collectionOutputSchema,
       },

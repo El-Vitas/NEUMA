@@ -1,5 +1,7 @@
 import { PAGE_DOCUMENT_UNSUPPORTED_NODE, type PageCalloutIcon } from '@neuma/shared';
+import type { DiscussionsSummary } from '../../../discussions/types/pages.discussions.types';
 import type { PageEditorBlockDragState } from '../types/pages.editor.block-drag.types';
+import type { PageEditorRestrictedBlocks } from '../types/pages.editor.block-restricted.types';
 
 export const PAGE_EDITOR_BLOCK_ID_ATTRIBUTE = 'data-block-id';
 
@@ -7,9 +9,9 @@ export const PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE = 'data-text-color';
 
 export const PAGE_EDITOR_BACKGROUND_COLOR_ATTRIBUTE = 'data-background-color';
 
-export const PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE = 'comments';
+export const PAGE_EDITOR_DISCUSSIONS_PLUGIN_KEY = 'page-editor-discussions-plugin';
 
-export const PAGE_EDITOR_BLOCK_COMMENTED_ATTRIBUTE = 'data-commented';
+export const PAGE_EDITOR_NOTHING_DISCUSSED: DiscussionsSummary = { openCounts: new Map(), openMarkIds: new Set() };
 
 export const PAGE_EDITOR_COMMENT_MARK_STYLE_CLASS = [
   '-translate-y-1/2 absolute top-1/2 right-0 flex cursor-pointer items-center gap-1',
@@ -37,6 +39,21 @@ export const PAGE_EDITOR_COMMENT_MARK_ICON_PATH =
 export const PAGE_EDITOR_COMMENT_MARK_ICON_CLASS = 'size-3.5 shrink-0';
 
 export const PAGE_EDITOR_SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+
+export const PAGE_EDITOR_RESTRICTED_BLOCKS_PLUGIN_KEY = 'page-editor-restricted-blocks-plugin';
+
+export const PAGE_EDITOR_NOTHING_RESTRICTED: PageEditorRestrictedBlocks = { ids: new Set(), label: '' };
+
+/** The block is the frame the lock sits in, beside the comment bubble rather than over it. */
+export const PAGE_EDITOR_RESTRICTED_BLOCK_STYLE_CLASS = 'relative';
+
+export const PAGE_EDITOR_RESTRICTED_MARK_STYLE_CLASS =
+  '-translate-y-1/2 absolute top-1/2 right-9 flex select-none items-center text-muted-foreground';
+
+export const PAGE_EDITOR_RESTRICTED_MARK_ICON_SHAPES = [
+  { attributes: { height: '11', rx: '2', ry: '2', width: '18', x: '3', y: '11' }, tag: 'rect' },
+  { attributes: { d: 'M7 11V7a5 5 0 0 1 10 0v4' }, tag: 'path' },
+] as const;
 
 export const PAGE_EDITOR_BLOCK_HANDLE_PLUGIN_KEY = 'page-editor-block-handle-plugin';
 

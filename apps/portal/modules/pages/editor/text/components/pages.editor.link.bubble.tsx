@@ -1,5 +1,6 @@
 'use client';
 
+import { isPageLinkTarget } from '@neuma/shared';
 import { ExternalLink, Pencil, Unlink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
@@ -27,7 +28,7 @@ export const PagesEditorLinkBubble = ({ href, onEdit, onLeave, onRemove }: IProp
     >
       <a
         className={PAGE_EDITOR_LINK_BUBBLE_TARGET_STYLE_CLASS}
-        href={href}
+        href={isPageLinkTarget(href) ? href : undefined}
         rel="noreferrer"
         target="_blank"
         title={href}

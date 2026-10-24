@@ -3,7 +3,7 @@
 import 'server-only';
 import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
-import { signInAgain } from '@/modules/auth/server/lib/auth.server';
+import { signInAgainOrReleaseSession } from '@/modules/auth/server/lib/auth.server';
 import { CURRENT_USER_CACHE_TAG } from '@/shared/constants/current-user-cache.constants';
 import { apiServer } from '@/shared/lib/api-server';
 import { withAction } from '@/shared/lib/with-action.lib';
@@ -23,10 +23,10 @@ export const updateProfileNameAction = actionClient.inputSchema(UpdateNameSchema
 export const updatePasswordAction = actionClient.inputSchema(UpdatePasswordSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'updatePassword' }, async () => {
     const account = await requireOwnAccount();
-    await apiServer.patch(`${API_ROUTES.USERS}/${account.id}/password`, {
+    await apiServer.patchDiscardingBody(`${API_ROUTES.USERS}/${account.id}/password`, {
       currentPassword: parsedInput.currentPassword,
       newPassword: parsedInput.newPassword,
     });
-    await signInAgain({ email: account.email, password: parsedInput.newPassword });
+    return signInAgainOrReleaseSession({ email: account.email, password: parsedInput.newPassword });
   }),
 );

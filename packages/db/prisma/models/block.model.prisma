@@ -1,6 +1,8 @@
 // use prisma-8
 
 /// One row per block; a page is a block of type "page" (ADR 021).
+/// `changeXid` is the id of the transaction that last wrote the row (a `xid8` kept as a bigint), set by the
+/// `Block_change_xid_trigger` trigger, never by the application (ADR 026).
 /// Its `searchVector` column and the unaccented trigram index on `text` live outside the contract, because
 /// Prisma cannot model a generated tsvector or an index operator class (see the add_block_model migration).
 model Block {
@@ -25,7 +27,8 @@ model Block {
   trashedAt             TimestamptzJsDate?
   purgeAfter            TimestamptzJsDate?
   version               Int                        @default(0)
-  createdById           String
+  changeXid             BigInt                     @default(0)
+  createdById          String
   editedById            String
   createdAt             TimestamptzJsDate          @default(now())
   editedAt              temporal.updatedAtJsDate()
@@ -44,9 +47,14 @@ model Block {
   schemaProperties      PageSchemaProperty[]
   schemaViews           PageSchemaView[]
   tokenPageGrants       AccessTokenPageGrant[]
+  discussions           Discussion[]
+  notifications         Notification[]
 
   @@index([parentId], map: "Block_parentId_idx")
   @@index([spaceId, lifecycle], map: "Block_spaceId_lifecycle_idx")
+  @@index([parentId, changeXid], map: "Block_parentId_changeXid_idx")
+  @@index([spaceId, editedAt], map: "Block_spaceId_editedAt_idx")
+  @@index([spaceId, changeXid], map: "Block_spaceId_changeXid_idx")
   @@index([ownerId], map: "Block_ownerId_idx")
   @@index([purgeAfter], map: "Block_purgeAfter_idx")
   @@index([verificationExpiresAt], map: "Block_verificationExpiresAt_idx")

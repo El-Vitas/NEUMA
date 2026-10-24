@@ -26,6 +26,9 @@ export class BlockLiveGateway implements OnModuleInit, BeforeApplicationShutdown
       this.blockLiveService.openConnection(socket),
     );
     await this.versionListener.start({
+      onCommentEvent: (payload) => {
+        this.fanoutService.enqueueCommentEvent(payload);
+      },
       onNotification: (payload) => {
         this.fanoutService.enqueueNotification(payload);
       },

@@ -1,7 +1,7 @@
 'use client';
 
-import { PAGE_COLUMN_ALIGNMENT_VALUES } from '@neuma/shared';
-import { GripVertical, Pin, PinOff } from 'lucide-react';
+import { PAGE_COLLECTION_TITLE_PROPERTY_KEY, PAGE_COLUMN_ALIGNMENT_VALUES } from '@neuma/shared';
+import { GripVertical, Pin, PinOff, WrapText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent, PointerEvent, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
@@ -149,6 +149,12 @@ export const PagesCollectionTableHeaderCell = ({
                   {t(`alignments.${alignment}`)}
                 </DropdownMenuItem>
               ))}
+              {columnKey !== PAGE_COLLECTION_TITLE_PROPERTY_KEY && (
+                <DropdownMenuItem onSelect={() => columns.toggleColumnWrap(columnKey)}>
+                  <WrapText aria-hidden="true" className="size-4" />
+                  {columns.columnWraps[columnKey] === true ? t('unwrapColumn') : t('wrapColumn')}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

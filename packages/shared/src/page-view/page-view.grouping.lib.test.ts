@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { PAGE_DATE_BUCKET } from './page-view.types.js';
 import { readPageDateBucketKey } from './page-view.grouping.lib.js';
+import { PAGE_DATE_BUCKET } from './page-view.types.js';
 
 describe('date buckets', () => {
   test('a day is the date itself', () => {

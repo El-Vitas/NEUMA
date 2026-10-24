@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'bun:test';
+import { BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION } from '@/modules/blocks/constants/block.transaction.constants';
 import type { BlockOperation } from '@/modules/blocks/domain/block.transaction.domain.types';
 import {
   hasParentWrite,
   listOperationBlockIds,
   parseBlockOperation,
   parseBlockOperations,
+  parseTrustedBlockOperations,
 } from '@/modules/blocks/utils/block.operation.utils';
 
 const pointer = (id: string) => ({ id, table: 'block' });
@@ -219,6 +221,82 @@ describe('parseBlockOperation', () => {
   });
 });
 
+describe('parseBlockOperation, relations', () => {
+  it('reads addRelation with the property, the row it points to and where it goes', () => {
+    const operation = parseValue({
+      args: { after: 'r0', property: 'project', targetId: 'r1' },
+      command: 'addRelation',
+      path: [],
+      pointer: pointer('row-1'),
+    });
+
+    expect(operation).toEqual({
+      afterId: 'r0',
+      blockId: 'row-1',
+      command: 'addRelation',
+      property: 'project',
+      targetId: 'r1',
+    });
+  });
+
+  it('puts the row last when addRelation names no anchor', () => {
+    const operation = parseValue({
+      args: { property: 'project', targetId: 'r1' },
+      command: 'addRelation',
+      path: [],
+      pointer: pointer('row-1'),
+    });
+
+    expect(operation).toMatchObject({ afterId: null });
+  });
+
+  it('reads removeRelation', () => {
+    const operation = parseValue({
+      args: { property: 'project', targetId: 'r1' },
+      command: 'removeRelation',
+      path: [],
+      pointer: pointer('row-1'),
+    });
+
+    expect(operation).toEqual({ blockId: 'row-1', command: 'removeRelation', property: 'project', targetId: 'r1' });
+  });
+
+  it('refuses a relation command that carries the mirror flag or an unknown argument', () => {
+    expect(
+      parseCode({
+        args: { isMirror: true, property: 'project', targetId: 'r1' },
+        command: 'addRelation',
+        path: [],
+        pointer: pointer('row-1'),
+      }),
+    ).toBe('BLOCK_OPERATION_INVALID');
+  });
+
+  it('refuses a relation command addressed to a path', () => {
+    expect(
+      parseCode({
+        args: { property: 'project', targetId: 'r1' },
+        command: 'addRelation',
+        path: ['properties'],
+        pointer: pointer('row-1'),
+      }),
+    ).toBe('BLOCK_OPERATION_INVALID');
+  });
+
+  it('lists the row it points to among the rows to lock', () => {
+    const operations = [
+      parseValue({
+        args: { property: 'project', targetId: 'r1' },
+        command: 'addRelation',
+        path: [],
+        pointer: pointer('row-1'),
+      }),
+    ];
+
+    expect(listOperationBlockIds(operations).toSorted()).toEqual(['r1', 'row-1']);
+  });
+});
+
 describe('parseBlockOperations', () => {
   it('names the position of the operation that cannot be read', () => {
     const parsed = parseBlockOperations([
@@ -240,6 +318,16 @@ describe('listOperationBlockIds and hasParentWrite', () => {
 
   it('lists every block named as a pointer or as an argument once', () => {
     expect(listOperationBlockIds(operations).toSorted()).toEqual(['a1', 'b1', 'm1', 'p1', 'p2']);
+  });
+
+  it('refuses a trusted transaction above the cap before reading any operation', () => {
+    const tooMany = Array.from({ length: BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION + 1 }, () => ({}));
+
+    const parsed = parseTrustedBlockOperations(tooMany);
+
+    expect(parsed.isFail()).toBe(true);
+    expect(parsed.getError().code).toBe('BLOCK_OPERATIONS_TOO_MANY');
+    expect(parsed.getError().details).toEqual({ limit: BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION });
   });
 
   it('flags a transaction that writes a parent', () => {

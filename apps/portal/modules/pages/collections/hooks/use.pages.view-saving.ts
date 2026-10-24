@@ -1,23 +1,25 @@
 'use client';
 
-import { readPageViewConfiguration } from '@neuma/shared';
+import { diffPageViewConfigurations, readPageViewConfiguration, toPageViewEnvelope } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { isActionSuccess } from '@/shared/lib/action-result';
-import { updatePageViewConfigurationAction } from '../server/actions/pages.collections.actions';
-import type { PageSchema, PageSchemaView } from '../types/pages.schema.types';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
+import { applyPageViewOperationsAction } from '../server/actions/pages.collections.actions';
+import type { PageChangedView } from '../types/pages.query.types';
+import type { PageSchema, PageSchemaViewDraft } from '../types/pages.schema.types';
 import type { PagesViewSaving } from '../types/pages.view-saving.types';
 
 /**
- * Applied immediately, optimistically, and reverted if the server refuses. Only the active view is sent,
- * so a change elsewhere in the collection shape is not overwritten. Rows come back with the response.
+ * Applied immediately, optimistically, and reverted if the server refuses. The screen edits a whole configuration,
+ * but only what changed is sent, as operations on the view: a change to one key never carries the old value of
+ * another, so two people editing the same view do not undo each other (ADR 025).
  */
 export const usePagesViewSaving = (schema: PageSchema, activeViewName: string, spaceId: string): PagesViewSaving => {
   const t = useTranslations('pages.collection');
   const tErrors = useTranslations('errors');
-  const [views, setViews] = useState<readonly PageSchemaView[]>(schema.views);
-  const [lastRead, setLastRead] = useState<readonly PageSchemaView[]>(schema.views);
+  const [views, setViews] = useState<readonly PageSchemaViewDraft[]>(schema.views);
+  const [lastRead, setLastRead] = useState<readonly PageSchemaViewDraft[]>(schema.views);
   const [isSaving, startSaving] = useTransition();
 
   // Views can change elsewhere (the settings dialog); without resyncing, a save would overwrite that change.
@@ -27,25 +29,44 @@ export const usePagesViewSaving = (schema: PageSchema, activeViewName: string, s
     setViews(schema.views);
   }
 
-  const apply = (rewrite: (current: readonly PageSchemaView[]) => readonly PageSchemaView[]): void => {
+  const takeSaved = (saved: PageChangedView): void =>
+    setViews((current) =>
+      current.map((view) =>
+        view.id === saved.id ? { ...view, configuration: saved.configuration, version: saved.version } : view,
+      ),
+    );
+
+  const apply = (rewrite: (current: readonly PageSchemaViewDraft[]) => readonly PageSchemaViewDraft[]): void => {
     const before = views;
     const next = rewrite(before);
     const changed = next.find((view) => view.name === activeViewName);
-    if (changed === undefined) return;
+    const stored = schema.views.find((view) => view.name === activeViewName);
+    const original = before.find((view) => view.name === activeViewName);
+    if (changed === undefined || stored === undefined || original === undefined) return;
     setViews(next);
+    const operations = diffPageViewConfigurations(
+      readPageViewConfiguration(original.configuration),
+      readPageViewConfiguration(changed.configuration),
+    );
+    if (operations.length === 0) return;
     startSaving(async () => {
-      const saved = await updatePageViewConfigurationAction({
-        configuration: { ...readPageViewConfiguration(changed.configuration) },
-        pageId: schema.pageId,
-        spaceId,
-        viewName: activeViewName,
-      });
-      if (!isActionSuccess<PageSchema>(saved)) {
+      const saved = await callAction(() =>
+        applyPageViewOperationsAction({
+          operations: operations.map((operation) => {
+            const { args, command, path } = toPageViewEnvelope(stored.id, operation);
+            return { args, command, path: [...path] };
+          }),
+          pageId: schema.pageId,
+          spaceId,
+          viewId: stored.id,
+        }),
+      );
+      if (!isActionSuccess<PageChangedView>(saved)) {
         setViews(before);
         toast.error(tErrors('generic'));
         return;
       }
-      setViews(saved.data.views);
+      takeSaved(saved.data);
       toast.success(t('saved'));
     });
   };

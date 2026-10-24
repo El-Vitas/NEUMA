@@ -1,6 +1,6 @@
 import { givePageBlocksTheirIds } from '../page-block/page-block.identity.lib.js';
-import { type PageContent, pageContentSchema } from '../schemas/page-content.schema.js';
 import type { Result } from '../result.js';
+import { type PageContent, pageContentSchema } from '../schemas/page-content.schema.js';
 import type { DocumentToBlocksInput } from './block-document.types.js';
 
 export const FIXTURE_PAGE_ID = '0192f3a0-0000-7000-8000-000000000001';
@@ -67,7 +67,6 @@ export const nestedBlock = (
 
 export const ANNOTATIONS = {
   backgroundColor: 'yellow',
-  comments: [{ author: 'Ana', body: 'Revisar esto', createdAt: '2026-10-19T10:00:00Z', id: 'comment-1' }],
   textColor: 'red',
 };
 

@@ -9,7 +9,20 @@ export interface PageEditorButtonLabels {
   readonly place: string;
   readonly places: { readonly below: string; readonly bottom: string; readonly top: string };
   readonly setup: string;
+  readonly template: string;
+  readonly templateDefault: string;
 }
+
+/** A template of the collection a button points to, as the choice of the button lists it. */
+export interface PageButtonTemplateChoice {
+  readonly id: string;
+  readonly title: string;
+}
+
+export type PageButtonTemplatesReader = (
+  collectionId: string,
+  spaceId: string,
+) => Promise<readonly PageButtonTemplateChoice[]>;
 
 export interface PageButtonPressed {
   readonly at: number;
@@ -19,4 +32,6 @@ export interface PageButtonPressed {
   readonly pageId: string | null;
   readonly place: PageButtonPlace;
   readonly spaceId: string | null;
+  /** Null takes the default template of the collection. */
+  readonly templateId: string | null;
 }

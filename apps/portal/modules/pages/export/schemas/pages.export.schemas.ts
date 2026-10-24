@@ -7,10 +7,10 @@ const namesOnePage = (scope: z.infer<typeof pageExportScopeSchema>): boolean => 
 
 export const pageExportRequestSchema = z
   .object({
-    pageId: z.string().nullable().default(null),
-    pageIds: z.array(z.string()).max(PAGES_EXPORT_SELECTION_LIMIT).default([]),
+    pageId: z.uuid().nullable().default(null),
+    pageIds: z.array(z.uuid()).max(PAGES_EXPORT_SELECTION_LIMIT).default([]),
     scope: pageExportScopeSchema,
-    spaceId: z.string(),
+    spaceId: z.uuid(),
     untitledLabel: z.string().min(1).max(80),
   })
   .refine((request) => !namesOnePage(request.scope) || request.pageId !== null, {

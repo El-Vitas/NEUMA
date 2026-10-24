@@ -59,6 +59,7 @@ describe('pages.info.lib', () => {
 
   describe('toPageInfoMetadata', () => {
     const buildPage = (overrides: Partial<PageSummary> = {}): PageSummary => ({
+      canEdit: true,
       content: emptyContent,
       createdAt: new Date('2026-01-01T10:00:00.000Z'),
       createdBy: { id: 'user-a', name: 'Ada Lovelace' },

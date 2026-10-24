@@ -6,6 +6,8 @@ import {
   canManageBlockPermissions,
   canReadBlock,
   filterVisibleBlockIds,
+  holdsFullBlockAccess,
+  isBlockManageable,
   resolveBlockRole,
 } from './block.permissions.lib.js';
 import { blockPermissionEntrySchema, blockPermissionsSchema } from './block.schemas.js';
@@ -194,5 +196,45 @@ describe('block permission schemas', () => {
     );
 
     expect(blockPermissionsSchema.safeParse(tooMany).success).toBe(false);
+  });
+});
+
+describe('who can still manage a block', () => {
+  const holder = (id: string, workspaceRole: BlockRoleInput['viewer']['workspaceRole'], canReadSpace = true) => ({
+    canReadSpace,
+    id,
+    workspaceRole,
+  });
+  const admin = holder('admin', USER_ROLE.ADMIN);
+  const worker = holder('worker', USER_ROLE.WORKER);
+  const client = holder('client', USER_ROLE.CLIENT);
+  const outsider = holder('outsider', USER_ROLE.WORKER, false);
+
+  test('lets an admin hold full when nothing is declared, and nobody else', () => {
+    expect(holdsFullBlockAccess(admin, null)).toBe(true);
+    expect(holdsFullBlockAccess(worker, null)).toBe(false);
+  });
+
+  test('gives full to a listed worker, but never to a client or to someone who cannot open the space', () => {
+    const listed = [
+      userEntry('worker', BLOCK_ROLE.full),
+      userEntry('client', BLOCK_ROLE.full),
+      userEntry('outsider', BLOCK_ROLE.full),
+    ];
+
+    expect(holdsFullBlockAccess(worker, listed)).toBe(true);
+    expect(holdsFullBlockAccess(client, listed)).toBe(false);
+    expect(holdsFullBlockAccess(outsider, listed)).toBe(false);
+  });
+
+  test('is manageable while someone still holds full, and not once nobody does', () => {
+    const members = [admin, worker, client, outsider];
+
+    expect(isBlockManageable(members, [userEntry('worker', BLOCK_ROLE.full)])).toBe(true);
+    expect(
+      isBlockManageable(members, [userEntry('worker', BLOCK_ROLE.editor), userEntry('client', BLOCK_ROLE.full)]),
+    ).toBe(false);
+    expect(isBlockManageable(members, [])).toBe(false);
+    expect(isBlockManageable(members, null)).toBe(true);
   });
 });

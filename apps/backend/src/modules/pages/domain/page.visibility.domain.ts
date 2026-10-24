@@ -6,10 +6,12 @@ import {
   pageContentSchema,
 } from '@neuma/shared';
 import {
+  findDeclaringInChain,
   indexById,
   listDeclaringAncestors,
   resolveRoleFromDeclaring,
 } from '../../../common/domain/block-access.domain';
+import type { PageAncestryLink } from './page.access.domain.types';
 import type { PageContentBlock, PageDocumentSource, ReadableContentBlocks } from './page.block.domain.types';
 
 const collectBranch = (rootId: string, blocksById: ReadonlyMap<string, PageContentBlock>): string[] => {
@@ -54,6 +56,23 @@ export const listReadableContentBlocks = (
   return { hiddenIds, readable };
 };
 
+/**
+ * The blocks, among those the chains describe, that are closed to the viewer by the permissions they have today:
+ * the nearest block upwards that declares permissions decides. Whether the block is still alive does not matter,
+ * since an old version may hold blocks that left the page.
+ */
+export const listClosedBlockIds = (
+  chains: ReadonlyMap<string, readonly PageAncestryLink[]>,
+  viewer: BlockViewer,
+): ReadonlySet<string> => {
+  const closed = new Set<string>();
+  for (const [blockId, chain] of chains) {
+    if (chain.length === 0) continue;
+    if (!canReadBlock(resolveRoleFromDeclaring(findDeclaringInChain(chain), true, viewer))) closed.add(blockId);
+  }
+  return closed;
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
@@ -71,6 +90,16 @@ const dropFromList = (nodes: readonly unknown[], hiddenIds: ReadonlySet<string>)
       return typeof id !== 'string' || !hiddenIds.has(id);
     })
     .map((node) => dropFromNode(node, hiddenIds));
+
+const collectNodeIds = (nodes: readonly unknown[]): string[] =>
+  nodes.flatMap((node) => {
+    const id = readNodeId(node);
+    const below = isRecord(node) && Array.isArray(node.content) ? collectNodeIds(node.content) : [];
+    return typeof id === 'string' ? [id, ...below] : below;
+  });
+
+/** The id of every node of the document that has one, the nested ones too. */
+export const listNodeIds = (content: PageContent): string[] => collectNodeIds(content.content);
 
 /**
  * The document without the nodes of the hidden blocks and what is below them. If what is left is no longer a

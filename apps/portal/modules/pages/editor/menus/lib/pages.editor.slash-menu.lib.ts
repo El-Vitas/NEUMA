@@ -194,7 +194,8 @@ const moveRecentToTheFront = (
   const recentItems = recentCommandIds
     .flatMap((commandId) => items.filter((item) => item.id === commandId))
     .map((item) => ({ ...item, group: 'recent' as const }));
-  const remainingItems = items.filter((item) => !recentCommandIds.includes(item.id));
+  const recentIds = new Set(recentCommandIds);
+  const remainingItems = items.filter((item) => !recentIds.has(item.id));
   return [...recentItems, ...remainingItems];
 };
 

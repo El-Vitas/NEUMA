@@ -1,10 +1,13 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { readPagePropertyConfig } from '@neuma/shared';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
+import { BlockWriteThrottlerGuard } from '../../common/infrastructure/guards/block-write-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
+import { PageReadThrottlerGuard } from '../../common/infrastructure/guards/page-read-throttler.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { PageAccessDeniedError } from './domain/page.error';
-import { DefinePageSchemaDto, RewritePageOptionDto, SetPageViewConfigurationDto } from './dto/page-schema.define.dto';
+import { DefinePageSchemaDto, RewritePageOptionDto } from './dto/page-schema.define.dto';
 import { PageSchemaService } from './page-schema.service';
 
 @Controller('spaces/:spaceId/pages/:pageId')
@@ -15,7 +18,7 @@ export class PageSchemaController {
   ) {}
 
   @Post('schema')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BlockWriteThrottlerGuard)
   async defineSchema(
     @Param('spaceId') spaceId: string,
     @Param('pageId') pageId: string,
@@ -26,16 +29,29 @@ export class PageSchemaController {
     const result = await this.pageSchemaService.defineSchema({
       pageId,
       properties: dto.properties.map((property) => ({
+        computedDraft:
+          property.formula === undefined && property.rollup === undefined
+            ? null
+            : { formula: property.formula ?? null, rollup: property.rollup ?? null },
+        config: readPagePropertyConfig(property.config ?? null),
         key: property.key,
         label: property.label,
-        options: property.options?.map((option) => ({ color: option.color ?? null, value: option.value })) ?? null,
+        options:
+          property.options?.map((option) => ({
+            color: option.color ?? null,
+            group: option.group ?? null,
+            id: option.id ?? null,
+            value: option.value,
+          })) ?? null,
         required: property.required,
+        twoWay: property.twoWay ?? false,
         type: property.type,
       })),
       role: payload.role,
       userId: payload.sub,
       views: dto.views.map((view) => ({
         configuration: view.configuration,
+        ...(view.id === undefined ? {} : { id: view.id }),
         isDefault: view.isDefault,
         name: view.name,
         type: view.type,
@@ -47,7 +63,7 @@ export class PageSchemaController {
   }
 
   @Post('schema/properties/:propertyKey/rewrite-option')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BlockWriteThrottlerGuard)
   async rewriteOption(
     @Param('spaceId') spaceId: string,
     @Param('pageId') pageId: string,
@@ -57,7 +73,7 @@ export class PageSchemaController {
   ) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pageSchemaService.rewriteOption({
-      from: dto.from,
+      optionId: dto.optionId,
       pageId,
       propertyKey,
       role: payload.role,
@@ -69,30 +85,8 @@ export class PageSchemaController {
     return this.assertSpaceMatch(result.getValue(), spaceId);
   }
 
-  @Post('schema/views/:viewName/configuration')
-  @UseGuards(JwtAuthGuard)
-  async setViewConfiguration(
-    @Param('spaceId') spaceId: string,
-    @Param('pageId') pageId: string,
-    @Param('viewName') viewName: string,
-    @Body() dto: SetPageViewConfigurationDto,
-    @User('payload') payload: TokenPayload,
-  ) {
-    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    const result = await this.pageSchemaService.setViewConfiguration({
-      configuration: dto.configuration,
-      pageId,
-      role: payload.role,
-      userId: payload.sub,
-      viewName,
-      workspaceId: workspace.id,
-    });
-    if (result.isFail()) throw result.getError();
-    return this.assertSpaceMatch(result.getValue(), spaceId);
-  }
-
   @Get('schema')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async getSchema(
     @Param('spaceId') spaceId: string,
     @Param('pageId') pageId: string,
@@ -102,36 +96,6 @@ export class PageSchemaController {
     const result = await this.pageSchemaService.getSchema(pageId, workspace.id, payload.sub, payload.role);
     if (result.isFail()) throw result.getError();
     return this.assertSpaceMatch(result.getValue(), spaceId);
-  }
-
-  @Get('rows')
-  @UseGuards(JwtAuthGuard)
-  async listRows(
-    @Param('spaceId') spaceId: string,
-    @Param('pageId') pageId: string,
-    @User('payload') payload: TokenPayload,
-  ) {
-    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    const result = await this.pageSchemaService.listRows(pageId, workspace.id, payload.sub, payload.role);
-    if (result.isFail()) throw result.getError();
-    const { hasMore, rows } = this.assertSpaceMatch(result.getValue(), spaceId);
-    // hasMore keeps a truncated list from being read as the whole collection.
-    return { hasMore, rows };
-  }
-
-  @Get('views/:viewName')
-  @UseGuards(JwtAuthGuard)
-  async getView(
-    @Param('spaceId') spaceId: string,
-    @Param('pageId') pageId: string,
-    @Param('viewName') viewName: string,
-    @User('payload') payload: TokenPayload,
-  ) {
-    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    const result = await this.pageSchemaService.getView(pageId, viewName, workspace.id, payload.sub, payload.role);
-    if (result.isFail()) throw result.getError();
-    const { hasMore, outcome, rowCount, totalRowCount } = this.assertSpaceMatch(result.getValue(), spaceId);
-    return { hasMore, outcome, rowCount, totalRowCount };
   }
 
   private assertSpaceMatch<TValue extends { readonly spaceId: string }>(value: TValue, spaceId: string): TValue {

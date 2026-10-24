@@ -17,5 +17,6 @@ import { FileAssetRepositoryImpl } from './infrastructure/persistence/file.asset
     { provide: FILE_ASSET_REPOSITORY, useExisting: FileAssetRepositoryImpl },
     WorkspaceContextService,
   ],
+  exports: [FilesService],
 })
 export class FilesModule {}

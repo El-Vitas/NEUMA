@@ -1,0 +1,104 @@
+id: FEA-DSC
+name: Comentarios en hilo
+purpose: Conversar sobre un bloque de una página, o sobre unas palabras de él, sin escribir en la página.
+scope: comentarios
+rules:
+  - id: BR-2a8763f
+    status: active
+    title: Comenta quien puede editar el bloque
+    rule: >-
+      Puede abrir una conversación, responder, resolverla o reabrirla quien puede editar el bloque. Quien solo puede
+      leerlo ve las conversaciones, pero no escribe en ellas. Cada quien edita y borra solo sus comentarios; un
+      administrador del espacio de trabajo puede además borrar cualquiera, pero no editarlo.
+    why: >-
+      Comentar siempre fue escribir sobre el bloque, y abrir las conversaciones no puede dar a un lector más poder del
+      que tenía. Que el administrador pueda borrar es moderación, que editar lo que otro escribió sería hablar por él.
+    context: >-
+      Un comentario borrado conserva su lugar en la conversación sin texto. Cuando se borran todos los comentarios de
+      una conversación, la conversación desaparece.
+    scenarios:
+      - title: Un lector no comenta
+        given: Un cliente puede leer una página pero no editarla
+        when: Intenta comentar un bloque
+        then: Se le rechaza, aunque vea las conversaciones existentes
+      - title: Moderación
+        given: Un trabajador escribió un comentario
+        when: Un administrador lo borra
+        then: El comentario queda sin texto en la conversación y el trabajador no puede ya editarlo ni borrarlo
+  - id: BR-498cb88
+    status: active
+    title: Los comentarios anteriores pasan a conversaciones sin perder ninguno
+    rule: >-
+      Cada comentario que antes se guardaba dentro de un bloque pasa a ser una conversación de un mensaje, con su texto,
+      su fecha y su lugar en el texto. Su autor es el miembro del espacio de trabajo que tiene exactamente ese nombre.
+      Si ninguno o varios lo tienen, el autor pasa a ser quien creó el bloque y el nombre original queda al inicio del
+      mensaje. La migración informa cada caso así y se detiene si el número de conversaciones creadas no coincide con el
+      de comentarios que había.
+    why: >-
+      Un comentario que se pierde en el cambio es una pregunta que nadie volverá a ver, y atribuirlo a la persona
+      equivocada sin decirlo es peor que no atribuirlo.
+    context: >-
+      Los subrayados que ya estaban en el texto siguen apuntando a su conversación, porque conserva el mismo
+      identificador.
+    scenarios:
+      - title: Autor ambiguo
+        given: Dos miembros se llaman Ana Pérez y un comentario está firmado Ana Pérez
+        when: Se migra
+        then: >-
+          El comentario conserva su texto con Ana Pérez al inicio, a nombre de quien creó el bloque, y la migración lo
+          informa
+  - id: BR-8768cda
+    status: active
+    title: Una conversación sobre un bloque oculto no existe para quien no puede leerlo
+    rule: >-
+      Quien no puede leer un bloque no recibe sus conversaciones en ninguna lista, ni sus avisos, ni lo que reporta un
+      agente, y tampoco se entera de que existen. Los permisos de una conversación son los de su bloque, juzgados cada
+      vez que alguien pregunta y no cuando se escribió el comentario.
+    why: >-
+      Una conversación suele decir justo lo que el bloque protege. Dejar que se vea por un camino lateral, como una
+      lista de la página o un aviso, anularía los permisos del bloque.
+    context: >-
+      Si a alguien le quitan el acceso a un bloque, sus avisos sobre él dejan de mostrarse y de contarse como
+      pendientes. Responder o resolver una conversación que no se puede leer se contesta igual que si no existiera.
+    scenarios:
+      - title: Bloque restringido
+        given: Un bloque solo lo lee Ana y tiene una conversación
+        when: Luis pide las conversaciones de la página
+        then: La conversación no aparece y no hay rastro de que exista
+  - id: BR-a3ffca9
+    status: active
+    title: Nombrar a una persona la avisa solo si puede leer el bloque
+    rule: >-
+      Un comentario, o el texto de una página, que nombra a una persona con @ le crea un aviso si esa persona puede leer
+      el bloque. Nadie recibe un aviso por lo que escribió él mismo. Quien responde en una conversación avisa a quienes
+      ya participaron en ella, y una persona nombrada y participante recibe un solo aviso, el de la mención.
+    why: >-
+      Una mención sin aviso es una mención que nadie ve, y avisar a quien no puede leer el bloque revelaría que existe y
+      de qué se habla.
+    context: >-
+      Un texto de página que nombra a alguien avisa una sola vez por bloque, aunque se guarde muchas veces. Editar un
+      comentario avisa solo a quienes nombra por primera vez. Un comentario nombra como máximo veinte personas.
+    scenarios:
+      - title: Mención a quien no ve el bloque
+        given: Un bloque restringido que Luis no puede leer
+        when: Ana lo comenta nombrando a Luis
+        then: Luis no recibe ningún aviso
+  - id: BR-a903a10
+    status: active
+    title: Un comentario abre una conversación y las respuestas la continúan
+    rule: >-
+      Comentar un bloque, o unas palabras de él, abre una conversación. Quien llega después responde dentro de la misma
+      conversación, y cualquiera que pueda comentar la marca como resuelta o la reabre. Una conversación resuelta deja
+      de aparecer en la lista de abiertas y las palabras que citaba dejan de subrayarse, pero no se pierde nada de lo
+      dicho.
+    why: >-
+      Una lista plana de comentarios sueltos no distingue lo que se contesta de lo que se dejó pendiente, y obliga a
+      leerlo todo para saber qué falta.
+    context: >-
+      Si las palabras citadas se borran de la página, la conversación sigue y muestra lo que citaba. Una conversación
+      sobre todo el bloque no cita nada.
+    scenarios:
+      - title: Responder y resolver
+        given: Ana comentó un párrafo con una pregunta
+        when: Luis responde en esa conversación y Ana la marca como resuelta
+        then: La conversación guarda los dos mensajes en orden y sale de la lista de abiertas

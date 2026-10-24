@@ -72,6 +72,7 @@ export interface SearchCursor extends SearchCursorPosition {
 /** What both kinds of search ask of the blocks. */
 export interface SearchCandidateQuery extends SearchQueryFilters {
   readonly blockType?: string;
+  readonly excludedBranchPageId?: string;
   readonly query: string;
   /** Restricts the search to blocks under this page. */
   readonly rootPageId?: string;
@@ -88,6 +89,8 @@ export interface SearchCandidateRequest {
   readonly granularity: SearchGranularity;
   readonly matching: SearchMatching;
   readonly query: SearchCandidateQuery;
+  /** Best matches whose ancestors are walked; the repository picks it when absent. */
+  readonly windowSize?: number;
 }
 
 /** A statement row, before the JSON columns are checked. */

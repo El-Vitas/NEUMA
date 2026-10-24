@@ -1,4 +1,6 @@
 export const EMAIL_MAX_LENGTH = 254;
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 100;
 export const PHONE_MAX_LENGTH = 20;
 
 // Normalized phone (separators stripped): optional +, then 8-15 digits.

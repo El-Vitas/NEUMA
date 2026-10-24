@@ -5,8 +5,8 @@ import type {
   AccessTokenPlace,
   PageContent,
   PageDocumentNodeShape,
+  PageFormulaCellError,
   PageLifecycle,
-  PagePropertyValue,
   PagePropertyValues,
   Result,
   SpaceVisibility,
@@ -27,11 +27,14 @@ import type {
   McpCollectionService,
   McpCollectionShape,
   McpNameLister,
+  McpRefusal,
   McpRowWriter,
   McpSchemaColumn,
 } from './mcp.collections.types';
+import type { McpDiscussions } from './mcp.discussions.types';
 import type { McpPageManager } from './mcp.page-management.types';
 import type { McpContentEditor, McpDrawingValidator } from './mcp.pages.types';
+import type { McpTemplateService } from './mcp.templates.types';
 
 export type McpSearchInput = z.infer<typeof searchInputSchema>;
 export type McpSearchOutput = z.infer<typeof searchOutputSchema>;
@@ -43,24 +46,26 @@ export type McpPageState = NonNullable<McpFetchedPage['state']>;
 export type McpListPagesInput = z.infer<typeof listPagesInputSchema>;
 export type McpListPagesOutput = z.infer<typeof listPagesOutputSchema>;
 
+/** The formulas and rollups of a row that could not be computed, by column key. */
+export type McpComputedErrors = Readonly<Record<string, PageFormulaCellError>>;
+
 export interface McpRowProperty extends McpSchemaColumn {
+  /** A formula or rollup that could not be computed for this row. */
+  readonly error?: { readonly code: string; readonly message: string };
   readonly people?: McpPerson[];
-  readonly value: Exclude<PagePropertyValue, readonly string[]> | string[] | null;
+  /** On a relation: the rows it points to that the reader may open. */
+  readonly related?: { readonly id: string; readonly title: string }[];
+  /** On a computed number: how a person reads it (rounded to the column's format); `value` keeps the raw number. */
+  readonly text?: string;
+  readonly value: boolean | number | string[] | string | null;
 }
 
 export type McpRowDescriber = (row: {
+  readonly computedErrors?: Readonly<Record<string, PageFormulaCellError>> | undefined;
   readonly id: string;
   readonly propertyValues: PagePropertyValues | null;
   readonly title: string;
 }) => McpRowProperty[];
-
-export interface McpBlockComment {
-  readonly author: string;
-  readonly blockId: string;
-  readonly body: string;
-  readonly createdAt: string;
-  readonly id: string;
-}
 
 export interface McpHeldBlock {
   readonly holder: PageDocumentNodeShape | null;
@@ -127,19 +132,24 @@ export interface McpActionLog {
 
 export interface McpCall {
   readonly principal: McpPrincipal;
-  readonly viewer: McpOutlineViewer;
+  /** Resolves the pages the token reaches, which walks the subtree under each page rule: asked once, on demand. */
+  readonly readOutlineViewer: () => Promise<McpOutlineViewer>;
+  readonly viewer: McpViewer;
   readonly workspace: McpWorkspace;
 }
 
-export interface McpOutlineViewer {
+export interface McpViewer {
   readonly role: UserRole;
-  readonly tokenScope: SearchTokenScope;
   readonly userId: string;
   readonly workspaceId: string;
 }
 
+export interface McpOutlineViewer extends McpViewer {
+  readonly tokenScope: SearchTokenScope;
+}
+
 export interface McpOutlineEntry {
-  readonly childCount: number;
+  readonly hasChildren: boolean;
   readonly id: string;
   readonly isCollection: boolean;
   readonly propertyValues: PagePropertyValues | null;
@@ -173,8 +183,36 @@ export interface McpPerson {
   readonly name: string;
 }
 
+/** A member a row can be given to: named by name, by email or by id. */
+export interface McpAssignablePerson extends McpPerson {
+  readonly email: string;
+}
+
+/** A file as the portal's upload takes it: the page it is attached to decides who may upload it. */
+export interface McpFileUpload {
+  readonly buffer: Buffer;
+  readonly mimeType: string;
+  readonly originalFilename: string;
+  readonly ownerId: string;
+  readonly pageId: string;
+  readonly role: UserRole;
+  readonly size: number;
+  readonly workspaceId: string;
+}
+
+export interface McpUploadedFile {
+  readonly id: string;
+  readonly mimeType: string;
+  readonly originalFilename: string;
+  readonly size: number;
+}
+
+export interface McpFileUploader {
+  readonly upload: (input: McpFileUpload) => Promise<Result<McpUploadedFile, McpRefusal>>;
+}
+
 export interface McpPeopleReader {
-  readonly listAssignableMembers: (workspaceId: string) => Promise<readonly McpPerson[]>;
+  readonly listAssignableMembers: (workspaceId: string) => Promise<readonly McpAssignablePerson[]>;
 }
 
 export interface McpBacklink {
@@ -287,7 +325,9 @@ export interface McpServerDependencies {
   readonly backlinks: McpBacklinkReader;
   readonly collections: McpCollectionService;
   readonly content: McpContentEditor;
+  readonly discussions: McpDiscussions;
   readonly drawings: McpDrawingValidator;
+  readonly files: McpFileUploader;
   readonly observer: McpObserver;
   readonly outline: McpOutlineReader;
   readonly pages: McpPageManager;
@@ -299,6 +339,7 @@ export interface McpServerDependencies {
   readonly rows: McpRowWriter;
   readonly searchService: SearchReader & PageBlockSearchReader;
   readonly spacesService: McpSpaceReader;
+  readonly templates: McpTemplateService;
   readonly workspacesService: McpWorkspaceReader;
 }
 

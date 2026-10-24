@@ -70,6 +70,11 @@ const buildTypoExpressions = (sql: NeumaSqlTag, query: string): MatchExpressions
   };
 };
 
+const buildMatchExpressions = (sql: NeumaSqlTag, request: SearchCandidateRequest): MatchExpressions =>
+  request.matching === 'words'
+    ? buildWordsExpressions(sql, request.query.query)
+    : buildTypoExpressions(sql, request.query.query);
+
 const buildRootFilter = (sql: NeumaSqlTag, rootPageId: string): SqlFragment =>
   asBoolean(sql`EXISTS (
     WITH RECURSIVE "up" AS (
@@ -82,11 +87,35 @@ const buildRootFilter = (sql: NeumaSqlTag, rootPageId: string): SqlFragment =>
     SELECT 1 FROM "up" WHERE "up"."id" = ${rootPageId}::text
   )`);
 
+/** The page and all that hangs from it, walked down once, so it is out before any match is ranked or counted. */
+const buildOutsideBranchFilter = (sql: NeumaSqlTag, pageId: string): SqlFragment =>
+  asBoolean(sql`"block"."id" NOT IN (
+    WITH RECURSIVE "branch" AS (
+      SELECT "root"."id", 0 AS "depth" FROM "Block" AS "root" WHERE "root"."id" = ${pageId}::text
+      UNION ALL
+      SELECT "child"."id", "branch"."depth" + 1
+      FROM "Block" AS "child" INNER JOIN "branch" ON "child"."parentId" = "branch"."id"
+      WHERE "branch"."depth" < ${SEARCH_ANCESTOR_DEPTH_LIMIT}::int4
+    )
+    SELECT "id" FROM "branch"
+  )`);
+
 const buildCursorFilter = (sql: NeumaSqlTag, cursor: SearchCursorPosition, rank: SqlFragment): SqlFragment =>
   asBoolean(sql`(
     ${rank} < ${cursor.rank}::float8
     OR (${rank} = ${cursor.rank}::float8 AND "block"."id" > ${cursor.id}::text)
   )`);
+
+/**
+ * The spaces of the workspace the reader may see, resolved once and compared as a list. A join with the spaces makes
+ * the planner scan space by space on one core; a list lets it split the scan of the blocks across several.
+ */
+const buildReadableSpaceFilter = (sql: NeumaSqlTag, query: SearchCandidateQuery): SqlFragment =>
+  asBoolean(sql`"block"."spaceId" = ANY (ARRAY(
+    SELECT "space"."id" FROM "Space" AS "space"
+    WHERE "space"."workspaceId" = ${query.workspaceId}::text
+      AND ${buildSearchSpaceVisibilityFilter(sql, query.userId, query.userRole)}
+  ))`);
 
 const buildHitFilters = (
   sql: NeumaSqlTag,
@@ -98,8 +127,7 @@ const buildHitFilters = (
     expressions.match,
     asBoolean(sql`"block"."alive"`),
     asBoolean(sql`"block"."lifecycle" = ${PageLifecycle.ACTIVE}::"PageLifecycle"`),
-    asBoolean(sql`"space"."workspaceId" = ${query.workspaceId}::text`),
-    buildSearchSpaceVisibilityFilter(sql, query.userId, query.userRole),
+    buildReadableSpaceFilter(sql, query),
   ];
   if (query.spaceId !== undefined) filters.push(asBoolean(sql`"block"."spaceId" = ${query.spaceId}::text`));
   if (query.blockType !== undefined) filters.push(asBoolean(sql`"block"."type" = ${query.blockType}::text`));
@@ -110,6 +138,7 @@ const buildHitFilters = (
     filters.push(buildEditedRangeFilter(sql, query.editedRange, asText(sql`"block"."editedAt"`)));
   }
   if (query.rootPageId !== undefined) filters.push(buildRootFilter(sql, query.rootPageId));
+  if (query.excludedBranchPageId !== undefined) filters.push(buildOutsideBranchFilter(sql, query.excludedBranchPageId));
   if (cursor !== null && granularity === 'block') filters.push(buildCursorFilter(sql, cursor, expressions.rank));
   return allOf(sql, filters);
 };
@@ -164,7 +193,7 @@ const buildRuleOwner = (sql: NeumaSqlTag): SqlFragment =>
     ELSE coalesce("context"."chain"->0->>'id', '') END)`);
 
 const buildPageFilters = (sql: NeumaSqlTag, query: SearchCandidateQuery): SqlFragment => {
-  const filters: SqlFragment[] = [];
+  const filters: SqlFragment[] = [asBoolean(sql`"page"."properties" -> 'template' IS NULL`)];
   if (query.tokenScope !== undefined) {
     filters.push(buildTokenScopeFilter(sql, query.tokenScope, asText(sql`"page"."id"`), asText(sql`"page"."spaceId"`)));
   }
@@ -174,36 +203,121 @@ const buildPageFilters = (sql: NeumaSqlTag, query: SearchCandidateQuery): SqlFra
 };
 
 /**
- * Blocks: the best ones after the cursor. Pages: `scored` keeps the best match per page and rule owner, since
- * people who may read one may read all of that rule, and places a page by its best match whoever reads it; the
- * cursor is applied on the page. The reader's own rules are applied afterwards, in TypeScript.
+ * Blocks: `scored` is each match on its own. Pages: it keeps the best match per page and rule owner, since people
+ * who may read one may read all of that rule, and places a page by its best match whoever reads it. The reader's
+ * own rules are applied afterwards, in TypeScript.
  */
-const buildRanked = (sql: NeumaSqlTag, request: SearchCandidateRequest): SqlFragment => {
-  const { cursor, fetchSize, granularity } = request;
-  if (granularity === 'block') {
-    return asText(sql`SELECT * FROM "scored" ORDER BY "rank" DESC, "id" ASC LIMIT ${fetchSize}::int4`);
-  }
-  const afterCursor =
-    cursor === null
-      ? asBoolean(sql`TRUE`)
-      : asBoolean(sql`("scored"."pageRank" < ${cursor.rank}::float8
-        OR ("scored"."pageRank" = ${cursor.rank}::float8 AND "scored"."pageId" > ${cursor.id}::text))`);
-  return asText(sql`SELECT "scored".* FROM "scored"
-    INNER JOIN (
-      SELECT DISTINCT "pageId", "pageRank" FROM "scored"
-      WHERE ${afterCursor}
-      ORDER BY "pageRank" DESC, "pageId" ASC
-      LIMIT ${fetchSize}::int4
-    ) AS "chosen" ON "chosen"."pageId" = "scored"."pageId"`);
-};
-
 const buildScored = (sql: NeumaSqlTag, request: SearchCandidateRequest): SqlFragment =>
   request.granularity === 'block'
-    ? asText(sql`SELECT *, "rank" AS "pageRank" FROM "eligible"`)
-    : asText(sql`SELECT "best".*, max("best"."rank") OVER (PARTITION BY "best"."pageId") AS "pageRank" FROM (
+    ? asText(sql`SELECT *, "rank" AS "pageRank", "id" AS "pageBestId" FROM "eligible"`)
+    : asText(sql`SELECT "best".*,
+        max("best"."rank") OVER (PARTITION BY "best"."pageId") AS "pageRank",
+        first_value("best"."id") OVER (
+          PARTITION BY "best"."pageId" ORDER BY "best"."rank" DESC, "best"."id" ASC
+        ) AS "pageBestId"
+      FROM (
         SELECT DISTINCT ON ("pageId", "ruleOwner") * FROM "eligible"
         ORDER BY "pageId", "ruleOwner", "rank" DESC, "id" ASC
       ) AS "best"`);
+
+const buildRanked = (sql: NeumaSqlTag, request: SearchCandidateRequest): SqlFragment =>
+  request.granularity === 'block'
+    ? asText(sql`SELECT * FROM "scored" ORDER BY "rank" DESC, "id" ASC LIMIT ${request.fetchSize}::int4`)
+    : asText(sql`SELECT * FROM "scored"`);
+
+/** The page a match belongs to: itself when it is one, otherwise the nearest page above it. */
+const buildPageOf = (sql: NeumaSqlTag): SqlFragment =>
+  asText(sql`(CASE WHEN "hit"."type" = ${BLOCK_TYPE.page}::text THEN "hit"."id" ELSE "context"."pageId" END)`);
+
+/** The ancestors of the parents of the given matches, summarised once per distinct parent. */
+const buildContext = (sql: NeumaSqlTag, hits: SqlFragment): SqlFragment =>
+  asText(sql`SELECT "parent"."parentId" AS "id", "summary".*
+    FROM (SELECT DISTINCT "parentId" FROM ${hits} AS "walked" WHERE "parentId" IS NOT NULL) AS "parent"
+    CROSS JOIN LATERAL ${buildAncestorSummary(sql)} AS "summary"`);
+
+const buildHitColumns = (sql: NeumaSqlTag, expressions: MatchExpressions): SqlFragment =>
+  asText(sql`"block"."id", "block"."parentId", "block"."type", "block"."permissions", ${expressions.rank} AS "rank"`);
+
+/**
+ * The best matches in rank order, with nothing else known about them yet. Only these go on to have their ancestors
+ * walked; for pages the rank is the whole story, so it starts at the best match whatever the cursor says.
+ */
+const buildWindow = (
+  sql: NeumaSqlTag,
+  request: SearchCandidateRequest,
+  expressions: MatchExpressions,
+  windowSize: number,
+): SqlFragment =>
+  asText(sql`SELECT ${buildHitColumns(sql, expressions)}
+    FROM "Block" AS "block"
+    WHERE ${buildHitFilters(sql, request, expressions)}
+    ORDER BY "rank" DESC, "block"."id" ASC
+    LIMIT ${windowSize}::int4`);
+
+/** Pages, second step: every match inside the chosen pages, whatever its rank, to know who may read the page. */
+const buildContentHits = (
+  sql: NeumaSqlTag,
+  request: SearchCandidateRequest,
+  expressions: MatchExpressions,
+): SqlFragment =>
+  asText(sql`SELECT ${buildHitColumns(sql, expressions)}
+    FROM "Block" AS "block"
+    WHERE "block"."id" IN (SELECT "id" FROM "contents") AND ${buildHitFilters(sql, request, expressions)}`);
+
+const buildHitSteps = (
+  sql: NeumaSqlTag,
+  request: SearchCandidateRequest,
+  expressions: MatchExpressions,
+  windowSize: number,
+): SqlFragment =>
+  request.granularity === 'block'
+    ? asText(sql`"hits" AS (${buildWindow(sql, request, expressions, windowSize)})`)
+    : asText(sql`"window" AS (${buildWindow(sql, request, expressions, windowSize)}),
+      "windowContext" AS MATERIALIZED (${buildContext(sql, asText(sql`"window"`))}),
+      "chosen" AS (${buildChosenPages(sql, request)}),
+      "contents" AS (${buildPageContents(sql)}),
+      "hits" AS (${buildContentHits(sql, request, expressions)})`);
+
+/**
+ * Pages, first step: the pages of the window's live matches, each placed by its best match, then the ones after
+ * the cursor. A page's rank is the best of its matches, and every better match is in the window, so the rank and
+ * the order are exact; the matches of a page below the window are fetched next, for the pages chosen only.
+ */
+const buildChosenPages = (sql: NeumaSqlTag, request: SearchCandidateRequest): SqlFragment => {
+  const { cursor, fetchSize, query } = request;
+  const afterCursor =
+    cursor === null
+      ? asBoolean(sql`TRUE`)
+      : asBoolean(sql`("placed"."pageRank" < ${cursor.rank}::float8
+        OR ("placed"."pageRank" = ${cursor.rank}::float8 AND "placed"."pageBestId" > ${cursor.id}::text))`);
+  return asText(sql`SELECT "placed"."pageId" FROM (
+      SELECT "live"."pageId", max("live"."rank") AS "pageRank",
+        (array_agg("live"."id" ORDER BY "live"."rank" DESC, "live"."id" ASC))[1] AS "pageBestId"
+      FROM (
+        SELECT "hit"."id", "hit"."rank", ${buildPageOf(sql)} AS "pageId"
+        FROM "window" AS "hit"
+        LEFT JOIN "windowContext" AS "context" ON "context"."id" = "hit"."parentId"
+        INNER JOIN "Block" AS "page" ON "page"."id" = ${buildPageOf(sql)}
+        WHERE ("hit"."parentId" IS NULL OR ("context"."isLive" AND "context"."reachesRoot"))
+          AND ${buildPageFilters(sql, query)}
+      ) AS "live"
+      GROUP BY "live"."pageId"
+    ) AS "placed"
+    WHERE ${afterCursor}
+    ORDER BY "placed"."pageRank" DESC, "placed"."pageBestId" ASC
+    LIMIT ${fetchSize}::int4`);
+};
+
+/** Everything a page holds that is not another page: the blocks whose nearest page it is. */
+const buildPageContents = (sql: NeumaSqlTag): SqlFragment =>
+  asText(sql`WITH RECURSIVE "down" AS (
+      SELECT "chosen"."pageId" AS "id", 0 AS "depth" FROM "chosen"
+      UNION ALL
+      SELECT "child"."id", "down"."depth" + 1
+      FROM "Block" AS "child" INNER JOIN "down" ON "child"."parentId" = "down"."id"
+      WHERE "child"."type" <> ${BLOCK_TYPE.page}::text AND "down"."depth" < ${SEARCH_ANCESTOR_DEPTH_LIMIT}::int4
+    )
+    SELECT "id" FROM "down"`);
 
 /** The headings before the block among its siblings; one that declares its own permissions is never named. */
 const buildHeadings = (sql: NeumaSqlTag, request: SearchCandidateRequest): SqlFragment =>
@@ -229,42 +343,35 @@ const buildHeadings = (sql: NeumaSqlTag, request: SearchCandidateRequest): SqlFr
 
 const buildOrder = (sql: NeumaSqlTag, request: SearchCandidateRequest): SqlFragment =>
   request.granularity === 'page'
-    ? asText(sql`ORDER BY "ranked"."pageRank" DESC, "ranked"."pageId" ASC, "ranked"."rank" DESC, "ranked"."id" ASC`)
+    ? asText(sql`ORDER BY "ranked"."pageRank" DESC, "ranked"."pageBestId" ASC, "ranked"."rank" DESC, "ranked"."id" ASC`)
     : asText(sql`ORDER BY "ranked"."rank" DESC, "ranked"."id" ASC`);
 
 /**
- * One statement per page of results, with no cap on the matches it looks at. `hits` finds the matching blocks
- * through the indexes; `context` summarises the ancestors once per distinct parent of those; `eligible` keeps the
- * live ones with their page; `scored` and `ranked` take one page of them, and only then are the page, the space, the
- * snippet and the headings read.
+ * One statement per page of results. Only the best matches, a window of them, have their ancestors walked, so a
+ * word found in every page costs what a rare one does; the caller widens the window when too few survive. `hits`
+ * is the matches the later steps work on (for pages, all those inside the pages the window chose); `context`
+ * summarises their ancestors once per distinct parent; `eligible` keeps the live ones with their page; `scored` and
+ * `ranked` take one page of them, and only then are the page, the space, the snippet and the headings read.
  */
-export const buildCandidateStatement = (sql: NeumaSqlTag, request: SearchCandidateRequest): SqlTemplate => {
-  const { matching, query } = request;
-  const expressions =
-    matching === 'words' ? buildWordsExpressions(sql, query.query) : buildTypoExpressions(sql, query.query);
+export const buildCandidateStatement = (
+  sql: NeumaSqlTag,
+  request: SearchCandidateRequest,
+  windowSize: number,
+): SqlTemplate => {
+  const { query } = request;
+  const expressions = buildMatchExpressions(sql, request);
   return sql`
-    WITH "hits" AS (
-      SELECT "block"."id", "block"."parentId", "block"."type", "block"."permissions",
-        ${expressions.rank} AS "rank"
-      FROM "Block" AS "block"
-      INNER JOIN "Space" AS "space" ON "space"."id" = "block"."spaceId"
-      WHERE ${buildHitFilters(sql, request, expressions)}
-    ),
-    "context" AS MATERIALIZED (
-      SELECT "parent"."parentId" AS "id", "summary".*
-      FROM (SELECT DISTINCT "parentId" FROM "hits" WHERE "parentId" IS NOT NULL) AS "parent"
-      CROSS JOIN LATERAL ${buildAncestorSummary(sql)} AS "summary"
-    ),
+    WITH ${buildHitSteps(sql, request, expressions, windowSize)},
+    "context" AS MATERIALIZED (${buildContext(sql, asText(sql`"hits"`))}),
     "eligible" AS (
       SELECT "hit"."id", "hit"."rank",
-        (CASE WHEN "hit"."type" = ${BLOCK_TYPE.page}::text THEN "hit"."id" ELSE "context"."pageId" END) AS "pageId",
+        ${buildPageOf(sql)} AS "pageId",
         ${buildMatchChain(sql)} AS "chain",
         ${buildPageChain(sql)} AS "pageChain",
         ${buildRuleOwner(sql)} AS "ruleOwner"
       FROM "hits" AS "hit"
       LEFT JOIN "context" ON "context"."id" = "hit"."parentId"
-      INNER JOIN "Block" AS "page"
-        ON "page"."id" = (CASE WHEN "hit"."type" = ${BLOCK_TYPE.page}::text THEN "hit"."id" ELSE "context"."pageId" END)
+      INNER JOIN "Block" AS "page" ON "page"."id" = ${buildPageOf(sql)}
       WHERE ("hit"."parentId" IS NULL OR ("context"."isLive" AND "context"."reachesRoot"))
         AND ${buildPageFilters(sql, query)}
     ),
@@ -279,6 +386,7 @@ export const buildCandidateStatement = (sql: NeumaSqlTag, request: SearchCandida
       "ranked"."pageId",
       "ranked"."rank",
       "ranked"."pageRank",
+      "ranked"."pageBestId",
       "ranked"."chain",
       "ranked"."pageChain",
       "hitBlock"."type" AS "blockType",
@@ -300,3 +408,17 @@ export const buildCandidateStatement = (sql: NeumaSqlTag, request: SearchCandida
     ${buildOrder(sql, request)}
   `;
 };
+
+/** How many matches there are, up to one past the window: more than the window means it left some out. */
+export const buildProbeStatement = (
+  sql: NeumaSqlTag,
+  request: SearchCandidateRequest,
+  windowSize: number,
+): SqlTemplate =>
+  sql`
+    SELECT count(*)::int AS "matched" FROM (
+      SELECT 1 FROM "Block" AS "block"
+      WHERE ${buildHitFilters(sql, request, buildMatchExpressions(sql, request))}
+      LIMIT ${windowSize + 1}::int4
+    ) AS "probe"
+  `;

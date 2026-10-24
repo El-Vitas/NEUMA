@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'bun:test';
+import { PageLifecycle } from '@neuma/db';
 import { BLOCK_ROLE, type BlockPermissions, type PageContent, USER_ROLE } from '@neuma/shared';
 import type { PageContentBlock } from '@/modules/pages/domain/page.block.domain.types';
-import { dropHiddenBlocks, listReadableContentBlocks } from '@/modules/pages/domain/page.visibility.domain';
+import {
+  dropHiddenBlocks,
+  listClosedBlockIds,
+  listNodeIds,
+  listReadableContentBlocks,
+} from '@/modules/pages/domain/page.visibility.domain';
 
 const viewer = { userId: 'user-1', workspaceRole: USER_ROLE.WORKER };
 const closed: BlockPermissions = [{ principal: { kind: 'user', userId: 'someone-else' }, role: BLOCK_ROLE.full }];
@@ -95,5 +101,42 @@ describe('a document without the blocks the viewer may not read', () => {
 
   it('gives the same document when nothing is hidden', () => {
     expect(dropHiddenBlocks(content, new Set())).toEqual(content);
+  });
+
+  it('names the id of every node, the nested ones too', () => {
+    expect(listNodeIds(content)).toEqual(['a', 'q', 'inner', 'b']);
+  });
+});
+
+describe('the blocks of an old version that are closed to the viewer today', () => {
+  const link = (id: string, permissions: BlockPermissions = null) => ({
+    id,
+    lifecycle: PageLifecycle.ACTIVE,
+    permissions,
+  });
+
+  it('closes a block that declares the viewer out, even when the block is no longer in the page', () => {
+    const chains = new Map([
+      ['secret', [link('secret', closed), link('page-1')]],
+      ['open', [link('open'), link('page-1')]],
+    ]);
+
+    expect([...listClosedBlockIds(chains, viewer)]).toEqual(['secret']);
+  });
+
+  it('closes a block that inherits the permissions of a closed ancestor', () => {
+    const chains = new Map([['inner', [link('inner'), link('secret', closed), link('page-1')]]]);
+
+    expect([...listClosedBlockIds(chains, viewer)]).toEqual(['inner']);
+  });
+
+  it('lets a block open to the viewer be read under a closed page', () => {
+    const chains = new Map([['inner', [link('inner', opened), link('page-1', closed)]]]);
+
+    expect([...listClosedBlockIds(chains, viewer)]).toEqual([]);
+  });
+
+  it('has nothing to close for a block that left no trace', () => {
+    expect([...listClosedBlockIds(new Map([['gone', []]]), viewer)]).toEqual([]);
   });
 });

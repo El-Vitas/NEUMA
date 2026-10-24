@@ -399,7 +399,9 @@ const buildPageRow = (input: DocumentToBlocksInput, children: readonly string[])
   nested: [],
   parentId: input.parentId,
   properties: {
+    ...(input.defaultTemplateId == null ? {} : { defaultTemplateId: input.defaultTemplateId }),
     title: input.title === '' ? [] : [{ insert: input.title }],
+    ...(input.template == null ? {} : { template: input.template }),
     ...(input.propertyValues == null ? {} : { values: input.propertyValues }),
   },
   type: BLOCK_TYPE.page,

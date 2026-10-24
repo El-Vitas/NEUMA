@@ -21,7 +21,7 @@ const requireReachableRoot = async (
   pageId: string | undefined,
 ): Promise<void> => {
   if (pageId === undefined) return;
-  const readable = await dependencies.outline.listReadable([pageId], call.viewer);
+  const readable = await dependencies.outline.listReadable([pageId], await call.readOutlineViewer());
   if (readable.length === 0) throw new McpToolError(MCP_INACCESSIBLE_MESSAGE);
 };
 
@@ -31,8 +31,9 @@ const readPageFilters = (input: McpSearchInput): SearchQueryFilters => ({
   ...(input.verifiedOnly === true ? { verifiedOnly: true } : {}),
 });
 
-const findBlocks = (dependencies: McpServerDependencies, call: McpCall, input: McpSearchInput) =>
-  dependencies.searchService.searchBlocks({
+const findBlocks = async (dependencies: McpServerDependencies, call: McpCall, input: McpSearchInput) => {
+  const { tokenScope } = await call.readOutlineViewer();
+  return dependencies.searchService.searchBlocks({
     ...readPageFilters(input),
     ...(input.blockType === undefined ? {} : { blockType: input.blockType }),
     ...(input.cursor === undefined ? {} : { cursor: input.cursor }),
@@ -40,11 +41,12 @@ const findBlocks = (dependencies: McpServerDependencies, call: McpCall, input: M
     ...(input.spaceId === undefined ? {} : { spaceId: input.spaceId }),
     limit: input.limit,
     query: input.query,
-    tokenScope: call.viewer.tokenScope,
+    tokenScope,
     userId: call.principal.userId,
     userRole: call.principal.role,
     workspaceId: call.workspace.id,
   });
+};
 
 /** Block search ignores titles. Only in the first batch and not under a page, where the tree decides. */
 const findPages = async (
@@ -53,13 +55,14 @@ const findPages = async (
   input: McpSearchInput,
 ): Promise<SearchPage> => {
   if (input.cursor !== undefined || input.pageId !== undefined) return { items: [] };
+  const { tokenScope } = await call.readOutlineViewer();
   return dependencies.searchService.search({
     ...readPageFilters(input),
     ...(input.spaceId === undefined ? {} : { spaceId: input.spaceId }),
     limit: MCP_SEARCH_PAGE_TITLE_LIMIT,
     query: input.query,
     sourceType: 'PAGE',
-    tokenScope: call.viewer.tokenScope,
+    tokenScope,
     userId: call.principal.userId,
     userRole: call.principal.role,
     workspaceId: call.workspace.id,

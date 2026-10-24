@@ -1,0 +1,6 @@
+// use prisma-8
+native_enum NotificationKind {
+  MENTION = "MENTION"
+  REPLY = "REPLY"
+  PAGE_CHANGE = "PAGE_CHANGE"
+}

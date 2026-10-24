@@ -21,10 +21,12 @@ const mergeChildren = (
   isRemovedLocally: (blockId: string) => boolean,
 ): readonly string[] => {
   const merged = [...local];
+  const present = new Set(merged);
   for (const [index, childId] of server.entries()) {
-    if (merged.includes(childId) || isRemovedLocally(childId)) continue;
+    if (present.has(childId) || isRemovedLocally(childId)) continue;
     const precedingIndex = merged.findIndex((sibling) => sibling === server[index - 1]);
     merged.splice(precedingIndex + 1, 0, childId);
+    present.add(childId);
   }
   return merged;
 };

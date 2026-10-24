@@ -8,7 +8,7 @@ import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/label';
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from '@/shared/components/ui/popover';
 import { APP_TIME_ZONE } from '@/shared/constants/date.constants';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { getPageUsageReportAction, updatePageUsageSettingsAction } from '../server/actions/pages.usage.actions';
 import type { PageUsageReport, PageUsageSettings } from '../types/pages.usage.types';
 
@@ -27,7 +27,7 @@ export const PagesUsagePanel = ({ pageId }: IProps) => {
   const readTheReport = (isOpen: boolean): void => {
     if (!isOpen) return;
     startTransition(async () => {
-      const result = await getPageUsageReportAction({ pageId });
+      const result = await callAction(() => getPageUsageReportAction({ pageId }));
       if (!isActionSuccess<PageUsageReport>(result)) {
         toast.error(t('error'));
         return;
@@ -43,7 +43,7 @@ export const PagesUsagePanel = ({ pageId }: IProps) => {
   const toggleTracking = (nextEnabled: boolean): void => {
     setEnabled(nextEnabled);
     startTransition(async () => {
-      const result = await updatePageUsageSettingsAction({ enabled: nextEnabled });
+      const result = await callAction(() => updatePageUsageSettingsAction({ enabled: nextEnabled }));
       if (!isActionSuccess<PageUsageSettings>(result)) {
         setEnabled(!nextEnabled);
         toast.error(t('error'));

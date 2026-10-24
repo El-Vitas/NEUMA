@@ -2,8 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { BLOCK_TYPE, blockPermissionsSchema } from '@neuma/shared';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { buildSqlTextList } from '../../../prisma/prisma.sql.lib';
-import { listReadableBlockIds, readBlockTitle } from '../../domain/block-access.domain';
-import type { BlockAccessChainRow, BlockAccessViewer, ReadablePage } from '../../types/block-access.types';
+import { listReadableBlockIds, readBlockStanding, readBlockTitle } from '../../domain/block-access.domain';
+import type {
+  BlockAccessChainRow,
+  BlockAccessViewer,
+  BlockStanding,
+  ReadablePage,
+} from '../../types/block-access.types';
 import { buildSpaceVisibilityFilter } from './space.visibility.filter';
 
 /**
@@ -20,6 +25,13 @@ export class BlockAccessRepository {
     const rows = await this.readChains(uniqueIds, viewer.workspaceId);
     const readableSpaceIds = await this.findReadableSpaceIds(rows, viewer);
     return listReadableBlockIds({ readableSpaceIds, rows, viewer });
+  }
+
+  /** What the viewer holds on one block and which block decides it; null when it is missing or in the trash. */
+  async findStanding(blockId: string, viewer: BlockAccessViewer): Promise<BlockStanding | null> {
+    const rows = await this.readChains([blockId], viewer.workspaceId);
+    const readableSpaceIds = await this.findReadableSpaceIds(rows, viewer);
+    return readBlockStanding({ readableSpaceIds, rows, viewer });
   }
 
   /** The readable blocks among the ids that are pages, with the title and space the page block holds. */

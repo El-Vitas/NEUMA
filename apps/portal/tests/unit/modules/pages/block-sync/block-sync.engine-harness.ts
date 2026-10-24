@@ -2,7 +2,7 @@ import { jest } from 'bun:test';
 import { blocksToDocument, type PageContent } from '@neuma/shared';
 import { BLOCK_SYNC_COALESCE_INTERVAL_MS } from '@/modules/pages/block-sync/constants/block-sync.constants';
 import { createBlockSyncEngine } from '@/modules/pages/block-sync/lib/block-sync.engine.lib';
-import type { BlockSyncEngine } from '@/modules/pages/block-sync/types/block-sync.types';
+import type { BlockSyncEngine, BlockSyncOutbox } from '@/modules/pages/block-sync/types/block-sync.types';
 import type { PagesAutosaveDisplayState } from '@/modules/pages/types/pages.autosave.types';
 import type { PageCollaborationParticipant } from '@/modules/pages/types/pages.collaboration.types';
 import { type FakeBlockServer, FakeSession } from './block-sync.fake-server';
@@ -20,7 +20,13 @@ export const settle = async (): Promise<void> => {
 };
 
 /** An engine for the page, wired to the fake server, with the editor played by a variable. */
-export const createClient = (server: FakeBlockServer, initial: PageContent, userId = 'user-1'): EngineClient => {
+export const createClient = (
+  server: FakeBlockServer,
+  initial: PageContent,
+  userId = 'user-1',
+  isViewer = false,
+  outbox?: BlockSyncOutbox,
+): EngineClient => {
   let idCounter = 0;
   const participants: (readonly PageCollaborationParticipant[])[] = [];
   const replaced: PageContent[] = [];
@@ -28,10 +34,12 @@ export const createClient = (server: FakeBlockServer, initial: PageContent, user
   const readOnlyCalls: number[] = [];
   let session: FakeSession | null = null;
   const client: { content: PageContent; engine: BlockSyncEngine | null } = { content: initial, engine: null };
+  const replaceFault = { isActive: false };
   const engine = createBlockSyncEngine({
     bridge: {
       readContent: () => client.content,
       replaceContent: (content) => {
+        if (replaceFault.isActive) throw new Error('The editor cannot hold this content');
         client.content = content;
         replaced.push(content);
         client.engine?.notifyContentChange(content);
@@ -52,7 +60,9 @@ export const createClient = (server: FakeBlockServer, initial: PageContent, user
       return session;
     },
     initialBlocks: server.readBlocks(),
+    isViewer,
     localUserId: userId,
+    ...(outbox === undefined ? {} : { outbox }),
     pageId: 'page-1',
     resolveParticipant: (id) => ({ color: null, name: `Name of ${id}` }),
     spaceId: 'space-1',
@@ -71,6 +81,7 @@ export const createClient = (server: FakeBlockServer, initial: PageContent, user
     engine,
     participants,
     readOnlyCalls,
+    replaceFault,
     replaced,
     saveStates,
     session: openedSession,

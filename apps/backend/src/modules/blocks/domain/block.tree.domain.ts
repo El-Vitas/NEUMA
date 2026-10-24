@@ -78,10 +78,19 @@ const checkLeftPreviousParent = (block: WorkingBlock, input: TreeCheckInput): Re
 
 const hasChangedPlace = (block: WorkingBlock, input: TreeCheckInput): boolean => {
   const previous = input.before.get(block.id);
-  return previous === undefined || previous.parentId !== block.parentId || previous.alive !== block.alive;
+  return previous?.parentId !== block.parentId || previous.alive !== block.alive;
+};
+
+/** A page sits in the tree and a content block in the document of a page: becoming the other would strand its place. */
+const checkPageBoundary = (block: WorkingBlock, input: TreeCheckInput): Result<void, DomainError> => {
+  const previous = input.before.get(block.id);
+  const crossed = previous !== undefined && (previous.type === BLOCK_TYPE.page) !== (block.type === BLOCK_TYPE.page);
+  return crossed ? invalid('A block cannot become a page or stop being one', block.id) : ok();
 };
 
 const checkPlace = (block: WorkingBlock, input: TreeCheckInput): Result<void, DomainError> => {
+  const boundary = checkPageBoundary(block, input);
+  if (boundary.isFail()) return boundary;
   if (!hasChangedPlace(block, input)) return ok();
   for (const check of [checkPlacedUnderParent, checkNoCycle, checkLeftPreviousParent]) {
     const checked = check(block, input);

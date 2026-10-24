@@ -1,7 +1,19 @@
+import type { NeumaTransaction } from '@neuma/db';
 import type { UserRole } from '@neuma/shared';
+
+/**
+ * A transaction the caller holds and will commit. The notices for the live channel wait for that commit: the caller
+ * runs what `deferPublish` collected once the transaction is over.
+ */
+export interface BlockWriteWithin {
+  readonly deferPublish: (publish: () => void) => void;
+  readonly transaction: NeumaTransaction;
+}
 
 /** One client transaction: operations in the wire shape of `POST /transactions`, applied all or nothing. */
 export interface BlockWriteRequest {
+  /** The write is refused, and nothing is changed, when a block is not at the version the caller read. */
+  readonly expectedVersions?: readonly { readonly blockId: string; readonly version: number }[];
   readonly id: string;
   readonly operations: readonly unknown[];
   readonly spaceId: string;
@@ -46,5 +58,11 @@ export interface BlockWriter {
   readonly applyTrusted: (
     requests: readonly BlockWriteRequest[],
     reader: BlockWriteReader,
+  ) => Promise<BlockWriteResponse>;
+  /** Inside a transaction the caller holds: it commits or rolls back with the caller's, and is not retried. */
+  readonly applyTrustedWithin: (
+    requests: readonly BlockWriteRequest[],
+    reader: BlockWriteReader,
+    within: BlockWriteWithin,
   ) => Promise<BlockWriteResponse>;
 }

@@ -6,9 +6,14 @@ import { authorizePlacements, authorizeTargets } from './block.authorization.dom
 import type { BlockRecord } from './block.domain.types';
 import { BlockAccessDeniedError, BlockTreeTooDeepError } from './block.error';
 import { extractBlockLinkTargets } from './block.link.domain';
+import { buildBlockNotices, buildViewNotices } from './block.notification.domain';
+import { BLOCK_NO_RELATIONS, BLOCK_NO_RULES } from './block.operation.constants';
 import { applyBlockOperation, createWorkingBlock, writeCreatedText } from './block.operation.domain';
 import { applyPageOperation, expandPageOperations, isPageOperation } from './block.page-operation.domain';
+import { checkPermissionsKeepAManager } from './block.permissions-lockout.domain';
+import { applyRelationOperation, expandRelationOperations, isRelationOperation } from './block.relation.domain';
 import { applyRootLists } from './block.root.domain';
+import { findServerAssignedWrite } from './block.row-defaults.domain';
 import type {
   AppliedOperations,
   AuthorizationInput,
@@ -22,8 +27,14 @@ import type {
   SettledBlock,
   WorkingBlock,
 } from './block.transaction.domain.types';
-import { BlockContentInvalidError } from './block.transaction.error';
+import { BlockContentInvalidError, ServerAssignedPropertyError } from './block.transaction.error';
 import { checkTreeInvariants, findSourcePageId } from './block.tree.domain';
+import { planViewOperations } from './block.view-operation.domain';
+
+/** A transaction that changes views names the nodes it adds; reaching this one is a mistake of the caller. */
+const failToNameNodes = (): string => {
+  throw new Error('A transaction that changes views must say how its filter nodes are named');
+};
 
 const indexWorking = (blocks: readonly WorkingBlock[]): Map<string, WorkingBlock> =>
   new Map(blocks.map((block) => [block.id, block]));
@@ -76,14 +87,14 @@ const applyOperation = (
   const block = blocks.get(operation.blockId);
   if (block === undefined) return Result.fail(new BlockAccessDeniedError());
   if (operation.command === 'insertRoot' || operation.command === 'removeRoot') return Result.ok(block);
+  if (isRelationOperation(operation)) return applyRelationOperation(block, operation);
   return isPageOperation(operation)
     ? applyPageOperation(block, operation, { now: input.now, userId: input.actor.userId })
     : applyBlockOperation(block, operation, engine);
 };
 
 const hasSameContent = (previous: WorkingBlock | undefined, next: WorkingBlock): boolean =>
-  previous !== undefined &&
-  previous.type === next.type &&
+  previous?.type === next.type &&
   previous.alive === next.alive &&
   previous.parentId === next.parentId &&
   isSameJson(previous.properties, next.properties) &&
@@ -91,7 +102,7 @@ const hasSameContent = (previous: WorkingBlock | undefined, next: WorkingBlock):
 
 /**
  * Version, authorship and text are settled once per block, after all its operations. A block that only gained or
- * lost children keeps its content, so it is not parsed again: a row written before this rule must not stop a reorder.
+ * lost children keeps its content, so it is not parsed again: a reorder never fails on content it did not touch.
  */
 const settleBlock = (
   block: WorkingBlock,
@@ -194,15 +205,30 @@ export const planBlockTransaction = (
   if (!input.isSpaceReadable) return Result.fail(new BlockAccessDeniedError());
   if (isDepthExceeded) return Result.fail(new BlockTreeTooDeepError(input.maxTreeDepth));
   const before = indexWorking(locked);
-  const authorizedTargets = authorizeTargets(
-    input.operations,
-    buildAuthorization(input, [...context, ...locked], before),
-  );
+  const authorization = buildAuthorization(input, [...context, ...locked], before);
+  const authorizedTargets = authorizeTargets(input.operations, authorization);
   if (authorizedTargets.isFail()) return Result.fail(authorizedTargets.getError());
-  const expanded = expandPageOperations(input.operations, locked);
+  const viewPlan = planViewOperations({
+    authorization,
+    createId: input.createNodeId ?? failToNameNodes,
+    operations: input.viewOperations ?? [],
+    schemas: input.viewSchemas ?? new Map(),
+    views: input.views ?? [],
+  });
+  if (viewPlan.isFail()) return Result.fail(viewPlan.getError());
+  const related = expandRelationOperations(
+    input.operations,
+    before,
+    input.relationSchemas ?? BLOCK_NO_RELATIONS,
+    authorization,
+  );
+  if (related.isFail()) return Result.fail(related.getError());
+  const expanded = expandPageOperations(related.getValue(), locked);
   const applied = applyOperations(input, expanded.operations, before, engine);
   if (applied.isFail()) return Result.fail(applied.getError());
   const { after, counts } = applied.getValue();
+  const assignedKey = findServerAssignedWrite(before, after, input.guardedRules ?? BLOCK_NO_RULES);
+  if (assignedKey !== null) return Result.fail(new ServerAssignedPropertyError(assignedKey));
   const touchedIds = [...counts.keys()];
   const createdRecords = [...after.values()]
     .filter((block) => !before.has(block.id))
@@ -217,6 +243,14 @@ export const planBlockTransaction = (
   const recordsById = indexById([...context, ...after.values()]);
   const treeChecked = checkTreeInvariants({ after, before, maxDepth: input.maxTreeDepth, recordsById, touchedIds });
   if (treeChecked.isFail()) return Result.fail(treeChecked.getError());
+  const kept = checkPermissionsKeepAManager({
+    after,
+    maxDepth: input.maxTreeDepth,
+    members: input.members,
+    operations: input.operations,
+    recordsById,
+  });
+  if (kept.isFail()) return Result.fail(kept.getError());
   const roots = applyRootLists(input.load.spaces, expanded.operations, before, after, touchedIds);
   if (roots.isFail()) return Result.fail(roots.getError());
   const settled = settleBlocks(applied.getValue(), before, input);
@@ -225,9 +259,16 @@ export const planBlockTransaction = (
   return Result.ok({
     linkDrafts: blocks.flatMap((block) => draftLinks(block, recordsById, input.maxTreeDepth)),
     linkSourceIds: blocks.filter(({ content }) => content !== null).map(({ block }) => block.id),
+    notices: buildBlockNotices(
+      blocks.map(({ block }) => block),
+      before,
+    ),
     rebinds: listRebinds(blocks, before, recordsById, input.maxTreeDepth),
     spaceWrites: roots.getValue(),
     versions: blocks.map(({ block }) => ({ id: block.id, version: block.version })),
+    viewNotices: buildViewNotices(viewPlan.getValue().versions, input.views ?? []),
+    viewVersions: viewPlan.getValue().versions,
+    viewWrites: viewPlan.getValue().writes,
     writes: orderWrites(blocks, before),
   });
 };
