@@ -13,7 +13,12 @@ import en from '../../../../../messages/en.json';
 import { defaultConfig } from '../lib/pages.options.fixture';
 import { COLLECTION_ACTION_STUBS } from '../stubs/pages.actions.stubs';
 
-const written: { pageId: string; propertyValues: Record<string, unknown>; spaceId: string }[] = [];
+const written: {
+  expectedVersion?: number;
+  pageId: string;
+  propertyValues: Record<string, unknown>;
+  spaceId: string;
+}[] = [];
 const operations: unknown[] = [];
 const navigated: string[] = [];
 
@@ -194,6 +199,7 @@ describe('PagesCollectionTimeline', () => {
 
     await waitFor(() => expect(written).toHaveLength(1));
     expect(written[0]).toEqual({
+      expectedVersion: 1,
       pageId: 'row-1',
       propertyValues: { when: { end: '2026-09-20', start: '2026-09-16' } },
       spaceId: 'space-1',

@@ -9,6 +9,15 @@ export class SpaceAccessDeniedError extends DomainError {
   }
 }
 
+export class SpaceSlugTakenError extends DomainError {
+  public readonly code = 'SPACE_SLUG_TAKEN';
+  public readonly httpStatus = 409;
+
+  constructor() {
+    super('Another space already uses this slug');
+  }
+}
+
 export class SpaceIconValidationError extends DomainError {
   public readonly code = 'SPACE_ICON_INVALID';
   public readonly httpStatus = 400;

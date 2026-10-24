@@ -22,6 +22,7 @@ const storedPages = new Map([
 ]);
 const getPage = async (_spaceId: string, readPageId: string) => ({
   getValue: () => storedPages.get(readPageId) ?? null,
+  isFail: () => false,
   isOk: () => true,
 });
 const nothingKnownAbout = { getValue: () => null, isOk: () => true };
@@ -155,7 +156,11 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
 }));
 mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({
   getSpaceMembers: async () => ({ getValue: () => [], isOk: () => true }),
-  getSpaces: async () => ({ getValue: () => [{ id: spaceId, name: 'Engineering' }], isOk: () => true }),
+  getSpaces: async () => ({
+    getValue: () => [{ id: spaceId, name: 'Engineering' }],
+    isFail: () => false,
+    isOk: () => true,
+  }),
 }));
 
 const { default: Page } = await import('@/app/[locale]/(portal)/spaces/[spaceId]/pages/[pageId]/page');

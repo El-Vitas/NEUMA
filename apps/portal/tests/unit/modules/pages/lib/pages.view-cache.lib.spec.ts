@@ -119,6 +119,29 @@ describe('a view kept in the cache', () => {
     expect(cached.rows[0]?.propertyValues).toEqual({ status: 'todo' });
   });
 
+  it('keeps no calculation over a computed column, which is worked out on every read', () => {
+    const cached = toCachedView({
+      aggregates: {
+        calculations: { 'calculation:status:COUNT_ALL': 2, 'calculation:total:SUM': 9 },
+        distinctRowCount: 2,
+        groupCalculations: { todo: { 'calculation:status:COUNT_ALL': 1, 'calculation:total:SUM': 4 } },
+        groupCounts: { todo: 1 },
+      },
+      lookups,
+      outcome: { groups: [], kind: 'GROUPED_ROWS' },
+      personOptions: [],
+      schema,
+      view,
+      viewerId: null,
+    });
+
+    const kept = JSON.parse(cached.layout) as {
+      aggregates: { calculations: Record<string, number>; groupCalculations: Record<string, Record<string, number>> };
+    };
+    expect(Object.keys(kept.aggregates.calculations)).toEqual(['calculation:status:COUNT_ALL']);
+    expect(Object.keys(kept.aggregates.groupCalculations.todo ?? {})).toEqual(['calculation:status:COUNT_ALL']);
+  });
+
   it('keeps the rows of a screen of days and the rows without a date apart', () => {
     const dated = rowOf('d', { status: 'todo' });
     const undated = rowOf('u');

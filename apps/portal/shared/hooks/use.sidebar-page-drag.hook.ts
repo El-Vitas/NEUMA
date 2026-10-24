@@ -23,7 +23,7 @@ import type {
   PortalSidebarPageKeyboardMove,
 } from '@/modules/portal/types/portal.sidebar.drag.types';
 import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
-import { hasActionError, isLockedActionFailure } from '@/shared/lib/action-result';
+import { callAction, hasActionError, isLockedActionFailure } from '@/shared/lib/action-result';
 
 /** Where the pointer lands in a row tells nesting from placing: the middle nests, the edges sit beside. */
 export const useSidebarPageDrag = (
@@ -49,7 +49,7 @@ export const useSidebarPageDrag = (
     (pageId: string, parentId: null | string): void => {
       if (isMoving) return;
       startTransition(async () => {
-        const result = await movePageAction({ pageId, parentId, spaceId });
+        const result = await callAction(() => movePageAction({ pageId, parentId, spaceId }));
         if (hasActionError(result)) {
           toast.error(isLockedActionFailure(result) ? tErrors('reasons.locked') : pagesT('moveError'));
           return;
@@ -75,13 +75,13 @@ export const useSidebarPageDrag = (
 
       startTransition(async () => {
         if (dragged.parentId !== targetPage.parentId) {
-          const moved = await movePageAction({ pageId, parentId: targetPage.parentId, spaceId });
+          const moved = await callAction(() => movePageAction({ pageId, parentId: targetPage.parentId, spaceId }));
           if (hasActionError(moved)) {
             toast.error(isLockedActionFailure(moved) ? tErrors('reasons.locked') : pagesT('moveError'));
             return;
           }
         }
-        const result = await reorderPageAction({ beforePageId, pageId, spaceId });
+        const result = await callAction(() => reorderPageAction({ beforePageId, pageId, spaceId }));
         if (hasActionError(result)) {
           toast.error(pagesT('moveError'));
           return;

@@ -117,11 +117,9 @@ describe('diffing two configurations into operations', () => {
 
     const operations = diffPageViewConfigurations(before, after);
 
-    expect(operations.map((operation) => operation.command).sort()).toEqual([
-      'filterInsert',
-      'filterRemove',
-      'filterUpdate',
-    ]);
+    expect(
+      operations.map((operation) => operation.command).sort((first, second) => first.localeCompare(second)),
+    ).toEqual(['filterInsert', 'filterRemove', 'filterUpdate']);
     expect(replay(before, after).filter).toMatchObject({ conditions: [{ id: 'c1', value: 'z' }, { value: 'w' }] });
   });
 

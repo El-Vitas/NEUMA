@@ -16,11 +16,6 @@ export type PageAncestor =
   | { readonly id: string; readonly isReadable: true; readonly title: string }
   | { readonly id: null; readonly isReadable: false; readonly title: null };
 
-export interface PageAncestorRow {
-  readonly id: string;
-  readonly title: string;
-}
-
 export interface PageOutlinePlace {
   readonly id: string;
   readonly spaceId: string;

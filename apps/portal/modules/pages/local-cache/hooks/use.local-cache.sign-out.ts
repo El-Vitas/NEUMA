@@ -6,13 +6,23 @@ import { browserLogger } from '../../lib/pages.browser-logger.lib';
 import { wipeBrowserLocalCaches } from '../lib/local-cache.browser.lib';
 import { countBrowserPendingTransactions } from '../lib/local-cache.pending.lib';
 
-const readPendingCount = async (): Promise<number> => {
+/** Null when the count could not be read: not knowing is not the same as having nothing waiting. */
+const readPendingCount = async (): Promise<null | number> => {
   try {
     return await countBrowserPendingTransactions();
   } catch (error) {
     browserLogger.error({ err: error }, 'The writes waiting to be sent could not be counted before signing out');
-    return 0;
+    return null;
   }
+};
+
+const confirmLeaving = (
+  pending: null | number,
+  describePending: (count: number) => string,
+  describeUnknownPending: (() => string) | undefined,
+): boolean => {
+  if (pending === null) return describeUnknownPending === undefined || window.confirm(describeUnknownPending());
+  return pending === 0 || window.confirm(describePending(pending));
 };
 
 /**
@@ -21,6 +31,7 @@ const readPendingCount = async (): Promise<number> => {
  */
 export const useLocalCacheSignOut = (
   describePending: (count: number) => string,
+  describeUnknownPending?: () => string,
 ): ((event: FormEvent<HTMLFormElement>) => void) => {
   const isCleared = useRef(false);
 
@@ -30,7 +41,7 @@ export const useLocalCacheSignOut = (
     const form = event.currentTarget;
     void (async () => {
       const pending = await readPendingCount();
-      if (pending > 0 && !window.confirm(describePending(pending))) return;
+      if (!confirmLeaving(pending, describePending, describeUnknownPending)) return;
       await wipeBrowserLocalCaches();
       isCleared.current = true;
       form.requestSubmit();

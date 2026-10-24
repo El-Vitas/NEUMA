@@ -3,7 +3,9 @@ import type { Result } from '@neuma/shared';
 import type { DomainError } from '../../../common/domain/domain.error';
 import type { SchemaPropertyDefinition } from '../../../common/domain/schema.domain.types';
 import type { BlockWriteWithin } from '../../../common/types/block-writer.types';
+import type { StoredFile } from '../domain/block.row-values.domain.types';
 import type {
+  BlockExpectedVersion,
   BlockLinkDiff,
   BlockLoad,
   BlockOperation,
@@ -81,6 +83,8 @@ export interface StoredSchemaProperty {
 }
 
 export interface BlockTransactionRequest {
+  /** Only the backend itself sets this: the write is refused if a block is not at the version it read. */
+  readonly expectedVersions?: readonly BlockExpectedVersion[];
   readonly id: string;
   readonly operations: readonly unknown[];
   readonly spaceId: string;
@@ -120,6 +124,12 @@ export interface BlockTransactionSession {
   readViewPageIds(viewIds: readonly string[]): Promise<ReadonlyMap<string, string>>;
   /** The properties of these collections, to check the views an operation leaves. */
   readCollectionSchemas(pageIds: readonly string[]): Promise<ReadonlyMap<string, readonly SchemaPropertyDefinition[]>>;
+  /** The people who can be named in a column of people: the active members of the workspace. */
+  listWorkspaceMemberIds(workspaceId: string): Promise<ReadonlySet<string>>;
+  /** The active files of the workspace among these, with who owns each and the page it belongs to. */
+  readActiveFiles(fileIds: readonly string[], workspaceId: string): Promise<StoredFile[]>;
+  /** Files that belong to no page yet take the row that names them. */
+  attachFilesToRows(filesByRow: ReadonlyMap<string, readonly string[]>): Promise<void>;
   /** Puts new rows at the end of the manual order of the views of their collection that have one. */
   appendRowsToViewOrders(rows: readonly { readonly pageId: string; readonly rowId: string }[]): Promise<void>;
   writeViews(writes: readonly ViewWrite[]): Promise<void>;

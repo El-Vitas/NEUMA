@@ -24,12 +24,6 @@ export interface PageHead {
   readonly properties: unknown;
 }
 
-export interface RecentlyEditedPage {
-  readonly editedAt: Date;
-  readonly editedById: string;
-  readonly id: string;
-}
-
 /** A page whose deadline passed, and the page that holds it. */
 export interface PageDueForPurge {
   readonly id: string;

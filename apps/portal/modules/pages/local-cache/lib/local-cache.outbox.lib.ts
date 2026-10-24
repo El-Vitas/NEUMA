@@ -16,8 +16,13 @@ export const createOutbox = ({ now, storage }: OutboxOptions): Outbox => ({
   markRejected: async (id: string, cause: RejectedCause, message: string): Promise<void> => {
     const held = (await storage.listTransactions()).find((transaction) => transaction.id === id);
     if (held === undefined) return;
-    await storage.putRejected({ ...held, cause, message, rejectedAt: now() });
-    await storage.deleteTransaction(id);
+    await storage.rejectTransaction({ ...held, cause, message, rejectedAt: now() });
   },
   remove: storage.deleteTransaction,
+  retryRejected: async (id: string): Promise<void> => {
+    const held = (await storage.listRejected()).find((rejected) => rejected.id === id);
+    if (held === undefined) return;
+    const { cause: _cause, message: _message, rejectedAt: _rejectedAt, ...pending } = held;
+    await storage.restoreTransaction(pending);
+  },
 });

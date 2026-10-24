@@ -12,6 +12,31 @@ export const readExportableContent = (stored: unknown): PageContent => {
 export const fitsInOneExport = (assets: readonly { readonly size: number }[], limitMegabytes: number): boolean =>
   assets.reduce((total, asset) => total + asset.size, 0) <= limitMegabytes * BYTES_PER_MEGABYTE;
 
+const collectAssetIds = (node: unknown, found: Set<string>): void => {
+  if (Array.isArray(node)) {
+    for (const child of node) collectAssetIds(child, found);
+    return;
+  }
+  if (typeof node !== 'object' || node === null) return;
+  for (const [key, value] of Object.entries(node)) {
+    if (key === 'assetId' && typeof value === 'string') found.add(value);
+    else collectAssetIds(value, found);
+  }
+};
+
+/**
+ * A file belongs to the page that owns it, not to a block, so the export carries only the files the documents it
+ * writes still name: a file that lives in a block the reader cannot read is not named there.
+ */
+export const keepReferencedAssets = <TAsset extends { readonly id: string }>(
+  assets: readonly TAsset[],
+  documents: readonly unknown[],
+): readonly TAsset[] => {
+  const referenced = new Set<string>();
+  collectAssetIds(documents, referenced);
+  return assets.filter((asset) => referenced.has(asset.id));
+};
+
 export const readExportScope = (
   kind: PageExportScope['kind'],
   pageId: null | string,

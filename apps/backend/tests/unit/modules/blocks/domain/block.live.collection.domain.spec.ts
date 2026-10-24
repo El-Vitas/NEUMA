@@ -148,6 +148,34 @@ describe('planCollectionDeliveries', () => {
     expect(JSON.stringify(deliveries)).not.toContain('secret');
   });
 
+  it('asks for a new query when the access to the collection itself or to a block above it changed', () => {
+    const rows = [buildRow({ id: 'space-root' }), buildRow({ id: 'tasks', parentId: 'space-root' }), ...ROWS.slice(1)];
+
+    const forCollection = planCollectionDeliveries({
+      blocks: [{ hasAccessChange: true, id: 'tasks', version: 4 }],
+      context: buildContext(rows, [ALICE]),
+      subscriptions: [subscribe('alice', ALICE, 'tasks')],
+      views: [],
+    });
+    const forAncestor = planCollectionDeliveries({
+      blocks: [{ hasAccessChange: true, id: 'space-root', version: 4 }],
+      context: buildContext(rows, [ALICE]),
+      subscriptions: [subscribe('alice', ALICE, 'tasks')],
+      views: [],
+    });
+    const forUnrelated = planCollectionDeliveries({
+      blocks: [{ hasAccessChange: true, id: 'other', version: 4 }],
+      context: buildContext(rows, [ALICE]),
+      subscriptions: [subscribe('alice', ALICE, 'tasks')],
+      views: [],
+    });
+
+    const resync = [{ connectionId: 'alice', message: { collectionId: 'tasks', type: 'collection-resync' as const } }];
+    expect(forCollection).toEqual(resync);
+    expect(forAncestor).toEqual(resync);
+    expect(forUnrelated).toEqual([]);
+  });
+
   it('asks the collection a row left to query again, and tells the one it entered', () => {
     const deliveries = planCollectionDeliveries({
       blocks: [{ id: 'other-1', previousParentId: 'tasks', version: 3 }],

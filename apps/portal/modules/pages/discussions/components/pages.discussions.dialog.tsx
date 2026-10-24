@@ -56,8 +56,7 @@ export const PagesDiscussionsDialog = ({
   const start = async (body: BlockRichText): Promise<boolean> => {
     if (blockId === null) return false;
     setIsBusy(true);
-    const outcome = await api.open(blockId, body, fragmentQuote ?? undefined);
-    setIsBusy(false);
+    const outcome = await api.open(blockId, body, fragmentQuote ?? undefined).finally(() => setIsBusy(false));
     if (!outcome.isOk) {
       tell(outcome.reason);
       return false;

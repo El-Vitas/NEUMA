@@ -15,7 +15,7 @@ import {
   DialogTrigger,
 } from '@/shared/components/ui/dialog';
 import { FormField } from '@/shared/components/ui/form-field';
-import { hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
+import { callAction, hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
 import { USERS_DIALOG_INPUT_CLASS } from '../constants/users.constants';
 import { updateUserNameAction } from '../server/actions/users.actions';
 import type { UserListItem } from '../types/users.types';
@@ -42,7 +42,7 @@ export const UsersEditDialog = ({ user }: IProps) => {
   const handleRename = async () => {
     setIsSubmitting(true);
     try {
-      const result = await updateUserNameAction({ userId: user.id, name });
+      const result = await callAction(() => updateUserNameAction({ userId: user.id, name }));
 
       if (hasActionError(result)) {
         toast.error(tErrors(`reasons.${readActionFailureReason(result)}`));

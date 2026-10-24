@@ -20,7 +20,7 @@ const resolveListingPlace = async (
   input: McpListPagesInput,
 ): Promise<{ readonly parentId: string | null; readonly spaceId: string }> => {
   if (input.parentPageId !== undefined) {
-    const [parent] = await dependencies.outline.listReadable([input.parentPageId], call.viewer);
+    const [parent] = await dependencies.outline.listReadable([input.parentPageId], await call.readOutlineViewer());
     if (parent === undefined) throw new McpToolError(MCP_INACCESSIBLE_MESSAGE);
     return { parentId: parent.id, spaceId: parent.spaceId };
   }
@@ -61,8 +61,9 @@ export const listPagesTool: McpToolDefinition = {
             const place = await resolveListingPlace(dependencies, call, input);
             const start = readMcpOffset(input.cursor);
             const end = start + input.limit;
+            const outlineViewer = await call.readOutlineViewer();
             const [children, describeRow] = await Promise.all([
-              dependencies.outline.listChildren(place.spaceId, place.parentId, call.viewer, {
+              dependencies.outline.listChildren(place.spaceId, place.parentId, outlineViewer, {
                 skip: start,
                 take: input.limit,
               }),

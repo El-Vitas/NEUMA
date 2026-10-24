@@ -11,7 +11,7 @@ import type { PageRowDropSide } from '../types/pages.row-ordering.types';
 interface IProps {
   readonly children: ReactNode;
   /** Set when the row is one of a windowed list, which reads its height by this number. */
-  readonly index?: number | undefined;
+  readonly index?: number;
   readonly rowId: string;
   /** The group the row is drawn in. */
   readonly scope: string;

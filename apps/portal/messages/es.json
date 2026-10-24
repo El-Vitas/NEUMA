@@ -70,6 +70,7 @@
     "account": "Cuenta",
     "profile": "Perfil",
     "logout": "Cerrar sesión",
+    "logoutPendingUnknown": "No pudimos comprobar si tienes cambios sin enviar. Puede que se pierdan si cierras sesión. ¿Cerrar sesión de todos modos?",
     "logoutPending": "Tienes {count, plural, one {# cambio sin enviar} other {# cambios sin enviar}}. Si cierras sesión se pierden. ¿Cerrar sesión de todos modos?",
     "mobileMenu": "Menú de navegación",
     "administrator": "Administrador",
@@ -83,6 +84,10 @@
       "emailPlaceholder": "nombre@ejemplo.com",
       "password": "Contraseña",
       "validationError": "Revisa los campos del formulario.",
+      "invalidCredentials": "Correo o contraseña incorrectos.",
+      "rateLimited": "Demasiados intentos seguidos. Espera un momento e inténtalo de nuevo.",
+      "offline": "No se pudo contactar con el servidor. Revisa tu conexión.",
+      "unexpected": "Algo falló de nuestro lado. Inténtalo de nuevo.",
       "submit": "Iniciar sesión",
       "submitting": "Iniciando sesión..."
     }
@@ -172,6 +177,7 @@
     "passwordMinimum": "Al menos {count} caracteres.",
     "nameUpdateError": "No se pudo actualizar tu nombre. Intenta de nuevo.",
     "nameUpdated": "Nombre actualizado",
+    "passwordChangedSignIn": "Tu contraseña se cambió, pero no pudimos iniciar una sesión nueva. Inicia sesión con la contraseña nueva.",
     "passwordUpdated": "Contraseña actualizada"
   },
   "accessTokens": {
@@ -421,7 +427,6 @@
   },
   "pages": {
     "subtitle": "Páginas y conocimiento estructurado.",
-    "loadError": "No se pudo cargar este espacio. Comprueba tus permisos e inténtalo de nuevo.",
     "spaceNavigation": "Navegación del espacio",
     "title": "Páginas",
     "createPage": "Crear una página",
@@ -494,8 +499,10 @@
       "copy": "Copiar texto",
       "copied": "Copiado",
       "discard": "Descartar",
+      "retry": "Reintentar",
       "noText": "Este cambio no tenía texto que mostrar.",
       "causes": {
+        "conflict": "Otra persona cambió esto desde que lo editaste. Lo que escribiste se guarda aquí; reintenta para aplicarlo sobre su cambio.",
         "forbidden": "Ya no tienes permiso para editar esto.",
         "invalid": "No se pudo leer de nuevo desde este navegador.",
         "missing": "Lo que cambiaba ya no existe.",
@@ -1111,6 +1118,9 @@
       "bulkTooMany": "Coinciden demasiadas filas para seleccionarlas todas. Acota con una búsqueda o un filtro.",
       "bulkUndo": "Deshacer",
       "bulkUndone": "Deshecho",
+      "bulkProgress": "Trabajando: {done, number} de {total, number} filas",
+      "bulkPartial": "{count, plural, one {# de las {total, number} filas no se pudo cambiar} other {# de las {total, number} filas no se pudieron cambiar}}",
+      "bulkUndoPartial": "{count, plural, one {# de las {total, number} filas no se pudo deshacer} other {# de las {total, number} filas no se pudieron deshacer}}",
       "bulkAssigned": "{count, plural, one {# fila respondida} other {# filas respondidas}}",
       "bulkDuplicated": "{count, plural, one {# copia hecha} other {# copias hechas}}",
       "bulkTrashed": "{count, plural, one {# fila a la papelera} other {# filas a la papelera}}",

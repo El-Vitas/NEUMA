@@ -26,7 +26,9 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
 
 mock.module('sonner', () => ({
   toast: {
+    dismiss: () => undefined,
     error: (label: string) => errors.push(label),
+    loading: () => 'progress-toast',
     success: (label: string, options?: { action?: { onClick: () => void } }) =>
       successes.push({ label, undo: options?.action?.onClick }),
   },
@@ -73,6 +75,41 @@ describe('hacer de una vez lo mismo con varias filas', () => {
     act(() => successes[0]?.undo?.());
     await waitFor(() => expect(restorePageAction).toHaveBeenCalledTimes(1));
     expect(restorePageAction).toHaveBeenCalledWith({ pageId: 'row-a', spaceId: 'space-a' });
+  });
+
+  it('says how many rows could not be undone instead of reporting the undo as done', async () => {
+    const { result } = renderBulkEditing();
+    await act(async () => {
+      result.current.setPropertyOnRows(['row-a', 'row-b'], 'status', 'DONE');
+    });
+    await waitFor(() => expect(successes).toHaveLength(1));
+
+    updatePageRowPropertiesAction.mockImplementation((input: unknown) => {
+      const { pageId } = input as { pageId: string };
+      return pageId === 'row-b' ? Promise.resolve({ serverError: 'unexpected' }) : Promise.resolve({ data: null });
+    });
+    act(() => successes[0]?.undo?.());
+
+    await waitFor(() => expect(errors).toContain('bulkUndoPartial:1'));
+    expect(successes).toHaveLength(1);
+    updatePageRowPropertiesAction.mockImplementation(() => Promise.resolve({ data: { id: 'row-a' } }));
+  });
+
+  it('tells how many rows could not be changed when only some of them were', async () => {
+    updatePageRowPropertiesAction.mockImplementation((input: unknown) => {
+      const { pageId } = input as { pageId: string };
+      return pageId === 'row-b' ? Promise.resolve({ serverError: 'unexpected' }) : Promise.resolve({ data: null });
+    });
+    const { result } = renderBulkEditing();
+
+    await act(async () => {
+      result.current.setPropertyOnRows(['row-a', 'row-b'], 'status', 'DONE');
+    });
+    await waitFor(() => expect(successes).toHaveLength(1));
+
+    expect(successes[0]?.label).toBe('bulkAssigned:1');
+    expect(errors).toContain('bulkPartial:1');
+    updatePageRowPropertiesAction.mockImplementation(() => Promise.resolve({ data: { id: 'row-a' } }));
   });
 
   it('gives every row back the value it had before', async () => {

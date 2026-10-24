@@ -36,6 +36,10 @@ export interface McpDiscussions {
     blockId: string,
     input: { readonly body: BlockRichText; readonly quote?: string | undefined },
   ) => Promise<Result<DiscussionView, McpRefusal>>;
+  readonly locateComment: (
+    viewer: McpDiscussionViewer,
+    commentId: string,
+  ) => Promise<Result<{ readonly blockId: string; readonly pageId: string }, McpRefusal>>;
   readonly removeComment: (
     viewer: McpDiscussionViewer,
     commentId: string,

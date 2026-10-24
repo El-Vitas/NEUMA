@@ -30,6 +30,16 @@ const readClientScope = (view: PageSchemaView): string =>
 
 const noop = (): void => undefined;
 
+/** Reads one page of every row of a view, or null when the server would not answer. */
+const readPageOfEveryRow =
+  (pageId: string, spaceId: string, viewId: string) =>
+  async (cursor: string | undefined): Promise<null | PageEveryRowRead> => {
+    const result = await callAction(() =>
+      readEveryPageRowAction({ ...(cursor === undefined ? {} : { cursor }), pageId, spaceId, viewId }),
+    );
+    return isActionSuccess<PageEveryRowRead>(result) ? result.data : null;
+  };
+
 /**
  * A view drawn by the browser itself: it reads every row of the collection once, then filters, sorts, groups and counts
  * them with the engine of the server, and places what others change without asking the server for the view again
@@ -62,12 +72,7 @@ export const usePagesClientRows = (input: PagesViewLiveInput, isEnabled: boolean
     if (!isEnabled) return;
     let isCurrent = true;
     const load = async (): Promise<void> => {
-      const read = await readEveryRow(async (cursor) => {
-        const result = await callAction(() =>
-          readEveryPageRowAction({ ...(cursor === undefined ? {} : { cursor }), pageId, spaceId, viewId: view.id }),
-        );
-        return isActionSuccess<PageEveryRowRead>(result) ? result.data : null;
-      });
+      const read = await readEveryRow(readPageOfEveryRow(pageId, spaceId, view.id));
       if (!isCurrent) return;
       if (read === null) {
         browserLogger.warn(

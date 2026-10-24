@@ -104,6 +104,54 @@ describe('planBlockTransaction', () => {
     });
   });
 
+  describe('changing the type of a block', () => {
+    it('refuses to turn a page into a content block and a content block into a page', () => {
+      const toParagraph: BlockOperation[] = [
+        { blockId: 'page-1', command: 'patchFields', patch: { type: 'paragraph' } },
+      ];
+      const toPage: BlockOperation[] = [{ blockId: 'p1', command: 'patchFields', patch: { type: 'page' } }];
+
+      expect(refusalOf(buildInput(toParagraph, [page, paragraph]))).toBe('BLOCK_TREE_INVALID');
+      expect(refusalOf(buildInput(toPage, [page, paragraph]))).toBe('BLOCK_TREE_INVALID');
+    });
+  });
+
+  describe('addresses a block can hold', () => {
+    const createWith = (type: string, properties: Record<string, unknown>): BlockOperation[] => [
+      { blockId: 'p2', command: 'create', fields: { format: null, parentId: 'page-1', properties, type } },
+      listAfter('page-1', 'p2', 'p1'),
+    ];
+
+    it.each(['javascript:alert(1)', 'data:text/html,<b>x</b>', 'vbscript:run', 'file:///etc/passwd'])(
+      'refuses %s in a bookmark',
+      (url) => {
+        expect(refusalOf(buildInput(createWith('bookmark', { url }), [page, paragraph]))).toBe('BLOCK_CONTENT_INVALID');
+      },
+    );
+
+    it('keeps a bookmark to an https address', () => {
+      const result = plannedOf(buildInput(createWith('bookmark', { url: 'https://example.com/a' }), [page, paragraph]));
+
+      expect(result.writes[0]?.block.id).toBe('p2');
+    });
+
+    it('refuses an embed that is not https or not on a known provider', () => {
+      const badUrls = ['javascript:alert(1)', 'http://www.youtube.com/watch?v=1', 'https://evil.example/x'];
+
+      for (const url of badUrls) {
+        const operations = createWith('embed', { provider: 'youtube', url });
+        expect(refusalOf(buildInput(operations, [page, paragraph]))).toBe('BLOCK_CONTENT_INVALID');
+      }
+    });
+
+    it('refuses a link mark that points to javascript: or data:', () => {
+      for (const link of ['javascript:alert(1)', 'data:text/html,x']) {
+        const operations = createWith('paragraph', { title: [{ attributes: { link }, insert: 'click' }] });
+        expect(refusalOf(buildInput(operations, [page, paragraph]))).toBe('BLOCK_CONTENT_INVALID');
+      }
+    });
+  });
+
   describe('versions and authorship', () => {
     it('raises the version by the number of operations that reached the block', () => {
       const operations: BlockOperation[] = [
@@ -207,6 +255,29 @@ describe('planBlockTransaction', () => {
       expect(
         plannedOf(buildInput(operations, [page, paragraph], asRole('ADMIN'))).writes[0]?.block.permissions,
       ).toBeNull();
+    });
+  });
+
+  describe('declaring permissions on a block created in the same transaction', () => {
+    const creatingWithPermissions = (): BlockOperation[] => [
+      ...create,
+      { blockId: 'p2', command: 'setPermissions', permissions: null },
+    ];
+
+    it('needs the power to manage permissions on the parent, as it does on an existing block', () => {
+      expect(refusalOf(buildInput(creatingWithPermissions(), [page, paragraph], asRole('WORKER')))).toBe(
+        'BLOCK_PERMISSIONS_FORBIDDEN',
+      );
+    });
+
+    it('is allowed to whoever can manage permissions on the parent', () => {
+      const planned = plannedOf(buildInput(creatingWithPermissions(), [page, paragraph], asRole('ADMIN')));
+
+      expect(planned.writes.map((write) => write.block.id)).toContain('p2');
+    });
+
+    it('lets an editor create the block without declaring permissions', () => {
+      expect(plannedOf(buildInput(create, [page, paragraph], asRole('WORKER'))).writes[0]?.block.id).toBe('p2');
     });
   });
 

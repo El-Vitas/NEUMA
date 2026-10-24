@@ -1,5 +1,9 @@
-import { blockRichTextSchema, listMentionedUserIds, NOTIFICATION_READ_RETENTION_DAYS } from '@neuma/shared';
-import { MILLISECONDS_PER_DAY } from './notification.constants';
+import {
+  blockRichTextSchema,
+  listMentionedUserIds,
+  MILLISECONDS_IN_A_DAY,
+  NOTIFICATION_READ_RETENTION_DAYS,
+} from '@neuma/shared';
 import type { TextMentionPlanInput } from './notification.domain.types';
 
 /** The people a text block names with a `person` embed in its title. Other properties carry no rich text. */
@@ -18,4 +22,4 @@ export const planTextMentionRecipients = (input: TextMentionPlanInput): string[]
 
 /** A notification read before this moment is deleted; one that was never read is kept. */
 export const computeReadRetentionCutoff = (now: Date): Date =>
-  new Date(now.getTime() - NOTIFICATION_READ_RETENTION_DAYS * MILLISECONDS_PER_DAY);
+  new Date(now.getTime() - NOTIFICATION_READ_RETENTION_DAYS * MILLISECONDS_IN_A_DAY);

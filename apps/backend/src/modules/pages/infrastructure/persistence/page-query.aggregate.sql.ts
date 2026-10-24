@@ -56,10 +56,12 @@ export const aggregateSql = (
   return property === undefined ? null : overProperty(item, property, context);
 };
 
+const aggregateAlias = (index: number): SqlFragment => sqlText(`"a${String(index)}"`);
+
 export const aggregateColumnsSql = (
   aggregates: readonly { readonly id: string; readonly sql: SqlFragment }[],
 ): SqlFragment =>
   joinSql(
-    aggregates.map((aggregate, index) => frag`(${aggregate.sql})::text AS ${sqlText(`"a${String(index)}"`)}`),
+    aggregates.map((aggregate, index) => frag`(${aggregate.sql})::text AS ${aggregateAlias(index)}`),
     ', ',
   );

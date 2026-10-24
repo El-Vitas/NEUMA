@@ -1,3 +1,4 @@
+import { browserLogger } from '../../lib/pages.browser-logger.lib';
 import { BOARD_LIVE_MAXIMUM_PAGES } from '../constants/pages.board-live.constants';
 import type {
   ChangesBatch,
@@ -75,12 +76,18 @@ export const createChangesController = <Reason extends string>(
     for (const [id, version] of notices) held.set(id, Math.max(held.get(id) ?? 0, version));
   };
 
+  /** One batch that throws must not end the following: the view is drawn again and the next batch goes on. */
+  const recoverFromFailure = (error: unknown): void => {
+    browserLogger.error({ err: error }, 'The changes of a collection could not be applied');
+    refresh('changes-failed');
+  };
+
   const run = (): void => {
     timer = null;
     const batch = new Map(pending);
     pending.clear();
     if (batch.size === 0 || isDestroyed) return;
-    current = current.then(() => process(batch));
+    current = current.then(() => process(batch)).catch(recoverFromFailure);
   };
 
   return {

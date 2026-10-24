@@ -94,8 +94,7 @@ const applyOperation = (
 };
 
 const hasSameContent = (previous: WorkingBlock | undefined, next: WorkingBlock): boolean =>
-  previous !== undefined &&
-  previous.type === next.type &&
+  previous?.type === next.type &&
   previous.alive === next.alive &&
   previous.parentId === next.parentId &&
   isSameJson(previous.properties, next.properties) &&
@@ -103,7 +102,7 @@ const hasSameContent = (previous: WorkingBlock | undefined, next: WorkingBlock):
 
 /**
  * Version, authorship and text are settled once per block, after all its operations. A block that only gained or
- * lost children keeps its content, so it is not parsed again: a row written before this rule must not stop a reorder.
+ * lost children keeps its content, so it is not parsed again: a reorder never fails on content it did not touch.
  */
 const settleBlock = (
   block: WorkingBlock,

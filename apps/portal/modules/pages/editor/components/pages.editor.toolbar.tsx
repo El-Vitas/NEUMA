@@ -50,10 +50,9 @@ export const PagesEditorToolbar = ({
   const primaryCommands = PAGE_EDITOR_PRIMARY_COMMAND_NAMES.map(
     (commandName) => [commandName, commands[commandName]] as const,
   );
-  const primaryCommandNames: readonly string[] = PAGE_EDITOR_PRIMARY_COMMAND_NAMES;
-  const secondaryCommands = Object.entries(commands).filter(
-    ([commandName]) => !primaryCommandNames.includes(commandName),
-  );
+  const primaryCommandNames = new Set<string>(PAGE_EDITOR_PRIMARY_COMMAND_NAMES);
+  const markNamesInUse = new Set(marksInUse);
+  const secondaryCommands = Object.entries(commands).filter(([commandName]) => !primaryCommandNames.has(commandName));
 
   return (
     <div
@@ -69,9 +68,9 @@ export const PagesEditorToolbar = ({
       {primaryCommands.map(([commandName, command]) => (
         <button
           aria-label={t(`commands.${command.labelKey}`)}
-          aria-pressed={command.mark === undefined ? undefined : marksInUse.includes(command.mark)}
+          aria-pressed={command.mark === undefined ? undefined : markNamesInUse.has(command.mark)}
           className={
-            command.mark !== undefined && marksInUse.includes(command.mark)
+            command.mark !== undefined && markNamesInUse.has(command.mark)
               ? PAGE_EDITOR_TOOL_IN_USE_STYLE_CLASS
               : PAGE_EDITOR_TOOL_STYLE_CLASS
           }

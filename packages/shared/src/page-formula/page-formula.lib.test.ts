@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { PagePropertyValues } from '../page-property/page-property.types.js';
 import { PAGE_PROPERTY_TYPE } from '../types/page-schema.types.js';
 import { PAGE_FORMULA_STEP_BUDGET } from './page-formula.constants.js';
+import { PAGE_FORMULA_DATE_RUNNERS } from './page-formula.dates.lib.js';
 import { evaluatePageFormula } from './page-formula.evaluate.lib.js';
 import { parsePageFormula } from './page-formula.parse.lib.js';
 import { tracePageFormula } from './page-formula.trace.lib.js';
@@ -309,7 +310,7 @@ describe('saving a formula', () => {
     const date = parsePageFormula('dateAdd(prop("Entrega"), 1, "days")', properties).getValue();
 
     expect(numeric.resultType).toBe('NUMBER');
-    expect([...numeric.references].sort()).toEqual(['price', 'quantity']);
+    expect([...numeric.references].sort((first, second) => first.localeCompare(second))).toEqual(['price', 'quantity']);
     expect(textual.resultType).toBe('TEXT');
     expect(flag.resultType).toBe('BOOLEAN');
     expect(date.resultType).toBe('DATE');
@@ -365,6 +366,37 @@ describe('saving a formula', () => {
     expect(parsePageFormula(`${'('.repeat(30)}1${')'.repeat(30)}`, properties).getError().code).toBe(
       'FORMULA_TOO_LARGE',
     );
+  });
+
+  test('fails the cell, not the query, when a date moves outside the dates that exist', () => {
+    expect(errorCodeOf('dateAdd(now(), 1000000000, "days")')).toBe('FORMULA_INVALID_ARGUMENT');
+    expect(errorCodeOf('dateAdd(now(), 1000000000, "years")')).toBe('FORMULA_INVALID_ARGUMENT');
+    expect(errorCodeOf('dateSubtract(date("2026-10-20"), 1000000000, "months")')).toBe('FORMULA_INVALID_ARGUMENT');
+  });
+
+  test('refuses a replacement that would grow past the text limit without building it', () => {
+    const big = 'a'.repeat(1000);
+
+    expect(errorCodeOf(`replaceAll("${big}", "a", "${'b'.repeat(20)}")`)).toBe('FORMULA_WORK_LIMIT');
+    expect(errorCodeOf(`replaceAll("${big}", "a", "${'b'.repeat(5)}")`)).toBe('OK');
+  });
+
+  test('never throws for any mix of functions and awkward arguments', () => {
+    const functionNames = Object.keys(PAGE_FORMULA_DATE_RUNNERS);
+    const awkward = ['0', '-1', '1e308', '-1e308', '1000000000', '9007199254740993', 'now()', 'today()', '""', '"x"'];
+    const units = ['"days"', '"months"', '"years"', '"hours"', '"minutes"', '"weeks"', '"bogus"'];
+    let seed = 12345;
+    const pick = <Item>(items: readonly Item[]): Item => {
+      seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
+      return items[seed % items.length];
+    };
+    for (let attempt = 0; attempt < 600; attempt += 1) {
+      const name = pick(functionNames);
+      const source = `${name}(${pick(awkward)}, ${pick(awkward)}, ${pick(units)})`;
+      const parsed = parsePageFormula(source, properties);
+      if (parsed.isFail()) continue;
+      expect(() => evaluatePageFormula(parsed.getValue().ast, buildScope({}), context)).not.toThrow();
+    }
   });
 
   test('gives a nested formula the type its pieces agree on', () => {

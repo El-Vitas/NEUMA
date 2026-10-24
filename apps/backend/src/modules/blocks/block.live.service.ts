@@ -10,8 +10,10 @@ import {
   BLOCK_LIVE_MAX_COLLECTION_SUBSCRIPTIONS_PER_CONNECTION,
   BLOCK_LIVE_MAX_CONNECTIONS_PER_USER,
   BLOCK_LIVE_MAX_MESSAGE_BYTES,
+  BLOCK_LIVE_MAX_QUEUED_MESSAGES,
   BLOCK_LIVE_MAX_SUBSCRIPTIONS_PER_CONNECTION,
   BLOCK_LIVE_MAX_TREE_SUBSCRIPTIONS_PER_CONNECTION,
+  BLOCK_LIVE_MAX_UNAUTHENTICATED_CONNECTIONS,
   BLOCK_LIVE_RATE_LIMIT,
   BLOCK_LIVE_SETTINGS,
   BLOCK_PRESENCE_STORE,
@@ -58,6 +60,10 @@ export class BlockLiveService {
 
   openConnection(socket: BlockLiveSocket): BlockLiveSocketHandler {
     const connection = this.registry.open(socket, Date.now());
+    if (this.registry.countUnauthenticated() > BLOCK_LIVE_MAX_UNAUTHENTICATED_CONNECTIONS) {
+      this.closeConnection(connection, BLOCK_LIVE_CLOSE_CODE.tooManyConnections, 'too-many-unauthenticated');
+      return { handleClose: () => undefined, handleMessage: () => Promise.resolve() };
+    }
     this.armDeadline(connection, this.settings.authTimeoutMs, BLOCK_LIVE_CLOSE_CODE.unauthorized, 'auth-timeout');
     connection.ageTimer = setTimeout(() => {
       this.closeConnection(connection, BLOCK_LIVE_CLOSE_CODE.reconnectRequired, 'maximum-age');
@@ -77,7 +83,17 @@ export class BlockLiveService {
     }
   }
 
+  /**
+   * The limits are applied on arrival, before the message is kept: a message that waits for its turn is memory held
+   * for a client that may never stop sending.
+   */
   private enqueue(connection: BlockLiveConnection, text: string): Promise<void> {
+    if (connection.isClosed || !this.admit(connection)) return Promise.resolve();
+    if (connection.pendingMessages >= BLOCK_LIVE_MAX_QUEUED_MESSAGES) {
+      this.closeConnection(connection, BLOCK_LIVE_CLOSE_CODE.policyViolation, 'queue-too-deep');
+      return Promise.resolve();
+    }
+    connection.pendingMessages += 1;
     connection.queue = this.processAfter(connection.queue, connection, text);
     return connection.queue;
   }
@@ -85,7 +101,11 @@ export class BlockLiveService {
   /** One message at a time per socket, so a subscribe and the unsubscribe after it cannot overtake each other. */
   private async processAfter(previous: Promise<void>, connection: BlockLiveConnection, text: string): Promise<void> {
     await previous;
-    await this.process(connection, text);
+    try {
+      await this.process(connection, text);
+    } finally {
+      connection.pendingMessages -= 1;
+    }
   }
 
   private async process(connection: BlockLiveConnection, text: string): Promise<void> {
@@ -99,7 +119,6 @@ export class BlockLiveService {
   }
 
   private async dispatch(connection: BlockLiveConnection, text: string): Promise<void> {
-    if (!this.admit(connection)) return;
     const parsed = this.parseWithinSizeLimit(connection, text);
     if (parsed === null) return;
     if (parsed.isFail()) {

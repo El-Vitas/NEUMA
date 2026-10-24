@@ -54,7 +54,7 @@ const whatIsWrongWithTheRemoval = (
   property: SchemaPropertyDefinition | undefined,
   rename: SchemaOptionRename,
 ): null | string => {
-  if (rename.to !== null || property === undefined || property.type !== DatabasePropertyType.STATUS) return null;
+  if (rename.to !== null || property?.type !== DatabasePropertyType.STATUS) return null;
   const remaining = (property.options ?? []).filter((option) => option.id !== rename.optionId);
   return hasEveryStatusGroupAnOption(remaining) ? null : 'A status keeps at least one option in each group';
 };

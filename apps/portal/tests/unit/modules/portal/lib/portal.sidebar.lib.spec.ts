@@ -65,6 +65,7 @@ describe('buildSidebarTreeIndent', () => {
 });
 
 const sidebarPage = (id: string, parentId: string | null, hasChildren?: boolean): PortalSidebarPage => ({
+  canEdit: true,
   hasChildren,
   icon: null,
   id,

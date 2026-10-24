@@ -99,20 +99,14 @@ export {
   BLOCK_TYPE,
   BLOCK_TYPE_VALUES,
 } from './block/block-type.constants.js';
-export {
-  COLLABORATION_DOCUMENT_FRAGMENT,
-  COLLABORATION_DOCUMENT_PREFIX,
-  createCollaborationDocumentName,
-  MAX_COLLABORATION_DISPLAY_NAME_LENGTH,
-  sanitizeCollaborationPresenceIdentity,
-} from './collaboration-presence.lib.js';
 export type { CollaborationPresenceIdentity, CollaborationPresenceState } from './collaboration-presence.types.js';
 export { UNASSIGNED_GROUP_KEY } from './constants/page-view.constants.js';
-export { DEFAULT_TAX_RATE, PRICING_LIMITS } from './constants/pricing.constants.js';
 export { API_SEGMENTS, RESOURCE_ROUTES } from './constants/route.constants.js';
 export { MILLISECONDS_IN_A_DAY } from './constants/time.constants.js';
 export {
   EMAIL_MAX_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
   PHONE_INPUT_PATTERN,
   PHONE_MAX_LENGTH,
   PHONE_PATTERN,
@@ -140,8 +134,6 @@ export type {
   NotificationView,
 } from './discussion/discussion.types.js';
 export { formatChileanTime } from './logger.lib.js';
-export { InvalidMoneyError } from './money/money.error.js';
-export { Money } from './money/money.js';
 export { PAGE_BLOCK_ITEM_TYPES } from './page-block/page-block.constants.js';
 export { givePageBlocksTheirIds } from './page-block/page-block.identity.lib.js';
 export { listPageBlocks } from './page-block/page-block.lib.js';

@@ -7,7 +7,7 @@ export const writeViewNow = async (write: PageViewWrite): Promise<ViewWriteSettl
   const sent = await sendViewWrite(write);
   if (sent.kind === 'applied') return { kind: 'applied' };
   if (sent.kind === 'offline') return { cause: 'other', kind: 'rejected', message: OFFLINE_WRITE_MESSAGE };
-  return sent;
+  return { cause: sent.cause, kind: 'rejected', message: sent.message };
 };
 
 /** Whether a refusal is only that there was no network, which the person can fix by trying again with one. */

@@ -211,12 +211,14 @@ export const PagesEditor = forwardRef(
       const withoutDiscussion = new URLSearchParams(searchParams.toString());
       withoutDiscussion.delete(DISCUSSION_QUERY_PARAMETER);
       const query = withoutDiscussion.toString();
-      router.replace(`${globalThis.location.pathname}${query === '' ? '' : `?${query}`}${globalThis.location.hash}`);
+      const search = query === '' ? '' : `?${query}`;
+      router.replace(`${globalThis.location.pathname}${search}${globalThis.location.hash}`);
     }, [discussions.discussions, discussions.status, router, searchParams, wantedDiscussionId]);
 
     const blockBinding = usePagesEditorBlockBinding({
       fallbackSaveState: canAutosave ? autosave.displayState : 'idle',
       initialBlocks: blockSync,
+      onAccessChanged: () => router.refresh(),
       onDiscussionChanged: () => void discussions.refresh(),
       isEnabled: isWritable,
       localUserId: currentUserId,

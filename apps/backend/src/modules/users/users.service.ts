@@ -4,7 +4,7 @@ import { toUser } from '../../common/utils/auth.utils';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PasswordAdapter } from '../auth/infrastructure/adapters/password.adapter';
 import { assertEmailAvailable, assertNoAdminYet } from './domain/user.domain';
-import type { AdminAlreadyExistsError, EmailAlreadyInUseError } from './domain/user.error';
+import { type AdminAlreadyExistsError, EmailAlreadyInUseError } from './domain/user.error';
 import { ListUsersDto } from './dto/user.list.dto';
 import { UpdatePasswordDto, UpdateUserDto } from './dto/user.update.dto';
 import { UserRepository } from './infrastructure/persistence/user.repository';
@@ -36,7 +36,7 @@ export class UsersService {
 
     const hashedPassword = await this.passwordAdapter.hash(input.password);
     const created = await this.userRepository.create({ ...input, password: hashedPassword });
-    return Result.ok(toUser(created));
+    return created === null ? Result.fail(new EmailAlreadyInUseError(input.email)) : Result.ok(toUser(created));
   }
 
   /** The only way in on a fresh install: run from the server's command line, and only while no admin exists. */

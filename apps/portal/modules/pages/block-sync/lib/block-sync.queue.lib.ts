@@ -152,6 +152,14 @@ export const createTransactionQueue = ({
       clearRetry();
       void pump();
     },
+    setAsideAll: (error) => {
+      const waiting = items;
+      items = [];
+      isBlocked = false;
+      failures = 0;
+      clearRetry();
+      for (const transaction of waiting) writeToDisk((disk) => disk.setAside(transaction, error));
+    },
     size: () => items.length,
   };
 };

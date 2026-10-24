@@ -118,17 +118,21 @@ export const usePagesEditorBlockActions = (
       const editorView = editorViewRef.current;
       if (editorView === null) return;
       const blockId = readPageEditorBlockId(editorView.state);
-      if (blockId === null || shownPage.pageId === null) {
+      const sourcePageId = shownPage.pageId;
+      const sourceSpaceId = shownPage.spaceId;
+      if (blockId === null || sourcePageId === null) {
         toast.error(t('syncedNeedsBlock'));
         return;
       }
       closePageEditorBlockRequest(editorView, 'sync');
 
-      void addBlocksToPageAction({
-        content: buildSyncedBlockContent({ blockId, pageId: shownPage.pageId, spaceId: shownPage.spaceId }),
-        pageId: destination.id,
-        spaceId: destination.spaceId,
-      }).then((result) => {
+      void callAction(() =>
+        addBlocksToPageAction({
+          content: buildSyncedBlockContent({ blockId, pageId: sourcePageId, spaceId: sourceSpaceId }),
+          pageId: destination.id,
+          spaceId: destination.spaceId,
+        }),
+      ).then((result) => {
         if (hasActionError(result)) toast.error(t('syncedError'));
         else
           toast.success(t('syncedDone', { page: destination.label }), {

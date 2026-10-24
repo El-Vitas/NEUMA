@@ -47,6 +47,7 @@ import {
 } from './block-sync.rows.lib';
 import { snapshotContent } from './block-sync.snapshot.lib';
 import { createBlockStore } from './block-sync.store.lib';
+import { toStableJson } from './block-sync.text.lib';
 
 /**
  * Keeps the editor and the blocks of one page the same. The editor reports its document; the engine turns each
@@ -69,6 +70,7 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
   let isSyncingBlocks = false;
   let isRebasing = false;
   let rebaseFailures = 0;
+  let rebaseRetries = 0;
   let divergenceRounds = 0;
   /** The children each parent was given since it was last read back, to check where the server put them. */
   const verification = new Map<string, Set<string>>();
@@ -138,7 +140,20 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
     if (groups.length > 0) enqueueGroups(groups);
   };
 
-  const applyToEditor = (localIds: ReadonlySet<string>): void => {
+  /** True when the editor already holds what the server said about these blocks, so nothing needs rebuilding. */
+  const isShownAlready = (changedIds: readonly string[]): boolean => {
+    const known = store.readSnapshotsOf(changedIds);
+    return changedIds.every((id) => {
+      const fromServer = known.get(id);
+      const shown = mirror.get(id);
+      if (fromServer === undefined || shown === undefined) return fromServer === shown;
+      return toStableJson(fromServer) === toStableJson(shown);
+    });
+  };
+
+  /** `changedIds` are the blocks the server just changed; if the editor shows them already, nothing is rebuilt. */
+  const applyToEditor = (localIds: ReadonlySet<string>, changedIds: readonly string[] = []): void => {
+    if (changedIds.length > 0 && isShownAlready(changedIds)) return;
     flushLocal();
     const merged = overlaySnapshots(
       store.readSnapshots(),
@@ -211,20 +226,26 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
   const rebase = async (): Promise<void> => {
     if (isRebasing || isDestroyed) return;
     isRebasing = true;
-    const didSync = await syncPageForRebase();
-    isRebasing = false;
+    let didSync = false;
+    try {
+      didSync = await syncPageForRebase();
+    } catch {
+      // Counts as a failed attempt: the retry below runs on a growing delay.
+      emitSaveState('failed');
+    } finally {
+      isRebasing = false;
+    }
     if (didSync) {
+      rebaseRetries = 0;
       rebaseTouched = new Set();
       resendAfterRebase();
       return;
     }
-    rebaseTimer = setTimeout(
-      () => {
-        rebaseTimer = null;
-        void rebase();
-      },
-      computeCollaborationReconnectDelayMs(Math.max(rebaseFailures, 1)),
-    );
+    rebaseRetries += 1;
+    rebaseTimer = setTimeout(() => {
+      rebaseTimer = null;
+      void rebase();
+    }, computeCollaborationReconnectDelayMs(rebaseRetries));
   };
 
   const syncPageForRebase = async (): Promise<boolean> => {
@@ -244,7 +265,7 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
 
   const handleRejected = (transaction: BlockTransaction, error: BlockTransactionError): void => {
     if (BLOCK_SYNC_FORBIDDEN_ERROR_CODES.includes(error.code)) {
-      queue.clear();
+      queue.setAsideAll(error);
       giveUpOnRefusal();
       return;
     }
@@ -291,7 +312,12 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
       return;
     }
     divergenceRounds = 0;
-    if (store.mergeBlocks(response).length > 0) applyToEditor(new Set());
+    applyMerged(response);
+  };
+
+  const applyMerged = (response: BlockSyncResponse): void => {
+    const changedIds = store.mergeBlocks(response);
+    if (changedIds.length > 0) applyToEditor(new Set(), changedIds);
   };
 
   /** Not what was asked: show it, read the page again and send what the server lacks, from live anchors. */
@@ -322,6 +348,17 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
 
   const runBlockSync = async (): Promise<void> => {
     isSyncingBlocks = true;
+    try {
+      await syncPendingBlocks();
+    } catch {
+      // The editor refused the content; the person sees the failed state and the next change is still applied.
+      emitSaveState('failed');
+    } finally {
+      isSyncingBlocks = false;
+    }
+  };
+
+  const syncPendingBlocks = async (): Promise<void> => {
     while (pendingSyncIds.size > 0 && !isDestroyed) {
       const ids = [...pendingSyncIds];
       const requested: BlockVersion[] = ids.map((id) => ({
@@ -331,10 +368,9 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
       pendingSyncIds.clear();
       forcedSyncIds.clear();
       const response = await requestChanged(requested);
-      if (response === null) break;
-      if (store.mergeBlocks(response).length > 0) applyToEditor(new Set());
+      if (response === null) return;
+      applyMerged(response);
     }
-    isSyncingBlocks = false;
   };
 
   const requestChanged = async (requested: readonly BlockVersion[]): Promise<BlockSyncResponse | null> => {
@@ -448,8 +484,8 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
 
   return {
     destroy: () => {
+      flushLocal();
       isDestroyed = true;
-      if (coalesceTimer !== null) clearTimeout(coalesceTimer);
       if (rebaseTimer !== null) clearTimeout(rebaseTimer);
       cursor.destroy();
       queue.destroy();

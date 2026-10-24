@@ -16,7 +16,6 @@ import { PagesSidePanelResizeHandle } from './pages.side-panel.resize-handle';
 
 interface IProps {
   readonly bundle: PagesSidePanelBundle;
-  readonly canEditContent: boolean;
   readonly currentUserDisplayName?: string;
   readonly currentUserId?: string;
   readonly spaceId: string;
@@ -27,14 +26,7 @@ interface IProps {
  * Built on Radix's non-modal `Dialog`: the page behind keeps its scroll and focus, Escape and outside clicks
  * close it, menus opened inside it do not count as outside, and no overlay is drawn.
  */
-export const PagesSidePanel = ({
-  bundle,
-  canEditContent,
-  currentUserDisplayName,
-  currentUserId,
-  spaceId,
-  spaceName,
-}: IProps) => {
+export const PagesSidePanel = ({ bundle, currentUserDisplayName, currentUserId, spaceId, spaceName }: IProps) => {
   const {
     ancestors,
     attachments,
@@ -114,7 +106,7 @@ export const PagesSidePanel = ({
               attachments={attachments}
               backlinks={backlinks}
               blockSync={blockSync}
-              canEdit={canEditPage(canEditContent, page.lifecycle) && !blockSyncFailed}
+              canEdit={canEditPage(page) && !blockSyncFailed}
               collectionSection={collectionSection}
               currentUserDisplayName={currentUserDisplayName}
               currentUserId={currentUserId}

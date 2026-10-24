@@ -103,6 +103,16 @@ export const openLocalCache = async <Body extends CacheableBody>(
     return { records: held.filter((body): body is Body => body !== undefined), result };
   };
 
+  const rewriteLayouts: LocalCache<Body>['rewriteLayouts'] = async (rewrite) => {
+    for (const result of [...results.values()]) {
+      const layout = rewrite(result.layout);
+      if (layout === result.layout) continue;
+      const next: CachedResult = { ...result, bytes: estimateBytes(result.ids) + layout.length * 2, layout };
+      results.set(next.key, next);
+      await storage.putResult(next);
+    }
+  };
+
   const validateResult: LocalCache<Body>['validateResult'] = async (key, changesCursor) => {
     const result = results.get(key);
     if (result === undefined) return;
@@ -169,6 +179,7 @@ export const openLocalCache = async <Body extends CacheableBody>(
     purgeSpace,
     readRecord: (id) => records.get(id)?.body ?? null,
     readResult,
+    rewriteLayouts,
     saveRecords,
     saveResult,
     validateResult,

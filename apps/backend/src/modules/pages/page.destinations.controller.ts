@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
+import { PageReadThrottlerGuard } from '../../common/infrastructure/guards/page-read-throttler.guard';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { PageMoveDestinationsQueryDto } from './dto/page.move-destinations.query.dto';
 import { PageMoveDestinationsService } from './page.move-destinations.service';
@@ -16,7 +17,7 @@ export class PageDestinationsController {
   ) {}
 
   @Get(':pageId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async list(
     @Param('pageId') pageId: string,
     @Query() dto: PageMoveDestinationsQueryDto,

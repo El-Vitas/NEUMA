@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/components/ui/dialog';
-import { hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
+import { callAction, hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
 import type { ActionFailureReason } from '@/shared/types/action-failure.types';
 import { restorePageVersionAction } from '../server/actions/pages.history.actions';
 
@@ -33,7 +33,7 @@ export const PagesHistoryRestoreDialog = ({ onClose, onRestored, pageId, spaceId
   const confirmRestore = (): void => {
     setFailure(null);
     startTransition(async () => {
-      const result = await restorePageVersionAction({ pageId, spaceId, version });
+      const result = await callAction(() => restorePageVersionAction({ pageId, spaceId, version }));
       if (hasActionError(result)) {
         setFailure(readActionFailureReason(result));
         return;

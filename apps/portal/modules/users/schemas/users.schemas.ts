@@ -1,6 +1,6 @@
-import { EMAIL_MAX_LENGTH, USER_ROLE_VALUES } from '@neuma/shared';
+import { EMAIL_MAX_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USER_ROLE_VALUES } from '@neuma/shared';
 import { z } from 'zod';
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/shared/constants/password.constants';
+import { pathSegmentSchema } from '@/shared/schemas/path-segment.schemas';
 import {
   USER_NAME_MAX_LENGTH,
   USER_NAME_MIN_LENGTH,
@@ -30,7 +30,7 @@ export const createUserSchema = z.object({
 });
 
 export const updateUserNameSchema = z.object({
-  userId: z.string().min(1),
+  userId: pathSegmentSchema,
   name: z
     .string()
     .trim()

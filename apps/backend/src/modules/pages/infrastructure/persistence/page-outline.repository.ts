@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { readBlockTitle } from '../../../../common/domain/block-access.domain';
-import { PrismaService } from '../../../../prisma/prisma.service';
 import { readPageValues } from '../../domain/page.block.domain';
 import { orderBySiblingPosition } from '../../domain/page.sibling-order.domain';
 import { isPageInTokenScope } from '../../domain/page.token-scope.domain';
@@ -25,10 +24,7 @@ const toViewer = (reader: PageOutlineReader): PageViewer => ({
 /** Page tree without content, so walking a space stays cheap. Children the reader cannot see are not counted either. */
 @Injectable()
 export class PageOutlineRepository implements PageOutlineRepositoryContract {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly blockReader: PageBlockReader,
-  ) {}
+  constructor(private readonly blockReader: PageBlockReader) {}
 
   async listChildren(
     spaceId: string,
@@ -46,7 +42,7 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
         toViewer(reader),
         (pageId) => isPageInTokenScope({ id: pageId, spaceId }, reader.tokenScope),
       ),
-      this.findCollectionIds(shown.map((page) => page.id)),
+      this.blockReader.findCollectionIds(shown.map((page) => page.id)),
     ]);
     const entries = shown.map((page) => ({
       hasChildren: parentsWithChildren.has(page.id),
@@ -106,13 +102,5 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
       .filter(({ access }) => !access.isInTrash)
       .map(({ block }) => block)
       .filter((block) => isPageInTokenScope(block, reader.tokenScope));
-  }
-
-  private async findCollectionIds(pageIds: readonly string[]): Promise<ReadonlySet<string>> {
-    if (pageIds.length === 0) return new Set();
-    const properties = await this.prisma.models.PageSchemaProperty.select('pageId')
-      .where((property) => property.pageId.in([...pageIds]))
-      .all();
-    return new Set(properties.map((property) => property.pageId));
   }
 }

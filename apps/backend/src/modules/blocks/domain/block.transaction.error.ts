@@ -6,6 +6,15 @@ export class BlockOperationInvalidError extends DomainError {
   public readonly httpStatus = 400;
 }
 
+export class BlockOperationsTooManyError extends DomainError {
+  public readonly code = 'BLOCK_OPERATIONS_TOO_MANY';
+  public readonly httpStatus = 413;
+
+  constructor(limit: number) {
+    super('The transaction carries more operations than one transaction may', { limit });
+  }
+}
+
 export class BlockFieldNotWritableError extends DomainError {
   public readonly code = 'BLOCK_FIELD_NOT_WRITABLE';
   public readonly httpStatus = 400;
@@ -170,6 +179,16 @@ export class RelationLimitExceededError extends DomainError {
 
   constructor(limit: number) {
     super('A relation cell cannot point to more rows than its limit', { limit });
+  }
+}
+
+/** The block changed after the writer read it, so what the writer meant to change may not be what is there now. */
+export class BlockVersionConflictError extends DomainError {
+  public readonly code = 'BLOCK_VERSION_CONFLICT';
+  public readonly httpStatus = 409;
+
+  constructor(blockId: string) {
+    super('The block changed since it was read', { blockId });
   }
 }
 

@@ -22,7 +22,8 @@ const formatChangesText = (output: McpCollectionChangesOutput): string => {
   const possibly = linked === '' ? '' : `\nRollups that may have changed:\n${linked}`;
   const truncated = output.possiblyChangedTruncated ? '\nThere are more of those: read the rollup columns again.' : '';
   const header = `${String(output.rows.length)} rows changed, ${String(output.total)} rows in all. Cursor: ${output.cursor}`;
-  return `${header}${rows === '' ? '' : `\n${rows}`}${possibly}${truncated}${trashed}${more}`;
+  const rowLines = rows === '' ? '' : `\n${rows}`;
+  return `${header}${rowLines}${possibly}${truncated}${trashed}${more}`;
 };
 
 /** What changed in a collection since the last read, so an agent that follows a board does not read it all again. */

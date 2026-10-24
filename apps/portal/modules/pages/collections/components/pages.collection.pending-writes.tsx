@@ -11,9 +11,9 @@ export const PagesCollectionPendingWrites = () => {
   if (pendingCount === 0) return null;
 
   return (
-    <p className="px-1 text-muted-foreground text-xs" data-testid="collection-pending-writes" role="status">
+    <output className="block px-1 text-muted-foreground text-xs" data-testid="collection-pending-writes">
       {t('pendingWrites', { count: pendingCount })}
       {!isPersistent && ` ${t('pendingWritesLost')}`}
-    </p>
+    </output>
   );
 };

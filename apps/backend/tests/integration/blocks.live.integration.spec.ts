@@ -342,6 +342,42 @@ describe('GET /blocks/live: live block channel (Integration)', () => {
       expect(caught.blocks[0]?.format).toMatchObject({ textColor: 'red' });
     });
 
+    it('keeps telling a subscriber about a page after it moved to another space', async () => {
+      const destination = await request(testApp.getServer())
+        .post('/api/v1/spaces')
+        .set('Authorization', `Bearer ${admin.token}`)
+        .send({
+          name: 'live-dest',
+          slug: `live-dest-${String(Date.now())}`,
+          visibility: SpaceVisibility.PUBLIC_INTERNAL,
+        })
+        .expect(HTTP_CREATED);
+      const destinationSpaceId = (destination.body as IdResponse).id;
+      const travellingPageId = crypto.randomUUID();
+      const travellingParagraphId = crypto.randomUUID();
+      const blocks = createBlockFactory(prisma.models);
+      const author = { createdById: admin.id, editedById: admin.id, spaceId };
+      await blocks.create({ ...author, children: [travellingParagraphId], id: travellingPageId, type: 'page' });
+      await blocks.create({ ...author, id: travellingParagraphId, parentId: travellingPageId });
+      const subscriber = await openClient(worker);
+      await subscribe(subscriber, travellingPageId);
+
+      await request(testApp.getServer())
+        .patch(`/api/v1/spaces/${spaceId}/pages/${travellingPageId}/move`)
+        .set({ Authorization: `Bearer ${admin.token}`, 'x-mutation-id': crypto.randomUUID() })
+        .send({ targetSpaceId: destinationSpaceId })
+        .expect(HTTP_OK);
+      const outcome = await transact(
+        admin,
+        [op('update', travellingParagraphId, ['format'], { textColor: 'green' })],
+        destinationSpaceId,
+      );
+
+      await subscriber.waitFor(
+        isVersionsOf(travellingPageId, travellingParagraphId, versionOf(outcome, travellingParagraphId)),
+      );
+    });
+
     it('does not send an id the subscriber cannot read, and sends it to the one who can', async () => {
       const subscriber = await openClient(worker);
       const owner = await openClient(admin);

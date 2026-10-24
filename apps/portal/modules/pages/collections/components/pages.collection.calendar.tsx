@@ -166,9 +166,9 @@ export const PagesCollectionCalendar = ({
         )}
       </div>
       {isTruncated && (
-        <p className="px-1 text-muted-foreground text-xs" role="status">
+        <output className="block px-1 text-muted-foreground text-xs">
           {t('calendarTruncated', { count: PAGE_VIEW_CALENDAR_MAXIMUM_ROWS })}
-        </p>
+        </output>
       )}
       <div className="grid grid-cols-7 border-border/60 border-r border-b">
         {PAGE_CALENDAR_WEEKDAY_STARTS.map((date) => (

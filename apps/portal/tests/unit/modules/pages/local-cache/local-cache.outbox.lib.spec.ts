@@ -52,6 +52,23 @@ describe('createOutbox', () => {
     expect(await outbox.listRejected()).toEqual([]);
   });
 
+  it('puts a refused write back among the pending ones, as it was made, when the person asks to try again', async () => {
+    const outbox = createFixture();
+    await outbox.append(transaction('t1', 7));
+    await outbox.markRejected('t1', 'other', 'unexpected');
+
+    await outbox.retryRejected('t1');
+
+    expect(await outbox.listRejected()).toEqual([]);
+    expect(await outbox.listPending()).toEqual([transaction('t1', 7)]);
+  });
+
+  it('ignores a retry for a refused write it does not hold', async () => {
+    const outbox = createFixture();
+    await outbox.retryRejected('missing');
+    expect(await outbox.listPending()).toEqual([]);
+  });
+
   it('forgets a rejected write only when the person discards it', async () => {
     const outbox = createFixture();
     await outbox.append(transaction('t1', 1));

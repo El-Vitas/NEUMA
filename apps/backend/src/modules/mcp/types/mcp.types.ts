@@ -132,15 +132,20 @@ export interface McpActionLog {
 
 export interface McpCall {
   readonly principal: McpPrincipal;
-  readonly viewer: McpOutlineViewer;
+  /** Resolves the pages the token reaches, which walks the subtree under each page rule: asked once, on demand. */
+  readonly readOutlineViewer: () => Promise<McpOutlineViewer>;
+  readonly viewer: McpViewer;
   readonly workspace: McpWorkspace;
 }
 
-export interface McpOutlineViewer {
+export interface McpViewer {
   readonly role: UserRole;
-  readonly tokenScope: SearchTokenScope;
   readonly userId: string;
   readonly workspaceId: string;
+}
+
+export interface McpOutlineViewer extends McpViewer {
+  readonly tokenScope: SearchTokenScope;
 }
 
 export interface McpOutlineEntry {

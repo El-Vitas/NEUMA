@@ -144,6 +144,15 @@ export class PageExportTooLargeError extends DomainError {
   }
 }
 
+export class PageVersionConflictError extends DomainError {
+  public readonly code = 'PAGE_VERSION_CONFLICT';
+  public readonly httpStatus = 409;
+
+  constructor() {
+    super('The page changed since it was read. Read it again before changing it.');
+  }
+}
+
 export class PageLockedError extends DomainError {
   public readonly code = 'PAGE_LOCKED';
   public readonly httpStatus = 409;

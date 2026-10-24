@@ -37,20 +37,26 @@ export class BlockLiveAccessService implements BlockLivePageAccess {
   }
 
   /**
-   * One statement reads the seeds and their ancestors; then one space lookup per distinct reader. That lookup is
-   * the cost of never caching access: a revoked user stops receiving on the very next notification.
+   * One statement reads the seeds and their ancestors, and two more read the spaces of all the distinct readers
+   * together, those of the blocks and the ones a follower follows: a page that left a space leaves none of its rows
+   * there, yet the people following that space must still be told. Nothing is cached: a revoked user stops
+   * receiving on the very next notification, and the cost of a commit does not grow with the people connected.
    */
-  async loadContext(seedIds: readonly string[], readers: readonly BlockReader[]): Promise<LiveAccessContext> {
+  async loadContext(
+    seedIds: readonly string[],
+    readers: readonly BlockReader[],
+    followedSpaceIds: readonly string[] = [],
+  ): Promise<LiveAccessContext> {
     const rows = await this.chainReader.readChains(seedIds);
     const rowsById = indexById(rows);
-    const spaceIds = [...new Set(rows.map((row) => row.spaceId))];
-    const entries = await Promise.all(
-      listDistinctReaders(readers).map(async (reader) => {
-        const readableSpaceIds = await this.blockRepository.findReadableSpaceIds(spaceIds, reader);
-        const viewer = { userId: reader.userId, workspaceRole: reader.role };
-        return { readableSpaceIds, roles: resolveRoles({ readableSpaceIds, viewer }, rowsById), userId: reader.userId };
-      }),
-    );
+    const spaceIds = [...new Set([...rows.map((row) => row.spaceId), ...followedSpaceIds])];
+    const distinctReaders = listDistinctReaders(readers);
+    const readableByUser = await this.blockRepository.findReadableSpaceIdsByReader(spaceIds, distinctReaders);
+    const entries = distinctReaders.map((reader) => {
+      const readableSpaceIds = readableByUser.get(reader.userId) ?? new Set<string>();
+      const viewer = { userId: reader.userId, workspaceRole: reader.role };
+      return { readableSpaceIds, roles: resolveRoles({ readableSpaceIds, viewer }, rowsById), userId: reader.userId };
+    });
     return {
       maxDepth: BLOCK_TREE_MAX_DEPTH,
       readableSpaceIdsByUserId: new Map(entries.map((entry) => [entry.userId, entry.readableSpaceIds])),

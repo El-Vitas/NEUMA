@@ -52,7 +52,12 @@ import {
 import { buildValueListOperation } from './domain/page.operation.domain';
 import { canDeletePagesForever, computeDaysBefore, computePurgeAfter } from './domain/page.purge.domain';
 import { validatePageCover } from './domain/page-cover.domain';
-import { fitsInOneExport, readExportableContent, selectPagesForExport } from './domain/page-export.domain';
+import {
+  fitsInOneExport,
+  keepReferencedAssets,
+  readExportableContent,
+  selectPagesForExport,
+} from './domain/page-export.domain';
 import type { PageExportScope } from './domain/page-export.domain.types';
 import { validatePageIcon } from './domain/page-icon.domain';
 import { extractMentionTargetPageIds, redactUnreadableMentions } from './domain/page-mention.domain';
@@ -75,6 +80,7 @@ import type {
   PageContentWriter,
   PageDescendantsPreview,
   PageLogger,
+  PageMoveRequest,
   PagePurgeRepositoryContract,
   PagePurgeSchedule,
   PageRepositoryContract,
@@ -128,18 +134,23 @@ export class PagesService {
     const chosen = selectPagesForExport(pages, scope);
     if (chosen.length === 0) return Result.fail(new PageAccessDeniedError());
 
-    const assets = await this.pageAttachmentsCleanupRepository.listAssetsForPages(chosen.map((page) => page.id));
+    const documents = chosen.map((page) => ({
+      content: readExportableContent(page.content),
+      id: page.id,
+      path: page.path,
+      title: page.title,
+    }));
+    const owned = await this.pageAttachmentsCleanupRepository.listAssetsForPages(chosen.map((page) => page.id));
+    const assets = keepReferencedAssets(
+      owned,
+      documents.map((document) => document.content),
+    );
     if (!fitsInOneExport(assets, EXPORT_MAX_ATTACHMENT_MEGABYTES)) {
       return Result.fail(new PageExportTooLargeError(EXPORT_MAX_ATTACHMENT_MEGABYTES));
     }
     const carried = await this.gatherAttachments(assets);
     const written = writePagesAsMarkdownFiles(
-      chosen.map((page) => ({
-        content: readExportableContent(page.content),
-        id: page.id,
-        path: page.path,
-        title: page.title,
-      })),
+      documents,
       untitledLabel,
       new Map(carried.map((asset) => [asset.id, asset.path])),
     );
@@ -330,6 +341,7 @@ export class PagesService {
     const page = await this.pageRepository.updatePropertyValues(
       {
         ...(extraOperations.length === 0 ? {} : { extraOperations }),
+        ...(input.expectedVersion === undefined ? {} : { expectedVersion: input.expectedVersion }),
         pageId: input.pageId,
         role: input.role,
         ...(input.title === undefined ? {} : { title: input.title }),
@@ -498,16 +510,11 @@ export class PagesService {
   }
 
   async move(
-    pageId: string,
-    parentId: null | string,
-    targetSpaceId: null | string,
-    userId: string,
-    workspaceId: string,
-    mutationId: string,
-    role: UserRole,
+    request: PageMoveRequest,
   ): Promise<
     Result<PageSummary, PageAccessDeniedError | PageCycleError | PageParentError | PagePropertyConformanceError>
   > {
+    const { pageId, parentId, role, targetSpaceId, userId, workspaceId } = request;
     if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
     const context = await this.pageRepository.findMoveContext(pageId, targetSpaceId, workspaceId, userId, role);
     if (context === null) return Result.fail(new PageAccessDeniedError());
@@ -521,15 +528,7 @@ export class PagesService {
       context.propertyValues,
     );
     if (conformance.isFail()) return Result.fail(new PagePropertyConformanceError(conformance.getError().details));
-    const page = await this.pageRepository.move(
-      pageId,
-      parentId,
-      destinationSpaceId,
-      userId,
-      workspaceId,
-      role,
-      mutationId,
-    );
+    const page = await this.pageRepository.move({ ...request, targetSpaceId: destinationSpaceId });
     return this.toAccessiblePageResult(page, workspaceId, userId, role);
   }
 

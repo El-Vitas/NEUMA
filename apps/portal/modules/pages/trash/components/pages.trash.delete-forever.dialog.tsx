@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/components/ui/dialog';
-import { hasActionError } from '@/shared/lib/action-result';
+import { callAction, hasActionError } from '@/shared/lib/action-result';
 import { deletePageForeverAction } from '../server/actions/pages.trash.actions';
 
 interface IProps {
@@ -30,7 +30,7 @@ export const PagesTrashDeleteForeverDialog = ({ onClose, onDeleted, page }: IPro
 
   const confirmDelete = (): void => {
     startTransition(async () => {
-      const result = await deletePageForeverAction({ pageId: page.id, spaceId: page.spaceId });
+      const result = await callAction(() => deletePageForeverAction({ pageId: page.id, spaceId: page.spaceId }));
       if (hasActionError(result)) {
         toast.error(t('trashScreen.deleteForeverError'));
         return;

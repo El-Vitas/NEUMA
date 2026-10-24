@@ -1,9 +1,10 @@
 import { extractPageContentSegments, joinPageContentSegmentsForDisplay } from '@neuma/shared';
 import { BRAND_NAME } from '@/shared/constants/brand.constants';
-import type { PageContent, PageLifecycle } from '../types/pages.types';
+import type { PageContent, PageLifecycle, PageSummary } from '../types/pages.types';
 
-export const canEditPage = (canEditRole: boolean, lifecycle: PageLifecycle | null): boolean =>
-  canEditRole && lifecycle !== 'TRASHED';
+/** The backend decides by the viewer's role on the page itself; the trash only closes it further. */
+export const canEditPage = (page: Pick<PageSummary, 'canEdit' | 'lifecycle'>): boolean =>
+  page.canEdit && page.lifecycle !== 'TRASHED';
 
 /** Page name first: a row of tabs is read by its first word. */
 export const buildPageDocumentTitle = (title: string, untitledLabel: string): string => {

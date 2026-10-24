@@ -3,11 +3,11 @@
 import { isPagePropertyValueEmpty, PAGE_PROPERTY_TYPE } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent } from 'react';
-import { useContext, useOptimistic, useState, useTransition } from 'react';
+import { useCallback, useContext, useOptimistic, useState, useSyncExternalStore, useTransition } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
-import { PAGE_VIEW_WRITES_CONTEXT } from '../constants/pages.view-writes.context.constants';
+import { PAGE_VIEW_WRITE_ACTIONS_CONTEXT } from '../constants/pages.view-writes.context.constants';
 import { canQueueCellWrite, isPropertyEditableInPlace, pagePropertyAnswersOnPick } from '../lib/pages.properties.lib';
 import { isOfflineRefusal } from '../lib/pages.view-writes.direct.lib';
 import { describeWrittenValue } from '../lib/pages.view-writes.optimistic.lib';
@@ -25,14 +25,16 @@ interface IProps {
   readonly ariaLabelledBy: string;
   readonly canEdit: boolean;
   /** Why a formula or rollup could not be computed in this row. */
-  readonly computedError?: PageComputedError | undefined;
+  readonly computedError?: PageComputedError;
   readonly contentClass: string;
   readonly controlClass: string;
   /** Tells the row a value is being written, so the formulas that read it can follow at once. */
-  readonly onWriting?: ((propertyKey: string, value: PagePropertyValue | undefined) => void) | undefined;
+  readonly onWriting?: (propertyKey: string, value: PagePropertyValue | undefined) => void;
   readonly personOptions?: readonly PagePersonOption[];
   readonly property: PageSchemaProperty;
   readonly rowId: string;
+  /** The version of the row as drawn, which the server holds the edit against. */
+  readonly rowVersion?: number;
   readonly spaceId: string;
   readonly value: PagePropertyValue | undefined;
 }
@@ -49,6 +51,7 @@ export const PagesCollectionTableCell = ({
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   property,
   rowId,
+  rowVersion,
   spaceId,
   value,
 }: IProps) => {
@@ -57,19 +60,33 @@ export const PagesCollectionTableCell = ({
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<PagePropertyValue | undefined>(value);
   const [, startWriting] = useTransition();
-  const writes = useContext(PAGE_VIEW_WRITES_CONTEXT);
+  const writes = useContext(PAGE_VIEW_WRITE_ACTIONS_CONTEXT);
+  const subscribeToRow = useCallback(
+    (listener: () => void) => writes.pendingValues.subscribeRow(rowId, listener),
+    [rowId, writes],
+  );
+  const pending = useSyncExternalStore(
+    subscribeToRow,
+    () => writes.pendingValues.read(rowId, property.key),
+    () => undefined,
+  );
   const [answered, showWritten] = useOptimistic(
     value,
     (_current: PagePropertyValue | undefined, written: PagePropertyValue | undefined) => written,
   );
-  const pending = writes.readPendingValue(rowId, property.key);
   const shown = pending === undefined ? answered : (pending ?? undefined);
 
   const write = (written: PagePropertyValue): void => {
     setIsEditing(false);
     if (written === value) return;
     const sent = isPagePropertyValueEmpty(property.type, written) ? null : written;
-    const change = { kind: 'cell', pageId: rowId, propertyValues: { [property.key]: sent }, spaceId } as const;
+    const change = {
+      ...(rowVersion === undefined ? {} : { expectedVersion: rowVersion }),
+      kind: 'cell',
+      pageId: rowId,
+      propertyValues: { [property.key]: sent },
+      spaceId,
+    } as const;
     startWriting(async () => {
       showWritten(sent ?? undefined);
       onWriting?.(property.key, sent ?? undefined);

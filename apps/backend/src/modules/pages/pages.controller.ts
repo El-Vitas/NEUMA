@@ -15,8 +15,10 @@ import type { Result } from '@neuma/shared';
 import type { FastifyReply } from 'fastify';
 import { MutationId } from '../../common/infrastructure/decorators/mutation-id.decorator';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
+import { BlockWriteThrottlerGuard } from '../../common/infrastructure/guards/block-write-throttler.guard';
 import { ExportThrottlerGuard } from '../../common/infrastructure/guards/export-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
+import { PageReadThrottlerGuard } from '../../common/infrastructure/guards/page-read-throttler.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { buildZipArchive } from '../../common/utils/zip.utils';
@@ -50,14 +52,14 @@ export class PagesController {
   ) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async list(@Param('spaceId') spaceId: string, @Query() dto: ListPagesDto, @User('payload') payload: TokenPayload) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     return this.pagesService.list(spaceId, workspace.id, payload.sub, payload.role, dto.includeTrashed);
   }
 
   @Get(':pageId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async getAccessible(
     @Param('spaceId') spaceId: string,
     @Param('pageId') pageId: string,
@@ -84,7 +86,7 @@ export class PagesController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BlockWriteThrottlerGuard)
   async create(@Param('spaceId') spaceId: string, @Body() dto: CreatePageDto, @User('payload') payload: TokenPayload) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pagesService.create(
@@ -132,6 +134,7 @@ export class PagesController {
   ) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pagesService.updateProperties({
+      ...(dto.expectedVersion === undefined ? {} : { expectedVersion: dto.expectedVersion }),
       pageId,
       propertyValues: dto.propertyValues,
       role: payload.role,
@@ -225,7 +228,7 @@ export class PagesController {
   }
 
   @Post(':pageId/duplicate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BlockWriteThrottlerGuard)
   async duplicate(
     @Param('pageId') pageId: string,
     @Body() dto: DuplicatePageDto,
@@ -324,15 +327,16 @@ export class PagesController {
     @User('payload') payload: TokenPayload,
   ) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    const result = await this.pagesService.move(
-      pageId,
-      dto.parentId ?? null,
-      dto.targetSpaceId ?? null,
-      payload.sub,
-      workspace.id,
+    const result = await this.pagesService.move({
+      expectedVersion: dto.expectedVersion ?? null,
       mutationId,
-      payload.role,
-    );
+      pageId,
+      parentId: dto.parentId ?? null,
+      role: payload.role,
+      targetSpaceId: dto.targetSpaceId ?? null,
+      userId: payload.sub,
+      workspaceId: workspace.id,
+    });
     if (result.isFail()) {
       throw result.getError();
     }

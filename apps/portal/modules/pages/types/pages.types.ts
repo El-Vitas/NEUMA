@@ -40,11 +40,13 @@ export interface PageMentionInsertCommandOptions {
 }
 
 export interface PageComputedValues {
-  readonly computedErrors?: Readonly<Record<string, { readonly code: string; readonly message: string }>> | undefined;
+  readonly computedErrors?: Readonly<Record<string, { readonly code: string; readonly message: string }>>;
   readonly propertyValues: PagePropertyValues | null;
 }
 
 export interface PageSummary {
+  /** True when the viewer's role on this page allows editing it; the backend resolves it like the write path does. */
+  readonly canEdit: boolean;
   /** Why a formula or rollup of the row could not be computed; only set on a row opened on its own page. */
   readonly computedErrors?: Readonly<Record<string, { readonly code: string; readonly message: string }>>;
   readonly content: PageContent;

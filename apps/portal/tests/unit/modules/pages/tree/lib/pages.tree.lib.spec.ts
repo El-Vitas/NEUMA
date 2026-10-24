@@ -12,6 +12,7 @@ import {
 import type { PageTreeEntry } from '@/modules/pages/tree/types/pages.tree.types';
 
 const entry = (id: string, parentId: string | null, hasChildren = false): PageTreeEntry => ({
+  canEdit: true,
   hasChildren,
   hasOwnPermissions: false,
   icon: null,

@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { toSavableView } from '../lib/pages.schema-editing.lib';
 import { describeSchemaRejection, isSchemaRejected } from '../lib/pages.schema-rejection.lib';
 import { updatePageCollectionAction } from '../server/actions/pages.collections.actions';
@@ -33,12 +33,14 @@ export const usePagesShapeSaving = (schema: PageSchema, spaceId: string): PagesS
       onSaved?: (saved: PageSchema) => void,
     ) => {
       startSaving(async () => {
-        const saved = await updatePageCollectionAction({
-          pageId: schema.pageId,
-          properties,
-          spaceId,
-          views: views.map(toSavableView),
-        });
+        const saved = await callAction(() =>
+          updatePageCollectionAction({
+            pageId: schema.pageId,
+            properties,
+            spaceId,
+            views: views.map(toSavableView),
+          }),
+        );
         if (!isActionSuccess<PageSchemaSaveOutcome>(saved)) {
           toast.error(tErrors('generic'));
           return;

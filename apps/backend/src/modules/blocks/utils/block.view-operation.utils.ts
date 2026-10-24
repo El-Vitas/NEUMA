@@ -1,6 +1,7 @@
 import { PAGE_VIEW_OPERATION_TABLE, Result, readPageViewOperation } from '@neuma/shared';
 import { z } from 'zod';
 import type { DomainError } from '../../../common/domain/domain.error';
+import { compareCodeUnits } from '../../../common/utils/compare.utils';
 import type { ViewOperationEntry } from '../domain/block.transaction.domain.types';
 import { BlockOperationInvalidError } from '../domain/block.transaction.error';
 import type { PartitionedOperations } from '../types/block.transaction.types';
@@ -46,4 +47,4 @@ export const parseViewOperations = (raw: readonly unknown[]): Result<ViewOperati
 
 /** Every view an operation names, once each, in id order: the rows to lock. */
 export const listViewIds = (entries: readonly ViewOperationEntry[]): string[] =>
-  [...new Set(entries.map((entry) => entry.viewId))].toSorted();
+  [...new Set(entries.map((entry) => entry.viewId))].toSorted(compareCodeUnits);

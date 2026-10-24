@@ -588,6 +588,53 @@ describe('Collection property types (Integration)', () => {
     });
   });
 
+  describe('values a client writes through a raw block transaction', () => {
+    const columns = [
+      {
+        key: 'state',
+        label: 'State',
+        options: ['open', 'closed'],
+        required: false,
+        type: DatabasePropertyType.SELECT,
+      },
+      { key: 'who', label: 'Who', options: null, required: false, type: DatabasePropertyType.PERSON },
+      { key: 'docs', label: 'Docs', options: null, required: false, type: DatabasePropertyType.FILES },
+    ];
+    const writeValues = (rowId: string, values: Record<string, unknown>) => ({
+      args: { values },
+      command: 'update',
+      path: ['properties'],
+      pointer: { id: rowId, table: 'block' },
+    });
+
+    it('keeps an option of the column and refuses one it does not have, leaving the row as it was', async () => {
+      const { collection, schema } = await createCollection('Raw checked', columns);
+      const row = await createRow('Row', collection.id);
+      const before = await storedValues(row.id);
+
+      const kept = await transact(adminToken, [writeValues(row.id, { state: optionOf(schema, 'state', 'open').id })]);
+      const stale = await transact(adminToken, [writeValues(row.id, { state: 'a-stale-option' })]);
+
+      expect(kept.error).toBeUndefined();
+      expect(stale.error?.code).toBe('BLOCK_CONTENT_INVALID');
+      expect(JSON.stringify(stale.error?.details)).toContain('state');
+      expect(await storedValues(row.id)).toEqual({ ...before, state: optionOf(schema, 'state', 'open').id });
+    });
+
+    it('refuses a person who is not in the workspace and a file that is not the writer’s', async () => {
+      const { collection } = await createCollection('Raw people', columns);
+      const row = await createRow('Row', collection.id);
+
+      const stranger = await transact(adminToken, [writeValues(row.id, { who: [crypto.randomUUID()] })]);
+      const member = await transact(adminToken, [writeValues(row.id, { who: [adminId] })]);
+      const file = await transact(adminToken, [writeValues(row.id, { docs: [crypto.randomUUID()] })]);
+
+      expect(stranger.error?.code).toBe('BLOCK_CONTENT_INVALID');
+      expect(member.error).toBeUndefined();
+      expect(file.error?.code).toBe('BLOCK_CONTENT_INVALID');
+    });
+  });
+
   describe('values the server assigns, through a raw block transaction', () => {
     const managed = [
       { key: 'code', label: 'Code', options: null, required: false, type: DatabasePropertyType.UNIQUE_ID },

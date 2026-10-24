@@ -156,8 +156,16 @@ describe('Page Schema (Integration)', () => {
   let adminToken: string;
   let adminUserId: string;
   let outsiderToken: string;
+  let outsiderUserId: string;
   let sharedSpaceId: string;
   let secretSpaceId: string;
+
+  /** What the collection rows and the tree carry as `version`: the version of the row's own block. */
+  const readBlockVersion = async (blockId: string): Promise<number> => {
+    const block = await testApp.get(PrismaService).models.Block.select('version').where({ id: blockId }).first();
+    if (block === null) throw new Error(`The block ${blockId} does not exist`);
+    return block.version;
+  };
 
   const readViewId = async (pageId: string, name: string, spaceId = sharedSpaceId): Promise<string> => {
     const schema = (await getSchema(testApp, adminToken, spaceId, pageId).expect(200)).body as {
@@ -191,6 +199,7 @@ describe('Page Schema (Integration)', () => {
     adminToken = adminSession.accessToken;
     adminUserId = adminSession.user.id;
     outsiderToken = outsiderSession.accessToken;
+    outsiderUserId = outsiderSession.user.id;
 
     sharedSpaceId = await createSpace(
       testApp,
@@ -274,6 +283,57 @@ describe('Page Schema (Integration)', () => {
     });
   });
 
+  describe('a reader of the collection', () => {
+    const restrictToReader = (collectionId: string) =>
+      request(testApp.getServer())
+        .post('/api/v1/transactions')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          transactions: [
+            {
+              id: crypto.randomUUID(),
+              operations: [
+                {
+                  args: {
+                    permissions: [
+                      { principal: { kind: 'user', userId: adminUserId }, role: 'full' },
+                      { principal: { kind: 'user', userId: outsiderUserId }, role: 'reader' },
+                    ],
+                  },
+                  command: 'setPermission',
+                  path: [],
+                  pointer: { id: collectionId, table: 'block' },
+                },
+              ],
+              spaceId: sharedSpaceId,
+            },
+          ],
+        })
+        .expect(200);
+
+    it('cannot redefine the schema, and the schema stays as it was', async () => {
+      const { collection } = await defineBoard('Read only board');
+      await restrictToReader(collection.id);
+
+      await defineSchema(testApp, outsiderToken, sharedSpaceId, collection.id, [titleProperty]).expect(403);
+
+      const schema = (await getSchema(testApp, outsiderToken, sharedSpaceId, collection.id).expect(200))
+        .body as PageSchemaResponse;
+      expect(schema.properties.map((property) => property.key)).toEqual(['title', 'status']);
+    });
+
+    it('cannot rewrite an option', async () => {
+      const { collection, todo } = await defineBoard('Read only options');
+      await restrictToReader(collection.id);
+
+      await request(testApp.getServer())
+        .post(`/api/v1/spaces/${sharedSpaceId}/pages/${collection.id}/schema/properties/status/rewrite-option`)
+        .set('Authorization', `Bearer ${outsiderToken}`)
+        .send({ optionId: todo, to: 'renamed' })
+        .expect(403);
+    });
+  });
+
   describe('row property validation', () => {
     it('accepts conforming property values on a row of a schema-carrying page, without duplicating the title', async () => {
       const { collection, todo } = await defineBoard('Board');
@@ -298,6 +358,60 @@ describe('Page Schema (Integration)', () => {
         });
 
       expect(response.status).toBe(400);
+    });
+
+    it('answers 409 PAGE_VERSION_CONFLICT and leaves the row alone when the version it saw is stale', async () => {
+      const { collection, done, todo } = await defineBoard('Board stale');
+      const row = await createPage(testApp, adminToken, sharedSpaceId, 'Row stale', collection.id, { status: todo });
+      const seen = await readBlockVersion(row.id);
+
+      const stale = await request(testApp.getServer())
+        .patch(`/api/v1/spaces/${sharedSpaceId}/pages/${row.id}/properties`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ expectedVersion: seen + 5, propertyValues: { status: done } })
+        .expect(409);
+      const current = await request(testApp.getServer())
+        .patch(`/api/v1/spaces/${sharedSpaceId}/pages/${row.id}/properties`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ expectedVersion: seen, propertyValues: { status: done } })
+        .expect(200);
+
+      expect((stale.body as { error: { code: string } }).error.code).toBe('PAGE_VERSION_CONFLICT');
+      expect((current.body as PageResponse).propertyValues).toEqual({ status: done });
+    });
+
+    it('refuses to move a page whose version is stale and leaves it where it was', async () => {
+      const { collection } = await defineBoard('Board move stale');
+      const other = await createPage(testApp, adminToken, sharedSpaceId, 'Other parent');
+      const row = await createPage(testApp, adminToken, sharedSpaceId, 'Row move', collection.id);
+      const seen = await readBlockVersion(row.id);
+
+      const stale = await request(testApp.getServer())
+        .patch(`/api/v1/spaces/${sharedSpaceId}/pages/${row.id}/move`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set('x-mutation-id', crypto.randomUUID())
+        .send({ expectedVersion: seen + 3, parentId: other.id })
+        .expect(409);
+
+      expect((stale.body as { error: { code: string } }).error.code).toBe('PAGE_VERSION_CONFLICT');
+      const stored = await testApp.get(PrismaService).models.Block.select('parentId').where({ id: row.id }).first();
+      expect(stored?.parentId).toBe(collection.id);
+    });
+
+    it('lets only one of several simultaneous writes that saw the same version through', async () => {
+      const { collection, done, todo } = await defineBoard('Board race');
+      const row = await createPage(testApp, adminToken, sharedSpaceId, 'Row race', collection.id, { status: todo });
+      const seen = await readBlockVersion(row.id);
+      const write = () =>
+        request(testApp.getServer())
+          .patch(`/api/v1/spaces/${sharedSpaceId}/pages/${row.id}/properties`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ expectedVersion: seen, propertyValues: { status: done } });
+
+      const responses = await Promise.all([write(), write(), write(), write()]);
+
+      const statuses = responses.map((response) => response.status).toSorted((first, second) => first - second);
+      expect(statuses).toEqual([200, 409, 409, 409]);
     });
 
     it('changes one property of a row without touching what the page says', async () => {

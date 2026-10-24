@@ -5,6 +5,8 @@ import type { PageContent, PageReference, PageSyncedSource } from '../../types/p
 
 /** What the sidebar draws for a page: no content, and whether a chevron is worth showing (ADR 030). */
 export interface PageTreeEntry {
+  /** The member may create pages under it: their role on the page is the one the create path asks for. */
+  readonly canEdit: boolean;
   /** A page the reader can open sits right under it; false for a collection, whose rows are not in the tree. */
   readonly hasChildren: boolean;
   readonly hasOwnPermissions: boolean;
@@ -22,7 +24,7 @@ export interface PageTreeChildren {
   readonly entries: readonly PageTreeEntry[];
   readonly total: number;
   /** Where the database was when the window was read; only the answers of the tree endpoint carry it. */
-  readonly watermark?: string | undefined;
+  readonly watermark?: string;
 }
 
 /** A window of the children of one parent; `parentId` null is the top of the space. */
@@ -164,7 +166,7 @@ export type PageTreeLiveMessage =
   | { readonly spaceId: string; readonly type: 'subscribed-tree' }
   | { readonly parentIds: readonly (string | null)[]; readonly spaceId: string; readonly type: 'tree-changed' }
   | { readonly spaceId: string; readonly type: 'tree-resync' }
-  | { readonly code: string; readonly spaceId?: string | undefined; readonly type: 'error' };
+  | { readonly code: string; readonly spaceId?: string; readonly type: 'error' };
 
 export interface PageTreeLiveHandlers {
   readonly onChanged: (spaceId: string, parentIds: readonly (string | null)[]) => void;

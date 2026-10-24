@@ -60,12 +60,16 @@ export const createBlockStore = (initialBlocks: readonly SyncedBlock[]): BlockSt
       blockId,
       mergeStateVectors(confirmedVectors.get(blockId) ?? new Map(), readVectorOf(serverDoc)),
     );
+    serverDoc.destroy();
   };
 
   const forget = (blockId: string): void => {
     snapshots.delete(blockId);
     versions.delete(blockId);
     roles.delete(blockId);
+    docs.get(blockId)?.destroy();
+    docs.delete(blockId);
+    confirmedVectors.delete(blockId);
   };
 
   const upsert = (block: SyncedBlock): void => {
@@ -100,8 +104,12 @@ export const createBlockStore = (initialBlocks: readonly SyncedBlock[]): BlockSt
     return buryBlock(block.id, toSnapshot(block), block.version);
   };
 
+  /** An answer read before a revival can arrive after the one that announced it. */
+  const isDeadNoticeOutdated = (block: SyncedBlock): boolean =>
+    snapshots.has(block.id) && (versions.get(block.id) ?? -1) > block.version;
+
   const mergeBlock = (block: SyncedBlock): boolean => {
-    if (!block.alive) return buryServerBlock(block);
+    if (!block.alive) return isDeadNoticeOutdated(block) ? false : buryServerBlock(block);
     if (isKnownAtLeast(block)) return false;
     upsert(block);
     graveyard.delete(block.id);
@@ -122,7 +130,7 @@ export const createBlockStore = (initialBlocks: readonly SyncedBlock[]): BlockSt
       if (block.alive) {
         upsert(block);
         graveyard.delete(block.id);
-      } else {
+      } else if (!isDeadNoticeOutdated(block)) {
         buryServerBlock(block);
       }
     }
@@ -149,14 +157,26 @@ export const createBlockStore = (initialBlocks: readonly SyncedBlock[]): BlockSt
     return encodeBase64(encodeStateAsUpdate(doc, confirmed === undefined ? undefined : encodeStateVector(confirmed)));
   };
 
+  const withLocalText = (id: string, snapshot: BlockSnapshot): BlockSnapshot => {
+    const doc = docs.get(id);
+    const textProperties = doc === undefined ? [] : [...doc.share.keys()];
+    const properties: Record<string, unknown> = { ...snapshot.properties };
+    for (const property of textProperties) properties[property] = readTextSegments(doc ?? new Doc(), property);
+    return { ...snapshot, properties };
+  };
+
   const readSnapshots = (): BlockSnapshotMap => {
     const merged = new Map<string, BlockSnapshot>();
-    for (const [id, snapshot] of snapshots) {
-      const doc = docs.get(id);
-      const textProperties = doc === undefined ? [] : [...doc.share.keys()];
-      const properties: Record<string, unknown> = { ...snapshot.properties };
-      for (const property of textProperties) properties[property] = readTextSegments(doc ?? new Doc(), property);
-      merged.set(id, { ...snapshot, properties });
+    for (const [id, snapshot] of snapshots) merged.set(id, withLocalText(id, snapshot));
+    return merged;
+  };
+
+  /** The cost follows the ids asked for, not the size of the page. */
+  const readSnapshotsOf = (ids: Iterable<string>): BlockSnapshotMap => {
+    const merged = new Map<string, BlockSnapshot>();
+    for (const id of ids) {
+      const snapshot = snapshots.get(id);
+      if (snapshot !== undefined) merged.set(id, withLocalText(id, snapshot));
     }
     return merged;
   };
@@ -238,6 +258,7 @@ export const createBlockStore = (initialBlocks: readonly SyncedBlock[]): BlockSt
     mergeBlocks,
     readRole: (blockId) => roles.get(blockId) ?? null,
     readSnapshots,
+    readSnapshotsOf,
     readVersion: (blockId) => versions.get(blockId),
     replacePage,
     textWriter: { canWrite, write },

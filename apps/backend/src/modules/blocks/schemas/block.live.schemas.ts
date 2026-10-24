@@ -49,7 +49,7 @@ const requestAndOtherMessagesSchema = z.discriminatedUnion('type', [
   z.strictObject({
     since: z
       .string()
-      .regex(/^\d{1,20}$/)
+      .regex(/^\d{1,19}$/)
       .optional(),
     spaceId: blockIdSchema,
     type: z.literal('subscribe-tree'),

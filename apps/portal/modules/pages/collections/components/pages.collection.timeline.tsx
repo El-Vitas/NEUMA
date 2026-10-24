@@ -131,7 +131,9 @@ export const PagesCollectionTimeline = ({
     startReading(() =>
       router.replace(buildCollectionViewHref(activeViewName, { day, quickFilter, search }), { scroll: false }),
     );
-  const title = `${titleFormat.format(new Date(`${range.start}T00:00:00.000Z`))} – ${titleFormat.format(new Date(`${range.end}T00:00:00.000Z`))}`;
+  const startDate = titleFormat.format(new Date(`${range.start}T00:00:00.000Z`));
+  const endDate = titleFormat.format(new Date(`${range.end}T00:00:00.000Z`));
+  const title = `${startDate} – ${endDate}`;
 
   return (
     <div aria-busy={isReading} className="space-y-2" data-testid="collection-timeline">
@@ -177,9 +179,9 @@ export const PagesCollectionTimeline = ({
         )}
       </div>
       {timeline.isTruncated && (
-        <p className="px-1 text-muted-foreground text-xs" role="status">
+        <output className="block px-1 text-muted-foreground text-xs">
           {t('timelineTruncated', { count: rows.length })}
-        </p>
+        </output>
       )}
       {isNaming && (
         <PagesCollectionNewRow

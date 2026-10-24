@@ -39,8 +39,11 @@ export const PagesDiscussionsThread = ({
 
   const change = async (work: () => Promise<void>): Promise<void> => {
     setIsBusy(true);
-    await work();
-    setIsBusy(false);
+    try {
+      await work();
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   return (

@@ -21,6 +21,7 @@ model User {
   pageViews            PageView[]
   accessTokens         AccessToken[]
   notifications        Notification[]
+  refreshSessions      RefreshSession[]
 
   @@index([email], map: "User_email_idx")
   @@unique([email], map: "User_email_key")

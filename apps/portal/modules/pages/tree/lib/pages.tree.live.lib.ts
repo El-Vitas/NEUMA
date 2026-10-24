@@ -1,6 +1,5 @@
 import { BLOCK_SYNC_CLOSE_CODE, BLOCK_SYNC_PING_INTERVAL_MS } from '../../block-sync/constants/block-sync.constants';
-import type { BlockLiveSocket } from '../../block-sync/types/block-sync.types';
-import { computeCollaborationReconnectDelayMs } from '../../lib/pages.collaboration.lib';
+import { createLiveSocketLoop } from '../../block-sync/lib/block-sync.live-socket.lib';
 import { pageTreeLiveMessageSchema } from '../schemas/pages.tree.schemas';
 import type { PageTreeLiveMessage, PageTreeLiveSession, PageTreeLiveSessionOptions } from '../types/pages.tree.types';
 
@@ -28,15 +27,8 @@ export const createPageTreeLiveSession = ({
   url,
   watermarks,
 }: PageTreeLiveSessionOptions): PageTreeLiveSession => {
-  let socket: BlockLiveSocket | null = null;
-  let isDestroyed = false;
   let hasConnected = false;
   let isSocketAnnounced = false;
-  let attempts = 0;
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  let pingTimer: ReturnType<typeof setInterval> | null = null;
-
-  const send = (message: Record<string, unknown>): void => socket?.send(JSON.stringify(message));
 
   /** Only the first subscription carries the render: a reconnection reads everything open again anyway. */
   const buildSubscription = (spaceId: string): Record<string, unknown> => {
@@ -44,14 +36,8 @@ export const createPageTreeLiveSession = ({
     return since === undefined ? { spaceId, type: 'subscribe-tree' } : { since, spaceId, type: 'subscribe-tree' };
   };
 
-  const stopPing = (): void => {
-    if (pingTimer !== null) clearInterval(pingTimer);
-    pingTimer = null;
-  };
-
   const handleSubscribed = (): void => {
-    attempts = 0;
-    if (pingTimer === null) pingTimer = setInterval(() => send({ type: 'ping' }), BLOCK_SYNC_PING_INTERVAL_MS);
+    loop.markReady();
     if (isSocketAnnounced) return;
     isSocketAnnounced = true;
     if (hasConnected) handlers.onReconnected();
@@ -79,62 +65,24 @@ export const createPageTreeLiveSession = ({
     }
   };
 
-  const scheduleReconnect = (): void => {
-    if (isDestroyed) return;
-    attempts += 1;
-    reconnectTimer = setTimeout(() => {
-      reconnectTimer = null;
-      void connect();
-    }, computeCollaborationReconnectDelayMs(attempts));
-  };
-
-  const handleClose = (closed: BlockLiveSocket, code: number): void => {
-    if (socket !== closed || isDestroyed) return;
-    socket = null;
-    stopPing();
-    if (code === BLOCK_SYNC_CLOSE_CODE.unauthorized) return;
-    if (code === BLOCK_SYNC_CLOSE_CODE.reconnectRequired) {
-      void connect();
-      return;
-    }
-    scheduleReconnect();
-  };
-
-  const fetchToken = async (): Promise<string | null> => {
-    try {
-      return await requestToken();
-    } catch {
-      return null;
-    }
-  };
-
-  const connect = async (): Promise<void> => {
-    if (isDestroyed) return;
-    const token = await fetchToken();
-    if (isDestroyed) return;
-    if (token === null) {
-      scheduleReconnect();
-      return;
-    }
-    const opened = openSocket(url);
-    socket = opened;
-    isSocketAnnounced = false;
-    opened.listen({
-      onClose: (code) => handleClose(opened, code),
-      onMessage: handleMessage,
-      onOpen: () => send({ token, type: 'auth' }),
-    });
-  };
-
-  void connect();
-
-  return {
-    destroy: () => {
-      isDestroyed = true;
-      stopPing();
-      if (reconnectTimer !== null) clearTimeout(reconnectTimer);
-      socket?.close();
-      socket = null;
+  const loop = createLiveSocketLoop({
+    onClosed: (code, closedLoop) => {
+      if (code === BLOCK_SYNC_CLOSE_CODE.unauthorized) return;
+      if (code === BLOCK_SYNC_CLOSE_CODE.reconnectRequired) closedLoop.reconnectForced();
+      else closedLoop.reconnectLater();
     },
-  };
+    onMessage: handleMessage,
+    onSocketOpened: () => {
+      isSocketAnnounced = false;
+    },
+    openSocket,
+    pingIntervalMs: BLOCK_SYNC_PING_INTERVAL_MS,
+    requestToken,
+    url,
+  });
+  const send = loop.send;
+
+  void loop.connect();
+
+  return { destroy: loop.destroy };
 };

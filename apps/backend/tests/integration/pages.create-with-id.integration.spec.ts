@@ -69,6 +69,20 @@ describe('Creating a page with an id of the caller (Integration)', () => {
     expect(made).toHaveLength(1);
   });
 
+  it('answers two simultaneous requests with the same id with the one page, never an error', async () => {
+    const id = randomUUID();
+
+    const responses = await Promise.all([
+      create({ id, parentId: collectionId, title: 'Race' }),
+      create({ id, parentId: collectionId, title: 'Race' }),
+      create({ id, parentId: collectionId, title: 'Race' }),
+    ]);
+
+    expect(responses.map((response) => response.status)).toEqual([201, 201, 201]);
+    const made = await prisma.models.Block.select('id').where({ id }).all();
+    expect(made).toHaveLength(1);
+  });
+
   it('refuses an id that is not a UUID', async () => {
     await create({ id: 'not-a-uuid', parentId: collectionId }).expect(400);
   });

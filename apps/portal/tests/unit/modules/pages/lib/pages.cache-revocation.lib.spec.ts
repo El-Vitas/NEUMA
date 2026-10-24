@@ -29,6 +29,38 @@ const openCache = async () =>
   });
 
 describe('forgetRevokedRows', () => {
+  it('takes the revoked rows out of the related rows of every layout kept, and leaves the rest', async () => {
+    const cache = await openCache();
+    await cache.saveRecords([bodyOf('a', 1), bodyOf('c', 1)]);
+    const layout = JSON.stringify({
+      lookups: {
+        attachedFiles: [],
+        people: [],
+        relatedRows: [
+          { id: 'a', title: 'Secret' },
+          { id: 'c', title: 'Fine' },
+        ],
+      },
+    });
+    await cache.saveResult({
+      changesCursor: null,
+      collectionId: 'collection-1',
+      ids: ['c'],
+      key: 'other-view',
+      layout,
+      schemaVersion: 0,
+      total: 1,
+      viewVersion: 1,
+    });
+
+    await forgetRevokedRows({ cache, droppedIds: ['a'], readRevoked: () => Promise.resolve(['a']) });
+
+    const kept = JSON.parse(cache.readResult('other-view')?.result.layout ?? '{}') as {
+      lookups: { relatedRows: { id: string }[] };
+    };
+    expect(kept.lookups.relatedRows.map((related) => related.id)).toEqual(['c']);
+  });
+
   it('asks the server about the rows the cache holds with the versions it holds them at', async () => {
     const cache = await openCache();
     await cache.saveRecords([bodyOf('a', 4), bodyOf('b', 9)]);

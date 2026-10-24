@@ -1,7 +1,5 @@
 import 'reflect-metadata';
-import { join } from 'node:path';
 import multipart from '@fastify/multipart';
-import fastifyStatic from '@fastify/static';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -12,10 +10,15 @@ import { AppModule } from './app.module';
 import { parseCorsOrigins } from './common/config/cors.config';
 import { getTrustProxy } from './common/config/trust-proxy.config';
 import { CORS_ORIGIN_KEY, PORT_KEY } from './common/constants/env.constants';
+import { HTTP_STATUS_PAYLOAD_TOO_LARGE } from './common/constants/http.constants';
 import { MULTIPART_LIMITS } from './common/constants/storage.constants';
 import { GlobalExceptionFilter } from './common/infrastructure/filters/global.exception.filter';
+import { readBearerToken } from './common/utils/auth.utils';
+import { looksLikeAccessTokenSecret } from './modules/access-tokens/utils/access-token.utils';
+import { RefreshSessionRetentionScheduler } from './modules/auth/infrastructure/schedulers/refresh-session.retention.scheduler';
 import { MCP_ROUTE } from './modules/mcp/constants/mcp.constants';
 import { MCP_REQUEST_BODY_LIMIT_BYTES } from './modules/mcp/constants/mcp.limits.constants';
+import { isBodyTooLargeForCaller } from './modules/mcp/utils/mcp.request-size.utils';
 import { NotificationRetentionScheduler } from './modules/notifications/infrastructure/schedulers/notification.retention.scheduler';
 import { PageRetentionScheduler } from './modules/pages/infrastructure/schedulers/page.retention.scheduler';
 
@@ -39,22 +42,22 @@ const bootstrap = async (): Promise<void> => {
     origin: parseCorsOrigins(corsOrigin),
   });
   app.setGlobalPrefix('api/v1');
-  app
-    .getHttpAdapter()
-    .getInstance()
-    .addHook('onRoute', (route) => {
-      if (route.url === `/api/v1/${MCP_ROUTE}`) route.bodyLimit = MCP_REQUEST_BODY_LIMIT_BYTES;
+  const mcpPath = `/api/v1/${MCP_ROUTE}`;
+  const server = app.getHttpAdapter().getInstance();
+  server.addHook('onRoute', (route) => {
+    if (route.url === mcpPath) route.bodyLimit = MCP_REQUEST_BODY_LIMIT_BYTES;
+  });
+  server.addHook('onRequest', async (request, reply) => {
+    if (request.url !== mcpPath) return;
+    const token = readBearerToken(request.headers.authorization);
+    const isTooLarge = isBodyTooLargeForCaller({
+      contentLength: request.headers['content-length'],
+      hasTokenShape: token !== undefined && looksLikeAccessTokenSecret(token),
     });
+    if (isTooLarge) await reply.code(HTTP_STATUS_PAYLOAD_TOO_LARGE).send();
+  });
 
   await app.register(multipart, { limits: MULTIPART_LIMITS });
-
-  if (configService.get('NODE_ENV') !== 'production') {
-    const uploadsPath = join(process.cwd(), 'uploads');
-    await app.register(fastifyStatic, {
-      root: join(uploadsPath, 'files'),
-      prefix: '/api/v1/files/',
-    });
-  }
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -66,10 +69,10 @@ const bootstrap = async (): Promise<void> => {
   );
   app.useGlobalFilters(new GlobalExceptionFilter(logger));
 
-  const port = configService.get<string>(PORT_KEY) ?? '3000';
-  await app.listen(Number(port), '0.0.0.0');
+  await app.listen(configService.getOrThrow<number>(PORT_KEY), '0.0.0.0');
   app.get(PageRetentionScheduler).start();
   app.get(NotificationRetentionScheduler).start();
+  app.get(RefreshSessionRetentionScheduler).start();
 };
 
 void bootstrap();

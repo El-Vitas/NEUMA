@@ -40,7 +40,7 @@ interface IProps {
   readonly attachments?: readonly AttachmentSummary[];
   readonly claimsFocus?: boolean;
   /** Why a formula or rollup could not be computed in this row. */
-  readonly computedError?: PageComputedError | undefined;
+  readonly computedError?: PageComputedError;
   readonly disabled: boolean;
   /** Typed values are committed on blur; chosen values do not need it. */
   readonly onBlur?: () => void;

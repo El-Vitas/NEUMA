@@ -23,7 +23,7 @@ export interface PageQueryResult {
   /** Where to read what changed after this answer; taken before its rows were read, so no change falls between. */
   readonly changesCursor: string;
   /** Collections the formulas and rollups read: a change there can change a value here (ADR 028). */
-  readonly computedDependsOn?: readonly string[] | undefined;
+  readonly computedDependsOn?: readonly string[];
   readonly reducers: Readonly<Record<string, PageQueryOutcome>>;
   readonly relatedRows: readonly PageRelatedRow[];
   readonly rows: Readonly<Record<string, PageRow>>;

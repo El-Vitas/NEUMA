@@ -77,6 +77,7 @@ const createHarness = (tokens: readonly (string | null)[] = ['token-1', 'token-2
       return socket;
     },
     pageId: 'page-1',
+    onAccessChanged: () => events.push('access-changed'),
     requestToken: () => {
       const token = tokens[tokenCalls] ?? null;
       tokenCalls += 1;
@@ -116,6 +117,15 @@ describe('createBlockLiveSession', () => {
     expect(socket.sent[1]).toEqual({ pageId: 'page-1', type: 'subscribe' });
     expect(harness.statuses).toEqual(['connecting', 'connected']);
     expect(harness.events).toEqual(['connected']);
+  });
+
+  it('tells the page that what the viewer may do changed', async () => {
+    const harness = createHarness();
+    const socket = await connectFirstSocket(harness);
+
+    socket.receive({ pageId: 'page-1', type: 'access-changed' });
+
+    expect(harness.events).toContain('access-changed');
   });
 
   it('answers a request with the reply that carries its request id', async () => {
@@ -201,6 +211,21 @@ describe('createBlockLiveSession', () => {
     expect(harness.tokenCalls()).toBe(2);
     harness.sockets[1]?.open();
     expect(harness.sockets[1]?.sent[0]).toEqual({ token: 'token-2', type: 'auth' });
+  });
+
+  it('backs off when the server keeps asking to reconnect without ever becoming ready', async () => {
+    const harness = createHarness();
+    const socket = await connectFirstSocket(harness);
+    socket.closeWith(BLOCK_SYNC_CLOSE_CODE.reconnectRequired);
+    await flush();
+
+    harness.sockets[1]?.closeWith(BLOCK_SYNC_CLOSE_CODE.reconnectRequired);
+    await flush();
+
+    expect(harness.sockets).toHaveLength(2);
+    jest.advanceTimersByTime(computeCollaborationReconnectDelayMs(2));
+    await flush();
+    expect(harness.sockets).toHaveLength(3);
   });
 
   it('stops and reports an error when the token is refused', async () => {

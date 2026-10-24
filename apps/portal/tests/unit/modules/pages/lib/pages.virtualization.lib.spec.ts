@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'bun:test';
-import { measureDrawnItems, readVisibleIndexes } from '@/modules/pages/collections/lib/pages.virtualization.lib';
+import {
+  buildItemOffsets,
+  measureDrawnItems,
+  readVisibleIndexes,
+  readVisibleRange,
+} from '@/modules/pages/collections/lib/pages.virtualization.lib';
 
 const readWindow = (
   top: number,
@@ -63,6 +68,49 @@ describe('lo que se dibuja de una lista larga', () => {
     });
 
     expect(drawn.indexes[0]).toBe(0);
+  });
+});
+
+describe('el tramo visible sin recorrer la lista entera', () => {
+  const read = (top: number, heights: ReadonlyMap<number, number> = new Map()) =>
+    readVisibleRange({
+      count: 100_000,
+      estimateSize: 100,
+      heights,
+      offsets: buildItemOffsets(100_000, 100, heights),
+      overscan: 2,
+      viewport: { height: 500, offset: 0, top },
+    });
+
+  it('finds the first and last item to draw from prebuilt offsets', () => {
+    expect(read(0)).toEqual({ from: 0, to: 7 });
+    expect(read(5000)).toEqual({ from: 48, to: 57 });
+  });
+
+  it('stays the same while the scroll moves inside the same items, so nothing needs to draw again', () => {
+    expect(read(5010)).toEqual(read(5000));
+  });
+
+  it('counts the measured heights', () => {
+    expect(read(0, new Map([[0, 400]]))).toEqual({ from: 0, to: 4 });
+  });
+
+  it('looks up a position among a hundred thousand items quickly once the offsets are built', () => {
+    const offsets = buildItemOffsets(100_000, 100, new Map());
+    const startedAt = performance.now();
+
+    for (let lookup = 0; lookup < 10_000; lookup += 1) {
+      readVisibleRange({
+        count: 100_000,
+        estimateSize: 100,
+        heights: new Map(),
+        offsets,
+        overscan: 2,
+        viewport: { height: 500, offset: 0, top: lookup * 900 },
+      });
+    }
+
+    expect(performance.now() - startedAt).toBeLessThan(250);
   });
 });
 

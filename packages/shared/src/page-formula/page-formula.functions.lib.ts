@@ -20,14 +20,12 @@ const WORK_LIMIT_MESSAGE = 'The formula does more work than one cell allows';
 export const failWithWorkLimit = (): PageFormulaOutcome =>
   failWith(PAGE_FORMULA_RUNTIME_ERROR.WORK_LIMIT, WORK_LIMIT_MESSAGE);
 
+const failWithTextTooLong = (): PageFormulaOutcome =>
+  failWith(PAGE_FORMULA_RUNTIME_ERROR.WORK_LIMIT, `A text is up to ${String(PAGE_FORMULA_TEXT_MAX_LENGTH)} characters`);
+
 /** A text result that would pass the limit is an error: nothing ever carries a runaway string. */
 export const succeedWithText = (text: string): PageFormulaOutcome =>
-  text.length > PAGE_FORMULA_TEXT_MAX_LENGTH
-    ? failWith(
-        PAGE_FORMULA_RUNTIME_ERROR.WORK_LIMIT,
-        `A text is up to ${String(PAGE_FORMULA_TEXT_MAX_LENGTH)} characters`,
-      )
-    : succeedWith(text);
+  text.length > PAGE_FORMULA_TEXT_MAX_LENGTH ? failWithTextTooLong() : succeedWith(text);
 
 const overNumber =
   (operate: (value: number) => number): PageFormulaRunner =>
@@ -111,6 +109,9 @@ const runReplace =
     const replacement = readTextOrBlank(functionArguments[2]);
     if (!chargeForText(text, environment)) return failWithWorkLimit();
     if (search === '') return succeedWithText(text);
+    const matches = replaceEveryMatch ? text.split(search).length - 1 : Math.min(1, text.split(search, 2).length - 1);
+    const resultLength = text.length + matches * (replacement.length - search.length);
+    if (resultLength > PAGE_FORMULA_TEXT_MAX_LENGTH) return failWithTextTooLong();
     return succeedWithText(
       replaceEveryMatch ? text.replaceAll(search, replacement) : text.replace(search, () => replacement),
     );

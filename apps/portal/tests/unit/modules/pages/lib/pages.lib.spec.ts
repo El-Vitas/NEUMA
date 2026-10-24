@@ -9,6 +9,7 @@ import {
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 
 const page = (id: string, parentId: string | null, order: number): PageSummary => ({
+  canEdit: true,
   content: {
     content: [{ content: [{ text: id, type: 'text' }], type: 'paragraph' }],
     schemaVersion: 1,
@@ -35,9 +36,9 @@ describe('pages.lib', () => {
   });
 
   it('keeps trashed pages read-only while allowing active pages to be edited', () => {
-    expect(canEditPage(true, 'ACTIVE')).toBe(true);
-    expect(canEditPage(true, 'TRASHED')).toBe(false);
-    expect(canEditPage(false, 'ACTIVE')).toBe(false);
+    expect(canEditPage({ canEdit: true, lifecycle: 'ACTIVE' })).toBe(true);
+    expect(canEditPage({ canEdit: true, lifecycle: 'TRASHED' })).toBe(false);
+    expect(canEditPage({ canEdit: false, lifecycle: 'ACTIVE' })).toBe(false);
   });
 
   it('extracts searchable text from structured page content', () => {

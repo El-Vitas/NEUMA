@@ -13,7 +13,7 @@ import { PagesPropertiesField } from './pages.properties.field';
 
 interface IProps {
   readonly attachments?: readonly AttachmentSummary[];
-  readonly computedError?: PageComputedError | undefined;
+  readonly computedError?: PageComputedError;
   readonly disabled: boolean;
   readonly onChange: (value: PagePropertyValue) => void;
   readonly personOptions?: readonly PagePersonOption[];

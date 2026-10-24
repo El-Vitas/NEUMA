@@ -17,28 +17,28 @@ export const pageComputedValuesSchema = z.object({
 
 export const pageAuthorSchema = z.object({ id: z.string(), name: z.string() });
 
-/** Fields an older answer lacks, or that this version cannot read, fall back to null rather than failing the page. */
 export const pageSummarySchema = z.object({
+  canEdit: z.boolean(),
   content: pageContentSchema,
-  cover: pageCoverValueSchema.nullable().catch(null).default(null),
+  cover: pageCoverValueSchema.nullable(),
   createdAt: z.coerce.date(),
   createdBy: pageAuthorSchema.nullable(),
-  hasOwnPermissions: z.boolean().catch(false).default(false),
+  hasOwnPermissions: z.boolean(),
   icon: pageIconSchema.nullable().optional(),
   id: z.string(),
   lifecycle: pageLifecycleSchema,
-  lockedAt: z.coerce.date().nullable().catch(null).default(null),
+  lockedAt: z.coerce.date().nullable(),
   order: z.number(),
-  owner: pageAuthorSchema.nullable().catch(null).default(null),
+  owner: pageAuthorSchema.nullable(),
   parentId: z.string().nullable(),
   propertyValues: pagePropertyValuesSchema.nullable(),
   spaceId: z.string(),
   title: z.string(),
   updatedAt: z.coerce.date(),
   updatedBy: pageAuthorSchema.nullable(),
-  verificationExpiresAt: z.coerce.date().nullable().catch(null).default(null),
-  verifiedAt: z.coerce.date().nullable().catch(null).default(null),
-  verifiedBy: pageAuthorSchema.nullable().catch(null).default(null),
+  verificationExpiresAt: z.coerce.date().nullable(),
+  verifiedAt: z.coerce.date().nullable(),
+  verifiedBy: pageAuthorSchema.nullable(),
   version: z.number(),
 });
 
@@ -118,8 +118,8 @@ export const pageRestoreMutationSchema = pageLocatorSchema.extend({
 });
 
 export const pageDestinationsSchema = z.object({
-  exceptPageId: z.string().min(1).nullable(),
+  exceptPageId: recordIdSchema.nullable(),
   /** What is being looked for; empty lists the top of the space. */
   query: z.string().trim().max(SEARCH_MAX_QUERY_LENGTH),
-  spaceId: z.string().min(1),
+  spaceId: recordIdSchema,
 });

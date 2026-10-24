@@ -8,6 +8,7 @@ import { buildSeededPageTreeStore, PagesTreeStoreStub } from '../stubs/pages.tre
 const SPACE_ID = 'space-1';
 
 const entry = (id: string, parentId: string | null, lifecycle: 'ACTIVE' | 'TRASHED' = 'ACTIVE'): PageTreeEntry => ({
+  canEdit: true,
   hasChildren: false,
   hasOwnPermissions: false,
   icon: null,

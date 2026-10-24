@@ -136,6 +136,7 @@ export type LiveServerMessage =
   | { readonly blocks: readonly BlockVersion[]; readonly pageId: string; readonly type: 'versions' }
   | { readonly pageId: string; readonly type: 'resync' }
   | { readonly pageId: string; readonly type: 'revoked' }
+  | { readonly pageId: string; readonly type: 'access-changed' }
   | { readonly pageId: string; readonly type: 'presence'; readonly users: readonly PresenceUser[] }
   | { readonly blockId: string; readonly discussionId: string; readonly pageId: string; readonly type: 'discussion' }
   | { readonly notificationId: string; readonly type: 'notification' };
@@ -165,7 +166,7 @@ export interface LiveDelivery {
 }
 
 export interface VersionDeliveryInput {
-  readonly blocks: readonly BlockVersion[];
+  readonly blocks: readonly (BlockVersion & { readonly hasAccessChange?: true | undefined })[];
   readonly context: LiveAccessContext;
   readonly subscriptions: readonly LiveSubscription[];
 }

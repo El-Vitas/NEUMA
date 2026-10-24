@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'bun:test';
+import { BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION } from '@/modules/blocks/constants/block.transaction.constants';
 import type { BlockOperation } from '@/modules/blocks/domain/block.transaction.domain.types';
 import {
   hasParentWrite,
   listOperationBlockIds,
   parseBlockOperation,
   parseBlockOperations,
+  parseTrustedBlockOperations,
 } from '@/modules/blocks/utils/block.operation.utils';
 
 const pointer = (id: string) => ({ id, table: 'block' });
@@ -316,6 +318,16 @@ describe('listOperationBlockIds and hasParentWrite', () => {
 
   it('lists every block named as a pointer or as an argument once', () => {
     expect(listOperationBlockIds(operations).toSorted()).toEqual(['a1', 'b1', 'm1', 'p1', 'p2']);
+  });
+
+  it('refuses a trusted transaction above the cap before reading any operation', () => {
+    const tooMany = Array.from({ length: BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION + 1 }, () => ({}));
+
+    const parsed = parseTrustedBlockOperations(tooMany);
+
+    expect(parsed.isFail()).toBe(true);
+    expect(parsed.getError().code).toBe('BLOCK_OPERATIONS_TOO_MANY');
+    expect(parsed.getError().details).toEqual({ limit: BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION });
   });
 
   it('flags a transaction that writes a parent', () => {

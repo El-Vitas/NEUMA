@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import type { CommentView, DiscussionPageView, DiscussionView } from '@neuma/shared';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
+import { BlockWriteThrottlerGuard } from '../../common/infrastructure/guards/block-write-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
@@ -9,7 +10,6 @@ import { CommentsService } from './comments.service';
 import { ListPageDiscussionsDto } from './dto/comment.list-discussions.dto';
 import { OpenDiscussionDto } from './dto/comment.open-discussion.dto';
 import { WriteCommentDto } from './dto/comment.write.dto';
-import { CommentWriteThrottlerGuard } from './infrastructure/guards/comment-write-throttler.guard';
 
 /** Discussions of a block and the comments in them. Who may do what is decided by the block, in the service. */
 @Controller()
@@ -46,7 +46,7 @@ export class CommentsController {
   }
 
   @Post('blocks/:blockId/discussions')
-  @UseGuards(CommentWriteThrottlerGuard)
+  @UseGuards(BlockWriteThrottlerGuard)
   async openDiscussion(
     @Param('blockId') blockId: string,
     @Body() dto: OpenDiscussionDto,
@@ -58,7 +58,7 @@ export class CommentsController {
   }
 
   @Post('discussions/:discussionId/comments')
-  @UseGuards(CommentWriteThrottlerGuard)
+  @UseGuards(BlockWriteThrottlerGuard)
   async reply(
     @Param('discussionId') discussionId: string,
     @Body() dto: WriteCommentDto,
@@ -70,7 +70,7 @@ export class CommentsController {
   }
 
   @Post('discussions/:discussionId/resolve')
-  @UseGuards(CommentWriteThrottlerGuard)
+  @UseGuards(BlockWriteThrottlerGuard)
   async resolve(
     @Param('discussionId') discussionId: string,
     @User('payload') payload: TokenPayload,
@@ -81,7 +81,7 @@ export class CommentsController {
   }
 
   @Post('discussions/:discussionId/reopen')
-  @UseGuards(CommentWriteThrottlerGuard)
+  @UseGuards(BlockWriteThrottlerGuard)
   async reopen(
     @Param('discussionId') discussionId: string,
     @User('payload') payload: TokenPayload,
@@ -92,7 +92,7 @@ export class CommentsController {
   }
 
   @Patch('comments/:commentId')
-  @UseGuards(CommentWriteThrottlerGuard)
+  @UseGuards(BlockWriteThrottlerGuard)
   async edit(
     @Param('commentId') commentId: string,
     @Body() dto: WriteCommentDto,
@@ -104,7 +104,7 @@ export class CommentsController {
   }
 
   @Delete('comments/:commentId')
-  @UseGuards(CommentWriteThrottlerGuard)
+  @UseGuards(BlockWriteThrottlerGuard)
   async remove(
     @Param('commentId') commentId: string,
     @User('payload') payload: TokenPayload,

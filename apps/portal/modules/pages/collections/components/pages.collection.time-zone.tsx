@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from '@/i18n/navigation';
+import { callAction, hasActionError } from '@/shared/lib/action-result';
 import { rememberTimeZoneAction } from '@/shared/server/actions/time-zone.actions';
 
 interface IProps {
@@ -19,7 +20,9 @@ export const PagesCollectionTimeZone = ({ knownTimeZone }: IProps) => {
   useEffect(() => {
     const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (browserTimeZone === knownTimeZone) return;
-    void rememberTimeZoneAction({ timeZone: browserTimeZone }).then(() => router.refresh());
+    void callAction(() => rememberTimeZoneAction({ timeZone: browserTimeZone })).then((result) => {
+      if (!hasActionError(result)) router.refresh();
+    });
   }, [knownTimeZone, router]);
 
   return null;

@@ -35,9 +35,9 @@ export const trashRestoreOutcomeSchema = z.object({
 
 export const trashListQuerySchema = z.object({
   search: z.string().trim().max(200).optional(),
-  spaceId: z.string().min(1).optional(),
+  spaceId: z.uuid().optional(),
 });
 
 export const trashEmptySchema = z.object({
-  spaceId: z.string().min(1).optional(),
+  spaceId: z.uuid().optional(),
 });

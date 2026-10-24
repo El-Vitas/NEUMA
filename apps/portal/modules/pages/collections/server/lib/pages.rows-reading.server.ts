@@ -2,6 +2,7 @@ import 'server-only';
 
 import type { PageFilter, PageQueryReducer } from '@neuma/shared';
 import {
+  PAGE_VIEW_CLIENT_MODE_PAGE_ROWS,
   PAGE_VIEW_CONTINUATION_ROWS,
   PAGE_VIEW_COUNT_ITEM,
   PAGE_VIEW_COUNTS_REDUCER,
@@ -23,11 +24,15 @@ import type {
 import type { PageAttachedFile, PageRelatedRow, PageRow } from '../../types/pages.schema.types';
 import { queryPageView } from '../queries/pages.schema.queries';
 
+/** The whole view may be read a thousand rows at a time; the rows of one group are capped at a hundred. */
+const pageSizeOf = (input: ReadRowsInput): number =>
+  input.group === undefined ? PAGE_VIEW_CLIENT_MODE_PAGE_ROWS : PAGE_VIEW_CONTINUATION_ROWS;
+
 const reducerOf = (input: ReadRowsInput, cursor: string | undefined, remaining: number): PageQueryReducer => {
   const continuation = {
     ...(cursor === undefined ? {} : { cursor }),
     id: PAGE_VIEW_ROWS_REDUCER,
-    limit: Math.min(PAGE_VIEW_CONTINUATION_ROWS, remaining),
+    limit: Math.min(pageSizeOf(input), remaining),
   };
   return input.group === undefined
     ? { ...continuation, kind: 'results' }

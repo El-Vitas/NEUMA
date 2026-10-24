@@ -13,6 +13,6 @@ export const pageUsageSummarySchema = z.object({
 
 export const pageUsageSettingsSchema = z.object({ enabled: z.boolean() });
 
-export const pageUsageRecordSchema = z.object({ pageId: z.string().min(1) });
+export const pageUsageRecordSchema = z.object({ pageId: z.uuid() });
 
 export const pageUsageSettingsUpdateSchema = z.object({ enabled: z.boolean() });

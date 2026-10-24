@@ -33,9 +33,7 @@ export const usePagesCollectionFollowing = (input: PagesCollectionFollowingInput
       const saved = schema?.views.find((candidate) => candidate.id === latest.current.view.id);
       const held = latest.current.view;
       const isSame =
-        saved !== undefined &&
-        saved.type === held.type &&
-        JSON.stringify(saved.configuration) === JSON.stringify(held.configuration);
+        saved?.type === held.type && JSON.stringify(saved.configuration) === JSON.stringify(held.configuration);
       if (!isSame) {
         notices.requestRefresh('view');
         return;

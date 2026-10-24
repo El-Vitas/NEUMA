@@ -49,7 +49,7 @@ export const PagesCollectionTimelineBar = ({ bar, canEdit, dragging, label, onCh
   });
 
   return (
-    <article
+    <button
       aria-label={label}
       className={cn(
         'absolute top-1.5 flex h-6 touch-none select-none items-center overflow-hidden rounded-sm bg-primary/85 px-2 text-primary-foreground text-xs',
@@ -65,10 +65,11 @@ export const PagesCollectionTimelineBar = ({ bar, canEdit, dragging, label, onCh
       onPointerMove={dragging.move}
       onPointerUp={dragging.end}
       style={{ left: bar.left, width: bar.width }}
-      tabIndex={canEdit ? 0 : undefined}
+      tabIndex={canEdit ? 0 : -1}
+      type="button"
     >
       {canEdit && !bar.startsBeforeWindow && (
-        <div
+        <span
           aria-hidden="true"
           className="absolute inset-y-0 left-0 cursor-ew-resize"
           data-testid="timeline-handle-start"
@@ -78,7 +79,7 @@ export const PagesCollectionTimelineBar = ({ bar, canEdit, dragging, label, onCh
       )}
       <span className="pointer-events-none truncate">{title}</span>
       {canEdit && !bar.endsAfterWindow && (
-        <div
+        <span
           aria-hidden="true"
           className="absolute inset-y-0 right-0 cursor-ew-resize"
           data-testid="timeline-handle-end"
@@ -86,6 +87,6 @@ export const PagesCollectionTimelineBar = ({ bar, canEdit, dragging, label, onCh
           {...holdEnd('RESIZE_END')}
         />
       )}
-    </article>
+    </button>
   );
 };

@@ -8,8 +8,10 @@ import {
   BLOCK_LIVE_MAX_COLLECTION_SUBSCRIPTIONS_PER_CONNECTION,
   BLOCK_LIVE_MAX_CONNECTIONS_PER_USER,
   BLOCK_LIVE_MAX_MESSAGE_BYTES,
+  BLOCK_LIVE_MAX_QUEUED_MESSAGES,
   BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES,
   BLOCK_LIVE_MAX_SUBSCRIPTIONS_PER_CONNECTION,
+  BLOCK_LIVE_MAX_UNAUTHENTICATED_CONNECTIONS,
   BLOCK_LIVE_RATE_LIMIT,
 } from '@/modules/blocks/constants/block.live.constants';
 import { BlockAccessDeniedError } from '@/modules/blocks/domain/block.error';
@@ -89,6 +91,8 @@ const echoingRequests: BlockLiveRequestAnswerer = {
 const buildHarness = (
   options: {
     deniedPageIds?: readonly string[];
+    /** Page access waits for this before answering, so a message stays in flight while others arrive. */
+    holdPageAccessUntil?: Promise<void>;
     requests?: BlockLiveRequestAnswerer;
     settings?: Partial<BlockLiveSettings>;
   } = {},
@@ -98,12 +102,12 @@ const buildHarness = (
     canReadSpace: () => Promise.resolve(true),
     hasPageChangesSince: () => Promise.resolve(false),
     canReadBlockInPage: (_reader, _pageId, blockId) => Promise.resolve(blockId !== 'hidden-block'),
-    resolvePageAccess: (_reader, pageId) =>
-      Promise.resolve(
-        options.deniedPageIds?.includes(pageId) === true
-          ? Result.fail(new BlockAccessDeniedError())
-          : Result.ok({ spaceId: SPACE_ID }),
-      ),
+    resolvePageAccess: async (_reader, pageId) => {
+      await options.holdPageAccessUntil;
+      return options.deniedPageIds?.includes(pageId) === true
+        ? Result.fail(new BlockAccessDeniedError())
+        : Result.ok({ spaceId: SPACE_ID });
+    },
   };
   const broadcaster: BlockLiveBroadcaster = {
     broadcastPresence: (pageId) => {
@@ -240,6 +244,45 @@ describe('BlockLiveService', () => {
       }
 
       expect(connection.closed()?.code).toBe(BLOCK_LIVE_CLOSE_CODE.policyViolation);
+    });
+
+    it('closes a socket whose messages pile up behind a slow one, before they are held in memory', async () => {
+      let release: () => void = () => undefined;
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const connection = await buildHarness({ holdPageAccessUntil: held }).open();
+
+      const pending = Array.from({ length: BLOCK_LIVE_MAX_QUEUED_MESSAGES + 5 }, () =>
+        connection.receive({ pageId: 'page-1', type: 'subscribe' }),
+      );
+
+      expect(connection.closed()?.code).toBe(BLOCK_LIVE_CLOSE_CODE.policyViolation);
+      expect(connection.closed()?.reason).toBe('queue-too-deep');
+      release();
+      await Promise.all(pending);
+    });
+
+    it('keeps a socket that sends a burst the queue can hold', async () => {
+      const connection = await buildHarness().open();
+
+      await Promise.all(
+        Array.from({ length: BLOCK_LIVE_MAX_QUEUED_MESSAGES }, () => connection.receive({ type: 'ping' })),
+      );
+
+      expect(connection.closed()).toBeNull();
+    });
+
+    it('turns away sockets that have not authenticated once too many are waiting', () => {
+      const harness = buildHarness();
+      const waiting = Array.from({ length: BLOCK_LIVE_MAX_UNAUTHENTICATED_CONNECTIONS }, () =>
+        openUnauthenticated(harness),
+      );
+
+      const extra = openUnauthenticated(harness);
+
+      expect(waiting.every((socket) => socket.closed() === null)).toBe(true);
+      expect(extra.closed()?.code).toBe(BLOCK_LIVE_CLOSE_CODE.tooManyConnections);
     });
 
     it('closes a socket that stays silent for longer than the idle timeout', async () => {

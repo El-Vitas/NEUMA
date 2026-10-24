@@ -188,4 +188,15 @@ describe('validating a view configuration before it is stored', () => {
 
     expect(pageViewConfigurationSchema.safeParse({ filter: tooDeep }).success).toBe(false);
   });
+
+  test('refuses an absurdly deep filter without running out of stack', () => {
+    let filter: unknown = doingCondition;
+    for (let level = 0; level < 20_000; level += 1) {
+      filter = { conditions: [filter], kind: 'GROUP', operator: 'AND' };
+    }
+
+    const outcome = pageViewConfigurationSchema.safeParse({ filter });
+
+    expect(outcome.success).toBe(false);
+  });
 });

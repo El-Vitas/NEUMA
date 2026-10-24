@@ -330,6 +330,22 @@ describe('createTransactionQueue with persistence', () => {
     expect(log).toEqual(['keep t1', 'send t1', 'aside t1 FORBIDDEN']);
   });
 
+  it('sets aside everything still waiting when told to, instead of dropping it', async () => {
+    const { log, queue, sent } = createPersistentHarness();
+    queue.enqueue(transaction('t1'));
+    queue.enqueue(transaction('t2'));
+    await flush();
+
+    sent[0]?.resolve({ error: { code: 'FORBIDDEN', message: 'no' }, id: 't1' });
+    await flush();
+    queue.setAsideAll({ code: 'FORBIDDEN', message: 'no' });
+    await flush();
+
+    expect(queue.size()).toBe(0);
+    expect(log).toContain('aside t2 FORBIDDEN');
+    expect(log).not.toContain('drop t2');
+  });
+
   it('sends what was left on disk before what was queued since, without keeping it again', async () => {
     const { log, queue, sent } = createPersistentHarness();
     queue.enqueue(transaction('new'));

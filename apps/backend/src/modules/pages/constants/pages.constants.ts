@@ -37,6 +37,7 @@ export const PAGE_RECENT_MAX_ROUNDS = 5;
 export const PAGE_TREE_EMPTY_CHILDREN = { entries: [], total: 0 } as const;
 export const PAGE_TRASH_DEFAULT_WINDOW = 50;
 export const PAGE_TRASH_MAX_WINDOW = 100;
+export const PAGE_TRASH_SEARCH_MAX_LENGTH = 200;
 
 /** The columns of a block that make a page. */
 export const PAGE_BLOCK_COLUMNS = [
@@ -109,6 +110,7 @@ export const PAGE_RESTORE_VERSION_OUTCOME = { missing: 'MISSING_VERSION' } as co
 
 /** A transaction id carries what the write is, so a retried mutation id finds its own result and no other. */
 export const PAGE_TRANSACTION_KIND = {
+  create: 'page-create',
   move: 'page-move',
   restore: 'page-restore',
   trash: 'page-trash',

@@ -68,6 +68,7 @@ const { PagesEditor } = await import('@/modules/pages/editor/components/pages.ed
 const SPACE_ID = '33333333-3333-4333-8333-333333333333';
 
 const buildPage = (title: string, lifecycle: PageSummary['lifecycle'] = 'ACTIVE'): PageSummary => ({
+  canEdit: true,
   content: { content: [], schemaVersion: 1, type: 'doc' },
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,

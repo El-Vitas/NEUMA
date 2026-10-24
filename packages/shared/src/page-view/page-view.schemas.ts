@@ -90,12 +90,27 @@ const filterGroupSchema: z.ZodType<PageFilter> = z.lazy(() =>
 
 const filterSchema: z.ZodType<PageFilter> = z.lazy(() => z.union([filterConditionSchema, filterGroupSchema]));
 
-const countFilterDepth = (filter: PageFilter): number =>
-  filter.kind === 'CONDITION' ? 1 : 1 + Math.max(0, ...filter.conditions.map(countFilterDepth));
+const readNestedGroups = (candidate: unknown): readonly unknown[] => {
+  if (typeof candidate !== 'object' || candidate === null || !('conditions' in candidate)) return [];
+  return Array.isArray(candidate.conditions) ? candidate.conditions : [];
+};
 
-export const rootFilterSchema = filterSchema.refine((filter) => countFilterDepth(filter) <= PAGE_FILTER_MAXIMUM_DEPTH, {
-  message: 'Filter exceeds the maximum nesting depth',
-});
+/** Walks the raw payload without recursion and stops at the limit, so a hostile depth never reaches the parser. */
+const isWithinFilterDepth = (candidate: unknown): boolean => {
+  let level: readonly unknown[] = [candidate];
+  let depth = 1;
+  while (level.length > 0) {
+    if (depth > PAGE_FILTER_MAXIMUM_DEPTH) return false;
+    level = level.flatMap(readNestedGroups);
+    depth += 1;
+  }
+  return true;
+};
+
+export const rootFilterSchema: z.ZodType<PageFilter> = z
+  .unknown()
+  .refine(isWithinFilterDepth, { message: 'Filter exceeds the maximum nesting depth' })
+  .pipe(filterSchema);
 
 export const sortSchema = z
   .object({

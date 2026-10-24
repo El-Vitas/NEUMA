@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from '@/i18n/navigation';
-import { isActionSuccess, isLockedActionFailure } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess, isLockedActionFailure } from '@/shared/lib/action-result';
 import {
   createPageTemplateAction,
   deletePageTemplateAction,
@@ -38,28 +38,40 @@ export const usePagesTemplates = ({ collectionId, onDefaultChosen, spaceId }: IP
 
   return {
     add: (title) =>
-      startWorking(async () => finish(await createPageTemplateAction({ collectionId, spaceId, title }), t('added'))),
+      startWorking(async () =>
+        finish(await callAction(() => createPageTemplateAction({ collectionId, spaceId, title })), t('added')),
+      ),
     changeVariables: (template, variables) =>
       startWorking(async () =>
         finish(
-          await updatePageTemplateAction({ collectionId, spaceId, templateId: template.id, variables }),
+          await callAction(() =>
+            updatePageTemplateAction({ collectionId, spaceId, templateId: template.id, variables }),
+          ),
           t('saved'),
         ),
       ),
     isPending,
     remove: (template) =>
       startWorking(async () =>
-        finish(await deletePageTemplateAction({ collectionId, spaceId, templateId: template.id }), t('deleted')),
+        finish(
+          await callAction(() => deletePageTemplateAction({ collectionId, spaceId, templateId: template.id })),
+          t('deleted'),
+        ),
       ),
     rename: (template, title) =>
       startWorking(async () =>
-        finish(await updatePageTemplateAction({ collectionId, spaceId, templateId: template.id, title }), t('saved')),
+        finish(
+          await callAction(() => updatePageTemplateAction({ collectionId, spaceId, templateId: template.id, title })),
+          t('saved'),
+        ),
       ),
     setDefault: (template) =>
       startWorking(async () => {
         onDefaultChosen(template?.id ?? null);
         finish(
-          await setDefaultPageTemplateAction({ collectionId, spaceId, templateId: template?.id ?? null }),
+          await callAction(() =>
+            setDefaultPageTemplateAction({ collectionId, spaceId, templateId: template?.id ?? null }),
+          ),
           t('saved'),
         );
       }),

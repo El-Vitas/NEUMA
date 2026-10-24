@@ -8,6 +8,8 @@ import { PAGE_BLOCK_COLUMNS, PAGE_TREE_MAX_DEPTH } from '../../constants/pages.c
 import { canReadPage, describePageAccess } from '../../domain/page.access.domain';
 import type { PageAncestryLink } from '../../domain/page.access.domain.types';
 import type { PageContentBlock, ReadableContentBlocks } from '../../domain/page.block.domain.types';
+import { foldRecentEdits } from '../../domain/page.recent.domain';
+import type { RecentBlockEdit, RecentlyEditedPage } from '../../domain/page.recent.domain.types';
 import { listReadableContentBlocks } from '../../domain/page.visibility.domain';
 import { pageChildrenSchema } from '../../schemas/page.block.schemas';
 import type {
@@ -16,7 +18,6 @@ import type {
   PageHead,
   PageListingOptions,
   PageViewer,
-  RecentlyEditedPage,
 } from '../../types/page.block.types';
 import type { StoredPageBlock } from '../../types/page.types';
 
@@ -105,7 +106,21 @@ export class PageBlockReader {
    * The pages whose blocks, or the blocks below them, changed last in a space, the latest first. It reads the most
    * recently edited blocks and goes up from each to the page that holds it.
    */
-  async readRecentlyEditedPages(spaceId: string, blockLimit: number): Promise<RecentlyEditedPage[]> {
+  async readRecentlyEditedPages(
+    spaceId: string,
+    blockLimit: number,
+    viewer: PageViewer,
+  ): Promise<RecentlyEditedPage[]> {
+    const edits = await this.readRecentBlockEdits(spaceId, blockLimit);
+    const chains = await this.readAncestry(edits.map((edit) => edit.blockId));
+    const blockViewer = { userId: viewer.userId, workspaceRole: viewer.role };
+    const readable = edits.filter((edit) =>
+      canReadPage(describePageAccess(chains.get(edit.blockId) ?? [], blockViewer, true)),
+    );
+    return foldRecentEdits(readable);
+  }
+
+  private async readRecentBlockEdits(spaceId: string, blockLimit: number): Promise<RecentBlockEdit[]> {
     const { columns } = this.prisma.tables.Block;
     return this.prisma.runner.query(
       this.prisma.sql`
@@ -113,20 +128,24 @@ export class PageBlockReader {
         SELECT "id", "parentId", "type", "editedAt", "editedById" FROM "Block"
         WHERE "spaceId" = ${spaceId} ORDER BY "editedAt" DESC LIMIT ${blockLimit}
       ), "above" AS (
-        SELECT "id", "parentId", "type", "editedAt", "editedById", 0 AS "depth" FROM "recent"
+        SELECT "id" AS "blockId", "id", "parentId", "type", "editedAt", "editedById", 0 AS "depth" FROM "recent"
         UNION ALL
-        SELECT "parent"."id", "parent"."parentId", "parent"."type", "above"."editedAt", "above"."editedById",
-          "above"."depth" + 1
+        SELECT "above"."blockId", "parent"."id", "parent"."parentId", "parent"."type", "above"."editedAt",
+          "above"."editedById", "above"."depth" + 1
         FROM "Block" AS "parent"
         INNER JOIN "above" ON "parent"."id" = "above"."parentId"
         WHERE "above"."type" <> ${BLOCK_TYPE.page} AND "above"."depth" < ${PAGE_TREE_MAX_DEPTH}
       )
-      SELECT "id", max("editedAt") AS "editedAt", (array_agg("editedById" ORDER BY "editedAt" DESC))[1] AS "editedById"
+      SELECT "blockId", "id" AS "pageId", "editedAt", "editedById"
       FROM "above"
       WHERE "type" = ${BLOCK_TYPE.page}
-      GROUP BY "id" ORDER BY max("editedAt") DESC
     `
-        .returnsRow({ editedAt: columns.editedAt, editedById: columns.editedById, id: columns.id })
+        .returnsRow({
+          blockId: columns.id,
+          editedAt: columns.editedAt,
+          editedById: columns.editedById,
+          pageId: columns.id,
+        })
         .build(),
     );
   }
@@ -143,8 +162,8 @@ export class PageBlockReader {
 
   /** How many pages below each one are in the trash on their own, at any depth. */
   async countTrashedDescendants(pageIds: readonly string[]): Promise<ReadonlyMap<string, number>> {
+    if (pageIds.length === 0) return new Map();
     const counts = new Map<string, number>();
-    if (pageIds.length === 0) return counts;
     const { columns } = this.prisma.tables.Block;
     const rows = await this.prisma.runner.query(
       this.prisma.sql`
@@ -214,8 +233,8 @@ export class PageBlockReader {
     pageIds: readonly string[],
     transaction?: NeumaTransaction,
   ): Promise<ReadonlyMap<string, readonly PageContentBlock[]>> {
+    if (pageIds.length === 0) return new Map();
     const contents = new Map<string, PageContentBlock[]>(pageIds.map((pageId) => [pageId, []]));
-    if (pageIds.length === 0) return contents;
     const { columns } = this.prisma.tables.Block;
     const rows = await this.prisma.runnerFor(transaction).query(
       this.prisma.sql`
@@ -322,8 +341,8 @@ export class PageBlockReader {
 
   /** The chain from each page up to the top of its tree, the page itself first. */
   async readAncestry(pageIds: readonly string[]): Promise<ReadonlyMap<string, readonly PageAncestryLink[]>> {
+    if (pageIds.length === 0) return new Map();
     const chains = new Map<string, PageAncestryLink[]>(pageIds.map((pageId) => [pageId, []]));
-    if (pageIds.length === 0) return chains;
     const { columns } = this.prisma.tables.Block;
     const rows = await this.prisma.runner.query(
       this.prisma.sql`
@@ -390,6 +409,15 @@ export class PageBlockReader {
         viewer: blockViewer,
       }))
       .filter(({ access }) => canReadPage(access));
+  }
+
+  /** Which of these pages carry a schema, which makes them a collection whose rows are not part of the page tree. */
+  async findCollectionIds(pageIds: readonly string[]): Promise<ReadonlySet<string>> {
+    if (pageIds.length === 0) return new Set();
+    const properties = await this.prisma.models.PageSchemaProperty.select('pageId')
+      .where((property) => property.pageId.in([...pageIds]))
+      .all();
+    return new Set(properties.map((property) => property.pageId));
   }
 
   async findExistingBlockIds(blockIds: readonly string[]): Promise<ReadonlySet<string>> {

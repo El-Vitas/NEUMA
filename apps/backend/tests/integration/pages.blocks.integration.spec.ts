@@ -1,6 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, DatabaseViewType, SpaceVisibility } from '@neuma/db';
-import { BLOCK_ROLE, DEFAULT_PAGE_PROPERTY_CONFIG, type PageContent, USER_ROLE } from '@neuma/shared';
+import {
+  BLOCK_ROLE,
+  DEFAULT_PAGE_PROPERTY_CONFIG,
+  MILLISECONDS_IN_A_DAY,
+  type PageContent,
+  USER_ROLE,
+} from '@neuma/shared';
 import request from 'supertest';
 import { PAGE_PURGE_DELAY_DAYS } from '@/modules/pages/constants/pages.constants';
 import { PageSchemaService } from '@/modules/pages/page-schema.service';
@@ -46,8 +52,7 @@ const HTTP_FORBIDDEN = 403;
 const HTTP_CONFLICT = 409;
 
 const ONE_HOUR_IN_MILLISECONDS = 60 * 60 * 1000;
-const MILLISECONDS_PER_DAY = 24 * ONE_HOUR_IN_MILLISECONDS;
-const afterThePurgeDelay = (): Date => new Date(Date.now() + (PAGE_PURGE_DELAY_DAYS + 1) * MILLISECONDS_PER_DAY);
+const afterThePurgeDelay = (): Date => new Date(Date.now() + (PAGE_PURGE_DELAY_DAYS + 1) * MILLISECONDS_IN_A_DAY);
 
 const paragraph = (id: string, text: string) => ({
   attrs: { id },

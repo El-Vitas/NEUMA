@@ -1,5 +1,6 @@
 import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
-import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
+import { MCP_INACCESSIBLE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
+import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { readMcpStoredContent, unmarkMcpDiscussion } from '../lib/mcp.comments.lib';
 import { openMcpPage, readMcpPageId, requireMcpSuccess } from '../lib/mcp.page-access.lib';
@@ -13,7 +14,11 @@ const deleteComment = async (
   input: McpDeleteCommentInput,
   { call, record }: McpWriteSession,
 ): Promise<McpWrittenBlocksOutput> => {
-  const opened = await openMcpPage(dependencies, call, readMcpPageId(input.page), ACCESS_TOKEN_PERMISSIONS.pagesWrite);
+  const location = requireMcpSuccess(await dependencies.discussions.locateComment(call.viewer, input.comment));
+  const opened = await openMcpPage(dependencies, call, location.pageId, ACCESS_TOKEN_PERMISSIONS.pagesWrite);
+  if (location.pageId !== readMcpPageId(input.page) || location.blockId !== input.block) {
+    throw new McpToolError(MCP_INACCESSIBLE_MESSAGE);
+  }
   const request = {
     blockIds: [input.block],
     detail: { comment: input.comment },

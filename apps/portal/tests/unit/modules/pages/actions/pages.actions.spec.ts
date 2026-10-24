@@ -5,6 +5,7 @@ import { createSafeActionMock } from '../../../../mocks/safe-action.mock';
 
 let cookieValue: string | undefined;
 const createdPage = {
+  canEdit: true,
   content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
   cover: null,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),

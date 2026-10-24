@@ -2,12 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { env } from '@/config/env.config';
-import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { openBrowserBlockSyncOutbox } from '../../block-sync/lib/block-sync.browser-outbox.lib';
 import { createBlockSyncEngine } from '../../block-sync/lib/block-sync.engine.lib';
 import { createBlockLiveSession } from '../../block-sync/lib/block-sync.session.lib';
 import { openBrowserBlockLiveSocket } from '../../block-sync/lib/block-sync.socket.lib';
-import { getBlockLiveToken } from '../../block-sync/server/actions/block-sync.actions';
+import { requestBlockLiveToken } from '../../block-sync/lib/block-sync.token.lib';
 import type { BlockSyncEngine } from '../../block-sync/types/block-sync.types';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
 import type { CollaborationStatus, PageCollaborationParticipant } from '../../types/pages.collaboration.types';
@@ -15,11 +14,6 @@ import type {
   PagesEditorBlockBinding,
   PagesEditorBlockBindingOptions,
 } from '../types/pages.editor.block-binding.types';
-
-const requestLiveToken = async (): Promise<string | null> => {
-  const result = await callAction(() => getBlockLiveToken({}));
-  return isActionSuccess<{ readonly token: string }>(result) ? result.data.token : null;
-};
 
 /**
  * Keeps the editor on the page's blocks through the live channel.
@@ -34,6 +28,11 @@ export const usePagesEditorBlockBinding = (options: PagesEditorBlockBindingOptio
   const [status, setStatus] = useState<CollaborationStatus | null>(null);
   const [participants, setParticipants] = useState<readonly PageCollaborationParticipant[]>([]);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [wasEnabled, setWasEnabled] = useState(options.isEnabled);
+  if (wasEnabled !== options.isEnabled) {
+    setWasEnabled(options.isEnabled);
+    setIsReadOnly(false);
+  }
   const engineRef = useRef<BlockSyncEngine | null>(null);
   const optionsRef = useRef(options);
 
@@ -58,10 +57,11 @@ export const usePagesEditorBlockBinding = (options: PagesEditorBlockBindingOptio
       createSession: (handlers) =>
         createBlockLiveSession({
           handlers,
+          onAccessChanged: () => optionsRef.current.onAccessChanged?.(),
           onDiscussionChanged: () => optionsRef.current.onDiscussionChanged?.(),
           openSocket: openBrowserBlockLiveSocket,
           pageId,
-          requestToken: requestLiveToken,
+          requestToken: requestBlockLiveToken,
           url: env.NEXT_PUBLIC_LIVE_WS_URL,
         }),
       initialBlocks,

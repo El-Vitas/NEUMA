@@ -78,4 +78,56 @@ describe('pointAtExportedFiles', () => {
 
     expect(pointAtExportedFiles(written, 'Madre.md', whereEachPageWent, new Map())).toBe(written);
   });
+
+  it('rewrites several links of each kind in one text', () => {
+    const assetId = '019ffd48-106b-76bb-85c8-cacd3b62ba79';
+    const whereEachAssetWent = new Map([[assetId, `assets/${assetId}.png`]]);
+    const written = `[a](/spaces/s/pages/page-a) ![f](${assetId}) :::file{assetId="${assetId}"} [b](/spaces/s/pages/page-b)`;
+
+    expect(pointAtExportedFiles(written, 'Madre.md', whereEachPageWent, whereEachAssetWent)).toBe(
+      `[a](Madre.md) ![f](assets/${assetId}.png) :::file{assetId="${assetId}" path="assets/${assetId}.png"} [b](Madre/Hija.md)`,
+    );
+  });
+
+  describe('against hostile text (code blocks are written verbatim)', () => {
+    const HOSTILE_SIZE = 128 * 1024;
+    const TIME_LIMIT_MILLISECONDS = 100;
+    const assetId = '0123456789abcdef0123';
+
+    const measure = (hostile: string): number => {
+      const startedAt = performance.now();
+      pointAtExportedFiles(hostile, 'Madre.md', new Map(), new Map());
+      return performance.now() - startedAt;
+    };
+
+    it('finishes on file directives that never close', () => {
+      const hostile = `:::file{assetId="${assetId}" `.repeat(Math.ceil(HOSTILE_SIZE / 34));
+
+      expect(measure(hostile)).toBeLessThan(TIME_LIMIT_MILLISECONDS);
+    });
+
+    it('finishes on file directives closed only at the very end', () => {
+      const hostile = `${':::file{x'.repeat(Math.ceil(HOSTILE_SIZE / 9))}}`;
+
+      expect(measure(hostile)).toBeLessThan(TIME_LIMIT_MILLISECONDS);
+    });
+
+    it('finishes on mentions that never close', () => {
+      const hostile = '](/spaces/a/pages/x'.repeat(Math.ceil(HOSTILE_SIZE / 19));
+
+      expect(measure(hostile)).toBeLessThan(TIME_LIMIT_MILLISECONDS);
+    });
+
+    it('finishes on mentions closed only at the very end', () => {
+      const hostile = `${'](/spaces/a/pages/x'.repeat(Math.ceil(HOSTILE_SIZE / 19))})`;
+
+      expect(measure(hostile)).toBeLessThan(TIME_LIMIT_MILLISECONDS);
+    });
+
+    it('finishes on identifier-like runs that never close', () => {
+      const hostile = `](${assetId}`.repeat(Math.ceil(HOSTILE_SIZE / 22));
+
+      expect(measure(hostile)).toBeLessThan(TIME_LIMIT_MILLISECONDS);
+    });
+  });
 });

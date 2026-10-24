@@ -1,5 +1,6 @@
 import {
   PAGE_TREE_INITIAL_STORE_STATE,
+  PAGE_TREE_MAX_BATCH_WINDOWS,
   PAGE_TREE_MAX_WINDOW_SIZE,
   PAGE_TREE_WINDOW_SIZE,
 } from '../constants/pages.tree.constants';
@@ -63,8 +64,8 @@ export const createPageTreeStore = ({ readWindows }: PageTreeStoreOptions): Page
     spaceId: string,
     requests: readonly PageTreeWindowRequest[],
   ): Promise<readonly PageTreeChildren[] | null> => {
-    const batches = Array.from({ length: Math.ceil(requests.length / 20) }, (_, index) =>
-      requests.slice(index * 20, (index + 1) * 20),
+    const batches = Array.from({ length: Math.ceil(requests.length / PAGE_TREE_MAX_BATCH_WINDOWS) }, (_, index) =>
+      requests.slice(index * PAGE_TREE_MAX_BATCH_WINDOWS, (index + 1) * PAGE_TREE_MAX_BATCH_WINDOWS),
     );
     const answers: PageTreeChildren[] = [];
     for (const batch of batches) {
@@ -78,8 +79,11 @@ export const createPageTreeStore = ({ readWindows }: PageTreeStoreOptions): Page
   const loadWindow = async (spaceId: string, request: PageTreeWindowRequest): Promise<void> => {
     const key = toLoadingKey(spaceId, request.parentId);
     setLoading(key, true);
+    const ticketWhenAsked = reloadTickets.get(spaceId);
     try {
-      const answers = await fetchWindows(spaceId, [request]);
+      const firstAnswers = await fetchWindows(spaceId, [request]);
+      const isAnswerStale = reloadTickets.get(spaceId) !== ticketWhenAsked;
+      const answers = isAnswerStale ? await fetchWindows(spaceId, [request]) : firstAnswers;
       const children = answers?.[0];
       if (children !== undefined) mergeWindows(spaceId, [{ children, request }]);
     } finally {

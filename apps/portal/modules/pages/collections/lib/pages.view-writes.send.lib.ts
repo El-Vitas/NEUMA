@@ -1,6 +1,10 @@
 import { callAction, hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
 import { createPageAction } from '../../server/actions/pages.actions';
-import { REJECTED_CAUSE_BY_REASON, RETRYABLE_WRITE_REASONS } from '../constants/pages.view-writes.constants';
+import {
+  CAPPED_RETRY_WRITE_REASONS,
+  REJECTED_CAUSE_BY_REASON,
+  RETRYABLE_WRITE_REASONS,
+} from '../constants/pages.view-writes.constants';
 import { movePageRowAction, updatePageRowPropertiesAction } from '../server/actions/pages.collections.actions';
 import type { PageViewWrite, ViewWriteSendResult } from '../types/pages.view-writes.types';
 
@@ -27,5 +31,7 @@ export const sendViewWrite = async (write: PageViewWrite): Promise<ViewWriteSend
   if (!hasActionError(result)) return { kind: 'applied' };
   const reason = readActionFailureReason(result);
   if (RETRYABLE_WRITE_REASONS.includes(reason)) return { kind: 'offline' };
-  return { cause: REJECTED_CAUSE_BY_REASON[reason] ?? 'other', kind: 'rejected', message: reason };
+  const cause = REJECTED_CAUSE_BY_REASON[reason] ?? 'other';
+  if (CAPPED_RETRY_WRITE_REASONS.includes(reason)) return { cause, kind: 'retry', message: reason };
+  return { cause, kind: 'rejected', message: reason };
 };

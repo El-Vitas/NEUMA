@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useOptimistic, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import {
   changePageRowRelationAction,
   listPageRelationCandidatesAction,
@@ -40,13 +40,15 @@ export const usePagesRelationEditing = ({
   const change = (kind: 'ADD' | 'REMOVE', target: PageRelatedRow): void => {
     startChanging(async () => {
       showChange({ id: target.id, kind });
-      const saved = await changePageRowRelationAction({
-        change: kind,
-        propertyKey,
-        rowId,
-        spaceId,
-        targetId: target.id,
-      });
+      const saved = await callAction(() =>
+        changePageRowRelationAction({
+          change: kind,
+          propertyKey,
+          rowId,
+          spaceId,
+          targetId: target.id,
+        }),
+      );
       if (isActionSuccess<string>(saved) && saved.data === 'MIRROR_FORBIDDEN') {
         toast.error(t('relationMirrorForbidden'));
         return;
@@ -63,7 +65,7 @@ export const usePagesRelationEditing = ({
     latestAsk.current += 1;
     const ask = latestAsk.current;
     startChanging(async () => {
-      const listed = await listPageRelationCandidatesAction({ collectionId, search, spaceId });
+      const listed = await callAction(() => listPageRelationCandidatesAction({ collectionId, search, spaceId }));
       if (ask !== latestAsk.current) return;
       if (!isActionSuccess<readonly PageRelatedRow[]>(listed)) {
         toast.error(t('relationLoadError'));

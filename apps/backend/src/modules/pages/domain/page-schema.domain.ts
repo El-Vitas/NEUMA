@@ -142,6 +142,19 @@ export const listFileIds = (
   ),
 ];
 
+/**
+ * A row names files by id, and an id alone grants nothing: what a read says about a file (its name, its size) is for
+ * whoever owns it or for the rows it was attached to, not for any viewer of a row that happens to name it.
+ */
+export const keepFilesTheViewerMayName = <
+  TFile extends { readonly ownerId: null | string; readonly pageId: null | string },
+>(
+  files: readonly TFile[],
+  rowIds: readonly string[],
+  viewerId: string,
+): TFile[] =>
+  files.filter((file) => file.ownerId === viewerId || (file.pageId !== null && rowIds.includes(file.pageId)));
+
 export const keepWhatThePageSchemaKnows = keepWhatTheSchemaKnows;
 export const mergePagePropertyValues = mergePropertyValues;
 

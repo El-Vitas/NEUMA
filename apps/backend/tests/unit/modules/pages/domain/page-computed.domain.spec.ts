@@ -146,6 +146,34 @@ describe('evaluateComputedCells', () => {
     expect(cellValue(cells.get('two')?.get('reader'))).toBe(1.5);
   });
 
+  it('turns a formula that throws into an error cell and still computes the other rows', () => {
+    const doubled = formulaProperty('doubled', 'Doble', 'prop("Precio") * 2', [price]);
+    const brokenValues = {
+      get price(): number {
+        throw new Error('internal detail that must not reach the cell');
+      },
+    };
+
+    const cells = evaluateComputedCells({
+      context,
+      properties: [price, doubled],
+      rollupTargets: new Map(),
+      rollupValues: new Map(),
+      rows: [
+        { id: 'broken', values: brokenValues },
+        { id: 'fine', values: { price: 4 } },
+      ],
+    });
+
+    const failure = cells.get('broken')?.get('doubled');
+    expect(failure?.isOk).toBe(false);
+    if (failure !== undefined && !failure.isOk) {
+      expect(failure.error.code).toBe('FORMULA_INVALID_ARGUMENT');
+      expect(failure.error.message).not.toContain('internal detail');
+    }
+    expect(cellValue(cells.get('fine')?.get('doubled'))).toBe(8);
+  });
+
   it('computes only the properties asked for and what they read', () => {
     const base = formulaProperty('base', 'Base', 'prop("Precio") + 1', [price]);
     const other = formulaProperty('other', 'Otra', 'prop("Precio") + 2', [price]);

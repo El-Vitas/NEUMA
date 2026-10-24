@@ -72,6 +72,10 @@
       "model": "PageView",
       "namespace": "public"
     },
+    "RefreshSession": {
+      "model": "RefreshSession",
+      "namespace": "public"
+    },
     "Space": {
       "model": "Space",
       "namespace": "public"
@@ -2567,6 +2571,104 @@
               "table": "PageView"
             }
           },
+          "RefreshSession": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "expiresAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "familyId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "replacedById": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "usedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "expiresAt": {
+                  "column": "expiresAt"
+                },
+                "familyId": {
+                  "column": "familyId"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "replacedById": {
+                  "column": "replacedById"
+                },
+                "usedAt": {
+                  "column": "usedAt"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "RefreshSession"
+            }
+          },
           "Space": {
             "fields": {
               "createdAt": {
@@ -3053,6 +3155,21 @@
                 },
                 "to": {
                   "model": "PageView",
+                  "namespace": "public"
+                }
+              },
+              "refreshSessions": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "RefreshSession",
                   "namespace": "public"
                 }
               },
@@ -4233,6 +4350,22 @@
                     "purgeAfter"
                   ],
                   "name": "Block_purgeAfter_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "spaceId",
+                    "changeXid"
+                  ],
+                  "name": "Block_spaceId_changeXid_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "spaceId",
+                    "editedAt"
+                  ],
+                  "name": "Block_spaceId_editedAt_idx",
                   "unique": false
                 },
                 {
@@ -5669,6 +5802,103 @@
               },
               "uniques": []
             },
+            "RefreshSession": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nullable": false
+                },
+                "expiresAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": false
+                },
+                "familyId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "replacedById": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": true
+                },
+                "usedAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": true
+                },
+                "userId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "name": "RefreshSession_userId_idx"
+                  },
+                  "name": "RefreshSession_userId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "RefreshSession"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "User"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "expiresAt"
+                  ],
+                  "name": "RefreshSession_expiresAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "familyId"
+                  ],
+                  "name": "RefreshSession_familyId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "RefreshSession_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ],
+                "name": "RefreshSession_pkey"
+              },
+              "uniques": []
+            },
             "Space": {
               "columns": {
                 "createdAt": {
@@ -6326,10 +6556,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "bebe6bf2b37a2ece7a33f798ca44592f439fbd42f62697d8ac80ad6023567da4"
+    "storageHash": "0d86e5905915870daf38c15e50e41d04dfa344e3055d253005cfcc69d7bcac17"
   },
   "execution": {
-    "executionHash": "0e952a3e34ad0ab56b436c76d636cec282933bf2540f25a4c447792c8c4b7dbc",
+    "executionHash": "3d33d8085b294f7bd41d64520ac2b5e978652367341ecedffab1dd3ec52fb50a",
     "mutations": {
       "defaults": [
         {
@@ -6549,6 +6779,17 @@
           },
           "ref": {
             "entry": "PageView",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv7",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "RefreshSession",
             "field": "id",
             "namespace": "public"
           }

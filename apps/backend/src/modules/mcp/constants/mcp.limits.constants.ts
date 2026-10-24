@@ -128,6 +128,9 @@ export const MCP_UPLOAD_BASE64_MAX_LENGTH = Math.ceil(MAX_FILE_SIZE / 3) * 4;
 /** Fastify refuses bodies over 1 MiB by default: the MCP route takes a file in base64 plus the rest of the call. */
 export const MCP_REQUEST_BODY_LIMIT_BYTES = MCP_UPLOAD_BASE64_MAX_LENGTH + 64 * 1024;
 
+/** What a caller without anything shaped like a token may send: a tool call without a file fits well inside it. */
+export const MCP_ANONYMOUS_BODY_LIMIT_BYTES = 1024 * 1024;
+
 export const MCP_UPLOAD_NAME_MAX_LENGTH = 255;
 
 export const MCP_UPLOAD_CONTENT_TYPE_MAX_LENGTH = 255;

@@ -2,7 +2,7 @@ import { PAGE_LIFECYCLE_VALUES } from '@neuma/shared';
 import { z } from 'zod';
 import { pageIconSchema } from '../../appearance/schemas/pages.icon.schemas';
 import { pageContentSchema } from '../../schemas/pages.schemas';
-import { PAGE_TREE_MAX_BATCH_WINDOWS } from '../constants/pages.tree.constants';
+import { PAGE_TREE_MAX_BATCH_WINDOWS, PAGE_TREE_MAX_WINDOW_SIZE } from '../constants/pages.tree.constants';
 
 const lifecycleSchema = z.enum(PAGE_LIFECYCLE_VALUES);
 
@@ -10,6 +10,7 @@ const lifecycleSchema = z.enum(PAGE_LIFECYCLE_VALUES);
 const iconSchema = pageIconSchema.nullable().catch(null);
 
 export const pageTreeEntrySchema = z.object({
+  canEdit: z.boolean(),
   hasChildren: z.boolean(),
   hasOwnPermissions: z.boolean(),
   icon: iconSchema,
@@ -101,7 +102,7 @@ const recordIdSchema = z.uuid();
 export const pageTreeWindowRequestSchema = z.object({
   parentId: recordIdSchema.nullable(),
   skip: z.number().int().min(0),
-  take: z.number().int().min(1),
+  take: z.number().int().min(1).max(PAGE_TREE_MAX_WINDOW_SIZE),
 });
 
 export const pageTreeWindowsInputSchema = z.object({

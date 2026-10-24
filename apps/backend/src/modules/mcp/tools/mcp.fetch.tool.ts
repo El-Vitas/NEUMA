@@ -83,7 +83,7 @@ const listReachableReferences = async (
   page: McpPage,
 ): Promise<ReadonlyMap<string, McpPagePlace>> => {
   const referenced = listReferencedPageIds(page.content.content);
-  const reachable = await dependencies.outline.listReadable(referenced, call.viewer);
+  const reachable = await dependencies.outline.listReadable(referenced, await call.readOutlineViewer());
   return new Map(reachable.map((reference) => [reference.id, reference]));
 };
 
@@ -92,7 +92,7 @@ const listReachableBacklinks = async (dependencies: McpServerDependencies, call:
   const backlinks = await dependencies.backlinks.listBacklinks(page.id, workspace.id, principal.userId, principal.role);
   const reachable = await dependencies.outline.listReadable(
     backlinks.items.map((backlink) => backlink.id),
-    call.viewer,
+    await call.readOutlineViewer(),
   );
   const reachableIds = new Set(reachable.map((backlink) => backlink.id));
   return backlinks.items
@@ -110,7 +110,7 @@ const describePlace = async (
   call: McpCall,
   page: McpPage,
 ): Promise<McpFetchedPage> => {
-  const ancestors = await dependencies.outline.listAncestors(page.id, call.viewer);
+  const ancestors = await dependencies.outline.listAncestors(page.id, await call.readOutlineViewer());
   return {
     id: page.id,
     path: ancestors.map((ancestor) =>
@@ -140,7 +140,7 @@ const describeChildren = async (
   call: McpCall,
   page: McpPage,
 ): Promise<Pick<McpFetchedPage, 'children' | 'moreChildren'>> => {
-  const children = await dependencies.outline.listChildren(page.spaceId, page.id, call.viewer, {
+  const children = await dependencies.outline.listChildren(page.spaceId, page.id, await call.readOutlineViewer(), {
     skip: 0,
     take: MCP_FETCH_CHILD_LIMIT,
   });

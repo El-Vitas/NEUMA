@@ -12,7 +12,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { SPACE_NAME_MAX_LENGTH, SPACE_SLUG_MAX_LENGTH } from '../constants/spaces.constants';
 import { getSpaceFieldErrorCode, resolveSpaceFieldErrorMessage } from '../lib/spaces.lib';
@@ -50,7 +50,7 @@ export const SpacesCreateForm = () => {
 
     setIsSubmitting(true);
     try {
-      const result = await createSpaceAction({ name, slug, visibility });
+      const result = await callAction(() => createSpaceAction({ name, slug, visibility }));
       if (!isActionSuccess<SpaceSummary>(result)) {
         toast.error(tErrors(`reasons.${readActionFailureReason(result)}`));
         return;

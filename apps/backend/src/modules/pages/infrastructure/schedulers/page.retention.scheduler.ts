@@ -1,5 +1,6 @@
-import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
+import { IntervalScheduler } from '../../../../common/infrastructure/schedulers/interval.scheduler';
 import { PAGE_RETENTION_INTERVAL_MS } from '../../constants/pages.constants';
 import { PagesService } from '../../pages.service';
 
@@ -8,29 +9,18 @@ import { PagesService } from '../../pages.service';
  * there would run the retention again or keep a one-shot command alive.
  */
 @Injectable()
-export class PageRetentionScheduler implements OnApplicationShutdown {
-  private timer: ReturnType<typeof setInterval> | undefined;
+export class PageRetentionScheduler extends IntervalScheduler {
+  protected readonly intervalMs = PAGE_RETENTION_INTERVAL_MS;
 
   constructor(
     private readonly pagesService: PagesService,
     private readonly logger: PinoLogger,
-  ) {}
-
-  start(): void {
-    if (this.timer !== undefined) return;
-    void this.runOnce();
-    this.timer = setInterval(() => {
-      void this.runOnce();
-    }, PAGE_RETENTION_INTERVAL_MS);
-  }
-
-  onApplicationShutdown(): void {
-    if (this.timer !== undefined) clearInterval(this.timer);
-    this.timer = undefined;
+  ) {
+    super();
   }
 
   /** Never throws: a failed run is logged and the next one retries what is still due. */
-  async runOnce(): Promise<void> {
+  override async runOnce(): Promise<void> {
     const now = new Date();
     try {
       const purgedCount = await this.pagesService.purgeDuePages(now);

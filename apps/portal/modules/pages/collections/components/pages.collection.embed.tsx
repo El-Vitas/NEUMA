@@ -15,7 +15,7 @@ import { PagesCollectionLookupsProvider } from './pages.collection.lookups.provi
 import { PagesCollectionView } from './pages.collection.view';
 
 interface IProps {
-  readonly aggregates?: Promise<PageViewAggregates | null> | undefined;
+  readonly aggregates?: Promise<PageViewAggregates | null>;
   readonly lookups?: PageCollectionLookups;
   readonly outcome: PageViewOutcome | null;
   readonly properties: readonly PageSchemaProperty[];

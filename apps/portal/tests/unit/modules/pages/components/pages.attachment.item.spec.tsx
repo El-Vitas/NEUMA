@@ -5,7 +5,7 @@ import en from '../../../../../messages/en.json';
 
 const downloadResult = {
   data: {
-    body: [104, 105],
+    base64: 'aGk=',
     mimeType: 'text/plain',
     originalFilename: 'note.txt',
   },

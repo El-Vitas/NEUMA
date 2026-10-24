@@ -7,7 +7,7 @@ import { renameSpaceAction } from '@/modules/spaces/server/actions/spaces.action
 import { Button } from '@/shared/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Input } from '@/shared/components/ui/input';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 
 interface IProps {
   readonly onClose: () => void;
@@ -26,7 +26,7 @@ export const SidebarSpaceRenameDialog = ({ onClose, onRenamed, space }: IProps) 
 
   const rename = (): void => {
     startTransition(async () => {
-      const result = await renameSpaceAction({ name: name.trim(), spaceId: space.id });
+      const result = await callAction(() => renameSpaceAction({ name: name.trim(), spaceId: space.id }));
       if (!isActionSuccess(result)) {
         toast.error(pagesT('permissionError'));
         return;

@@ -122,7 +122,13 @@ describe('trashListQuerySchema', () => {
   });
 
   it('accepts an optional search and spaceId', () => {
-    expect(trashListQuerySchema.safeParse({ search: 'roadmap', spaceId: 'space-a' }).success).toBe(true);
+    expect(
+      trashListQuerySchema.safeParse({ search: 'roadmap', spaceId: '11111111-1111-4111-8111-111111111111' }).success,
+    ).toBe(true);
+  });
+
+  it('refuses a spaceId that is not a uuid, since it ends up in a backend path', () => {
+    expect(trashListQuerySchema.safeParse({ spaceId: '../users' }).success).toBe(false);
   });
 });
 

@@ -14,6 +14,7 @@ import { readBlockTitle } from '../../../../common/domain/block-access.domain';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { PAGE_RESTORE_VERSION_OUTCOME } from '../../constants/pages.constants';
+import { canEditPage } from '../../domain/page.access.domain';
 import { readPageValues } from '../../domain/page.block.domain';
 import { collectDescendantIds, pageTitleMatchesSearch } from '../../domain/page.domain';
 import { dropHiddenBlocks, listClosedBlockIds, listNodeIds } from '../../domain/page.visibility.domain';
@@ -25,6 +26,7 @@ import type {
   PageContentWriter,
   PageDeleteForeverOutcome,
   PageMoveContext,
+  PageMoveInput,
   PageMoveOrigin,
   PagePropertyValuesMerge,
   PageRepositoryContract,
@@ -106,6 +108,11 @@ export class PageRepository implements PageRepositoryContract {
   ): Promise<PageSummary | null> {
     const page = await this.findAccessiblePage(pageId, toViewer(workspaceId, userId, role));
     return page === null ? null : this.summaryReader.summarizeOne(page);
+  }
+
+  async getEditable(pageId: string, workspaceId: string, userId: string, role: UserRole): Promise<PageSummary | null> {
+    const page = await this.findAccessiblePage(pageId, toViewer(workspaceId, userId, role));
+    return page === null || !canEditPage(page.access) ? null : this.summaryReader.summarizeOne(page);
   }
 
   async findReadablePageIds(
@@ -296,16 +303,8 @@ export class PageRepository implements PageRepositoryContract {
     return this.blockWriter.reorderAmongSiblings(pageId, beforePageId, userId, workspaceId, role);
   }
 
-  move(
-    pageId: string,
-    parentId: null | string,
-    targetSpaceId: string,
-    userId: string,
-    workspaceId: string,
-    role: UserRole,
-    mutationId: string,
-  ): Promise<PageSummary | null> {
-    return this.blockWriter.move(pageId, parentId, targetSpaceId, userId, workspaceId, role, mutationId);
+  move(input: PageMoveInput): Promise<PageSummary | null> {
+    return this.blockWriter.move(input);
   }
 
   trashCascade(

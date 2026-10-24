@@ -51,3 +51,4 @@ Una necesidad de integración externa se resuelve con un ADR nuevo y no restaura
 - Author: El-Vitas, con Claude
 - Created: 2026-10-20
 - Approved by: El-Vitas, 2026-10-20 (no está en producción; se autorizó cambiar sin convivencia)
+- El convertidor de páginas a bloques (`blocks:migrate`) existió solo para la migración única de desarrollo y se retiró junto con el modelo viejo. Una instalación que aún tenga páginas del modelo anterior las perdería al aplicar `drop_page_model`.

@@ -25,7 +25,8 @@ export interface SpaceSummary {
 
 export interface SpaceRepositoryContract {
   readonly listAccessible: (workspaceId: string, userId: string, role: UserRole) => Promise<readonly SpaceSummary[]>;
-  readonly create: (input: CreateSpaceInput) => Promise<SpaceSummary>;
+  /** `null` when another space of the workspace already uses the slug. */
+  readonly create: (input: CreateSpaceInput) => Promise<SpaceSummary | null>;
   readonly rename: (
     spaceId: string,
     name: string,

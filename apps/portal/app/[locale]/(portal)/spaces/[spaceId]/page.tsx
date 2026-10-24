@@ -1,6 +1,6 @@
 import { canEditContent, USER_ROLE } from '@neuma/shared';
+import { notFound } from 'next/navigation';
 import { getLocale } from 'next-intl/server';
-import { PagesView } from '@/modules/pages/collections/views/pages.view';
 import { PAGE_RECENT_LIMIT } from '@/modules/pages/tree/constants/pages.tree.constants';
 import { getRecentPages, getTreeRoots } from '@/modules/pages/tree/server/queries/pages.tree.queries';
 import type { PageRecentEntry, PageTreeEntry } from '@/modules/pages/tree/types/pages.tree.types';
@@ -28,21 +28,21 @@ const toSpaceHomeActivity = (page: PageRecentEntry): SpaceHomeActivity => ({
 });
 
 export default async function Page({ params }: IProps) {
-  const { spaceId } = await params;
-  const [spacesResult, user] = await Promise.all([getSpaces(), getCurrentUser()]);
-  const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
+  const [{ spaceId }, spacesResult, user] = await Promise.all([params, getSpaces(), getCurrentUser()]);
+  if (spacesResult.isFail()) throw spacesResult.getError();
+  const space = spacesResult.getValue().find((candidate) => candidate.id === spaceId);
+  if (space === undefined) notFound();
   const canEdit = canEditContent(user?.role ?? USER_ROLE.CLIENT);
-  if (space === undefined) return <PagesView />;
 
-  const [rootsResult, recentResult] = await Promise.all([
+  const [rootsResult, recentResult, membersResult, locale] = await Promise.all([
     getTreeRoots(spaceId),
     getRecentPages(spaceId, PAGE_RECENT_LIMIT),
+    getSpaceMembers(spaceId),
+    getLocale(),
   ]);
-  if (rootsResult.isFail()) return <PagesView />;
+  if (rootsResult.isFail()) throw rootsResult.getError();
   const roots = rootsResult.getValue();
   if (roots.total === 0) return <SpacesEmptyState canCreatePage={canEdit} spaceId={spaceId} />;
-
-  const [membersResult, locale] = await Promise.all([getSpaceMembers(spaceId), getLocale()]);
 
   return (
     <SpacesHomeView

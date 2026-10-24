@@ -417,6 +417,36 @@ describe('GET /blocks/:blockId/access (Integration)', () => {
       expect(following.hasOwnPermissions).toBe(false);
     });
 
+    it('tells the viewer whether the page can be edited by the same role the write path checks', async () => {
+      const declaringPageId = crypto.randomUUID();
+      await createBlockFactory(prisma.models).create({
+        createdById: adminId,
+        editedById: adminId,
+        id: declaringPageId,
+        permissions: [
+          { principal: { kind: 'user', userId: adminId }, role: BLOCK_ROLE.full },
+          { principal: { kind: 'space' }, role: BLOCK_ROLE.reader },
+        ],
+        spaceId: openSpaceId,
+        title: 'Read only for the worker',
+        type: 'page',
+      });
+
+      const readPage = (token: string, pageId: string) =>
+        request(testApp.getServer())
+          .get(`/api/v1/spaces/${openSpaceId}/pages/${pageId}`)
+          .set('Authorization', `Bearer ${token}`)
+          .expect(HTTP_OK);
+
+      const readerView = (await readPage(workerToken, declaringPageId)).body as { canEdit: boolean };
+      const editorView = (await readPage(workerToken, openPageId)).body as { canEdit: boolean };
+      const adminView = (await readPage(adminToken, declaringPageId)).body as { canEdit: boolean };
+
+      expect(readerView.canEdit).toBe(false);
+      expect(editorView.canEdit).toBe(true);
+      expect(adminView.canEdit).toBe(true);
+    });
+
     it('does not flag a hidden block, because it is not there at all', async () => {
       const response = await sync(workerToken, openPageId);
       const ids = (response.body as { blocks: SyncedBlock[] }).blocks.map((block) => block.id);

@@ -57,7 +57,7 @@ export const usePagesTimelineMoving = (
       setChanges((previous) => ({ ...previous, [rowId]: { ...previous[rowId], ...change } }));
       startWriting(async () => {
         const settled = await writes.write(
-          { kind: 'cell', pageId: rowId, propertyValues: change, spaceId },
+          { expectedVersion: row.version, kind: 'cell', pageId: rowId, propertyValues: change, spaceId },
           Object.keys(change).join(', '),
         );
         if (settled.kind !== 'rejected') return;

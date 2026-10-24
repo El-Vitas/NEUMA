@@ -10,10 +10,28 @@ import { BlockAccessDeniedError } from './domain/block.error';
 import { diffBlockLinks } from './domain/block.link.domain';
 import { buildVersionNotification } from './domain/block.notification.domain';
 import { countNewRowsPerUniqueId, stampNewRows, toUniqueIdDemandKey } from './domain/block.row-defaults.domain';
+import {
+  findInvalidRowValue,
+  findUnattachableFile,
+  listCollectionsOfValueWrites,
+  listRowFileIds,
+  listRowValueWrites,
+  writesPeople,
+} from './domain/block.row-values.domain';
 import { toAccessMembers } from './domain/block.sharing.domain';
 import { planBlockTransaction } from './domain/block.transaction.domain';
-import type { BlockOperation, BlockTransactionPlan, CollectionRowRules } from './domain/block.transaction.domain.types';
-import { BlockTransactionIdTakenError } from './domain/block.transaction.error';
+import type {
+  BlockLoad,
+  BlockOperation,
+  BlockTransactionPlan,
+  CollectionRowRules,
+} from './domain/block.transaction.domain.types';
+import {
+  BlockContentInvalidError,
+  BlockTransactionIdTakenError,
+  BlockVersionConflictError,
+} from './domain/block.transaction.error';
+import { findStaleBlock } from './domain/block.version.domain';
 import { BlockSharingRepository } from './infrastructure/persistence/block.sharing.repository';
 import type {
   BlockTransactionOutcome,
@@ -166,6 +184,8 @@ export class BlockTransactionsService {
       [...listOperationBlockIds(operations), ...branchIds, ...collectionIds],
       listRootSpaceIds(operations, request.spaceId),
     );
+    const staleBlockId = findStaleBlock(request.expectedVersions, load.locked);
+    if (staleBlockId !== null) return Result.fail(new BlockVersionConflictError(staleBlockId));
     const views = await session.lockViews(listViewIds(viewOperations));
     const viewSchemas = await session.readCollectionSchemas(collectionIds);
     const facts = await session.readCollectionFacts(listCollectionIds(operations, load.locked));
@@ -191,7 +211,47 @@ export class BlockTransactionsService {
       blockTextEngine,
     );
     if (planned.isFail()) return Result.fail(planned.getError());
-    return Result.ok(await this.store(session, request, planned.getValue()));
+    const attachments = guardsServerAssigned
+      ? await this.checkRowValues(session, planned.getValue(), load, reader)
+      : Result.ok(new Map<string, readonly string[]>());
+    if (attachments.isFail()) return Result.fail(attachments.getError());
+    const noticeSpaceIds = [request.spaceId, ...listDestinationSpaceIds(operations, request.spaceId)];
+    const result = await this.store(session, request, planned.getValue(), noticeSpaceIds);
+    await session.attachFilesToRows(attachments.getValue());
+    return Result.ok(result);
+  }
+
+  /**
+   * What a person writes into the columns of a row must be what the page API accepts there: an option of the column, a
+   * member of the workspace, a file that is theirs to attach. The schemas of the collections are read once, and only
+   * when the transaction changed values at all, so typing never pays for this. Returns the files the rows now hold.
+   */
+  private async checkRowValues(
+    session: BlockTransactionSession,
+    plan: BlockTransactionPlan,
+    load: BlockLoad,
+    reader: BlockReader,
+  ): Promise<Result<ReadonlyMap<string, readonly string[]>, DomainError>> {
+    const before = new Map(load.locked.map((block) => [block.id, block]));
+    const collectionIds = listCollectionsOfValueWrites(plan.writes, before);
+    if (collectionIds.length === 0) return Result.ok(new Map());
+    const schemas = await session.readCollectionSchemas(collectionIds);
+    const writes = listRowValueWrites(plan.writes, before, schemas);
+    const personIds = writesPeople(writes, schemas)
+      ? await session.listWorkspaceMemberIds(reader.workspaceId)
+      : new Set<string>();
+    const invalid = findInvalidRowValue(writes, schemas, personIds);
+    if (invalid !== null) {
+      const issues = [{ field: 'properties.values', message: invalid.message }];
+      return Result.fail(new BlockContentInvalidError(invalid.rowId, issues));
+    }
+    const filesByRow = listRowFileIds(writes, schemas);
+    const assets = await session.readActiveFiles([...new Set([...filesByRow.values()].flat())], reader.workspaceId);
+    const refused = findUnattachableFile(filesByRow, assets, reader.userId);
+    if (refused === null) return Result.ok(filesByRow);
+    const issues = [{ field: 'properties.values', message: `The file ${refused} cannot be attached` }];
+    const rowId = [...filesByRow].find(([, fileIds]) => fileIds.includes(refused))?.[0] ?? '';
+    return Result.fail(new BlockContentInvalidError(rowId, issues));
   }
 
   /**
@@ -230,11 +290,15 @@ export class BlockTransactionsService {
     }));
   }
 
-  /** Blocks first, then their links, then the result that a retry will read, then the notice that commits with them. */
+  /**
+   * Blocks first, then their links, then the result that a retry will read, then the notices that commit with them:
+   * one for each space the change reaches, so the followers of a space a page moves into hear of it as well.
+   */
   private async store(
     session: BlockTransactionSession,
     request: BlockTransactionRequest,
     plan: BlockTransactionPlan,
+    noticeSpaceIds: readonly string[],
   ): Promise<BlockTransactionResult> {
     await session.writeBlocks(plan.writes);
     await session.writeViews(plan.viewWrites);
@@ -246,7 +310,9 @@ export class BlockTransactionsService {
     await session.writeLinks(diffBlockLinks(storedLinks, wanted));
     const result = { blocks: plan.versions, id: request.id, views: plan.viewVersions };
     await session.recordResult(result);
-    await session.notify(buildVersionNotification(request.id, request.spaceId, plan.notices, plan.viewNotices));
+    for (const spaceId of noticeSpaceIds) {
+      await session.notify(buildVersionNotification(request.id, spaceId, plan.notices, plan.viewNotices));
+    }
     return result;
   }
 }

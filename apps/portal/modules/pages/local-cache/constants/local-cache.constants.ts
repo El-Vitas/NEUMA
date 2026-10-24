@@ -27,6 +27,9 @@ export const LOCAL_CACHE_RECORD_EVICTION_PREFIX = 'record:';
 /** Sent on `window` whenever a change is set aside, so the panel of changes that were not applied reads them again. */
 export const LOCAL_CACHE_OUTBOX_CHANGED_EVENT = 'neuma:outbox-changed';
 
+/** Sent on `window` when a refused change goes back to the pending ones, so the queue of its collection sends it. */
+export const LOCAL_CACHE_OUTBOX_RETRY_EVENT = 'neuma:outbox-retry';
+
 export const LOCAL_CACHE_DATABASE_SCHEMA_VERSION = 1;
 
 export const LOCAL_CACHE_META_KEY = 'meta';

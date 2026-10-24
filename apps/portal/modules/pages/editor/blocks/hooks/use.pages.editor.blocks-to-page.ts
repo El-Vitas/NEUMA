@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
-import { isActionSuccess, isLockedActionFailure } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess, isLockedActionFailure } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { createPageAction } from '../../../server/actions/pages.actions';
 import type { PageSummary } from '../../../types/pages.types';
@@ -48,7 +48,7 @@ export const usePagesEditorBlocksToPage = ({
       if (editorView === null || content === null) return;
       const title = readPageEditorBlocksTitle(editorView.state, range);
 
-      void createPageAction({ content, parentId: parentPageId, spaceId, title }).then((result) => {
+      void callAction(() => createPageAction({ content, parentId: parentPageId, spaceId, title })).then((result) => {
         if (!isActionSuccess(result)) {
           toast.error(isLockedActionFailure(result) ? tErrors('reasons.locked') : t('blocksMadePageError'));
           return;

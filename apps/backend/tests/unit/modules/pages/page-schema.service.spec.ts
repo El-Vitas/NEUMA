@@ -29,6 +29,7 @@ const titleDraft = { ...titleProperty, twoWay: false };
 const statusDraft = { ...statusProperty, twoWay: false };
 
 const page: PageSummary = {
+  canEdit: true,
   content: {},
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
@@ -58,6 +59,7 @@ const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): 
   emptyTrash: () => Promise.resolve([]),
   findReadablePageIds: (pageIds) => Promise.resolve(pageIds),
   getAccessible: () => Promise.resolve(page),
+  getEditable: () => Promise.resolve(page),
   findMoveContext: () => Promise.resolve(null),
   readMoveOrigin: () => Promise.resolve({ parentId: null, spaces: [] }),
   listTrashed: () => Promise.resolve({ items: [], total: 0 }),
@@ -128,7 +130,7 @@ describe('page schema service — defineSchema', () => {
 
   it('rejects an inaccessible page', async () => {
     const service = new PageSchemaService(
-      createPageRepository({ getAccessible: () => Promise.resolve(null) }),
+      createPageRepository({ getEditable: () => Promise.resolve(null) }),
       createSchemaRepository(),
     );
 
@@ -143,6 +145,107 @@ describe('page schema service — defineSchema', () => {
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  it('rejects a reader who can open the collection but not edit it, and writes nothing', async () => {
+    let defineCalls = 0;
+    const service = new PageSchemaService(
+      createPageRepository({ getEditable: () => Promise.resolve(null) }),
+      createSchemaRepository({
+        defineSchema: (pageId, shape) => {
+          defineCalls += 1;
+          return Promise.resolve({ pageId, ...shape });
+        },
+      }),
+    );
+
+    const result = await service.defineSchema({
+      pageId: 'page-a',
+      properties: [titleDraft],
+      role: USER_ROLE.WORKER,
+      userId: 'user-a',
+      views: [],
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+    expect(defineCalls).toBe(0);
+  });
+
+  it('refuses a locked collection', async () => {
+    const service = new PageSchemaService(
+      createPageRepository({ getEditable: () => Promise.resolve({ ...page, lockedAt: new Date() }) }),
+      createSchemaRepository(),
+    );
+
+    const result = await service.defineSchema({
+      pageId: 'page-a',
+      properties: [titleDraft],
+      role: USER_ROLE.WORKER,
+      userId: 'user-a',
+      views: [],
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.getError().code).toBe('PAGE_LOCKED');
+  });
+
+  it('refuses a trashed collection', async () => {
+    const service = new PageSchemaService(
+      createPageRepository({ getEditable: () => Promise.resolve({ ...page, lifecycle: PageLifecycle.TRASHED }) }),
+      createSchemaRepository(),
+    );
+
+    const result = await service.defineSchema({
+      pageId: 'page-a',
+      properties: [titleDraft],
+      role: USER_ROLE.WORKER,
+      userId: 'user-a',
+      views: [],
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.getError().code).toBe('PAGE_INVALID_LIFECYCLE');
+  });
+
+  it('refuses a two-way relation whose target the caller can read but not edit', async () => {
+    const relationDraft = {
+      config: { ...DEFAULT_PAGE_PROPERTY_CONFIG, targetCollectionId: 'page-b' },
+      key: 'related',
+      label: 'Related',
+      options: null,
+      required: false,
+      twoWay: true,
+      type: DatabasePropertyType.RELATION,
+    };
+    let defineCalls = 0;
+    const service = new PageSchemaService(
+      createPageRepository({
+        getAccessible: (pageId) => Promise.resolve({ ...page, id: pageId }),
+        getEditable: (pageId) => Promise.resolve(pageId === 'page-b' ? null : page),
+      }),
+      createSchemaRepository({
+        defineSchema: (pageId, shape) => {
+          defineCalls += 1;
+          return Promise.resolve({ pageId, ...shape });
+        },
+        getSchema: (pageId) => Promise.resolve({ pageId, properties: [titleProperty], views: [] }),
+      }),
+    );
+
+    const result = await service.defineSchema({
+      pageId: 'page-a',
+      properties: [titleDraft, relationDraft],
+      role: USER_ROLE.WORKER,
+      userId: 'user-a',
+      views: [],
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+    expect(defineCalls).toBe(0);
   });
 
   it('rejects a definition missing its single TITLE property before persistence', async () => {
@@ -268,7 +371,7 @@ describe('page schema service — rewriteOption', () => {
 
   it('rejects an inaccessible page', async () => {
     const service = new PageSchemaService(
-      createPageRepository({ getAccessible: () => Promise.resolve(null) }),
+      createPageRepository({ getEditable: () => Promise.resolve(null) }),
       schemaWithStatus(),
     );
 
@@ -276,6 +379,36 @@ describe('page schema service — rewriteOption', () => {
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  it('rejects a reader who cannot edit the collection, and writes nothing', async () => {
+    let rewrites = 0;
+    const service = new PageSchemaService(
+      createPageRepository({ getEditable: () => Promise.resolve(null) }),
+      createSchemaRepository({
+        getSchema: (pageId) => Promise.resolve({ pageId, properties: [titleProperty, statusProperty], views: [] }),
+        rewriteOption: (pageId, _key, _change, properties) => {
+          rewrites += 1;
+          return Promise.resolve({ pageId, properties, views: [] });
+        },
+      }),
+    );
+
+    const result = await service.rewriteOption(renaming);
+
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+    expect(rewrites).toBe(0);
+  });
+
+  it('refuses a locked collection', async () => {
+    const service = new PageSchemaService(
+      createPageRepository({ getEditable: () => Promise.resolve({ ...page, lockedAt: new Date() }) }),
+      schemaWithStatus(),
+    );
+
+    const result = await service.rewriteOption(renaming);
+
+    expect(result.getError().code).toBe('PAGE_LOCKED');
   });
 
   it('rejects a name another option already answers to', async () => {

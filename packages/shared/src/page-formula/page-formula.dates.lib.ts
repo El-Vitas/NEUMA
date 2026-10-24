@@ -22,6 +22,8 @@ const DAYS_IN_A_WEEK = 7;
 
 const FORMAT_TOKEN_PATTERN = /YYYY|MM|DD|HH|mm|ss/g;
 
+const OUT_OF_RANGE_MESSAGE = 'The date is outside the dates that can be shown';
+
 const isDayText = (text: string): boolean => DAY_PATTERN.test(text);
 
 const readUnit = (value: PageFormulaValue | undefined): DateUnit | null => {
@@ -54,9 +56,10 @@ const shiftTime = (time: number, amount: number, unit: DateUnit): number => {
   return time + amount * MILLISECONDS_BY_FIXED_UNIT[unit];
 };
 
-const shiftMoment = (moment: string, amount: number, unit: DateUnit): string => {
-  const shifted = shiftTime(Date.parse(moment), amount, unit);
-  return isDayText(moment) ? new Date(shifted).toISOString().slice(0, 10) : new Date(shifted).toISOString();
+const shiftMoment = (moment: string, amount: number, unit: DateUnit): string | null => {
+  const shifted = new Date(shiftTime(Date.parse(moment), amount, unit));
+  if (Number.isNaN(shifted.getTime())) return null;
+  return isDayText(moment) ? shifted.toISOString().slice(0, 10) : shifted.toISOString();
 };
 
 const isTimeUnit = (unit: DateUnit): boolean => unit === 'hours' || unit === 'minutes';
@@ -71,9 +74,9 @@ const shiftDate = (date: PageDateValue, amount: number, unit: DateUnit, directio
     return failWithInvalidArgument(`${unit} must be moved by a whole number`);
   }
   const start = shiftMoment(date.start, amount * direction, unit);
-  return succeedWith(
-    date.end === undefined ? { start } : { end: shiftMoment(date.end, amount * direction, unit), start },
-  );
+  const end = date.end === undefined ? undefined : shiftMoment(date.end, amount * direction, unit);
+  if (start === null || end === null) return failWithInvalidArgument(OUT_OF_RANGE_MESSAGE);
+  return succeedWith(end === undefined ? { start } : { end, start });
 };
 
 const runShift =

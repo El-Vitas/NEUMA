@@ -70,6 +70,7 @@
     "account": "Account",
     "profile": "Profile",
     "logout": "Log out",
+    "logoutPendingUnknown": "We could not check whether you have changes that were not sent. They may be lost if you log out. Log out anyway?",
     "logoutPending": "You have {count, plural, one {# change} other {# changes}} that {count, plural, one {was} other {were}} not sent. They are lost if you log out. Log out anyway?",
     "mobileMenu": "Navigation menu",
     "administrator": "Administrator",
@@ -83,6 +84,10 @@
       "emailPlaceholder": "name@example.com",
       "password": "Password",
       "validationError": "Review the form fields.",
+      "invalidCredentials": "Incorrect email or password.",
+      "rateLimited": "Too many attempts in a row. Wait a moment and try again.",
+      "offline": "Could not reach the server. Check your connection.",
+      "unexpected": "Something went wrong on our side. Try again.",
       "submit": "Sign in",
       "submitting": "Signing in..."
     }
@@ -172,6 +177,7 @@
     "passwordMinimum": "At least {count} characters.",
     "nameUpdateError": "Could not update your name. Try again.",
     "nameUpdated": "Name updated",
+    "passwordChangedSignIn": "Your password was changed, but we could not start a new session. Sign in with the new password.",
     "passwordUpdated": "Password updated"
   },
   "accessTokens": {
@@ -421,7 +427,6 @@
   },
   "pages": {
     "subtitle": "Structured pages and knowledge.",
-    "loadError": "Could not load this space. Check your permissions and try again.",
     "spaceNavigation": "Space navigation",
     "title": "Pages",
     "createPage": "Create a page",
@@ -494,8 +499,10 @@
       "copy": "Copy text",
       "copied": "Copied",
       "discard": "Discard",
+      "retry": "Try again",
       "noText": "This change had no text to show.",
       "causes": {
+        "conflict": "Someone else changed this since you edited it. What you wrote is kept here; try again to apply it over their change.",
         "forbidden": "You no longer have permission to edit this.",
         "invalid": "It could not be read back from this browser.",
         "missing": "What it changed no longer exists.",
@@ -1111,6 +1118,9 @@
       "bulkTooMany": "Too many rows match to select them all. Narrow them down with a search or a filter.",
       "bulkUndo": "Undo",
       "bulkUndone": "Undone",
+      "bulkProgress": "Working: {done, number} of {total, number} rows",
+      "bulkPartial": "{count, plural, one {# of the {total, number} rows could not be changed} other {# of the {total, number} rows could not be changed}}",
+      "bulkUndoPartial": "{count, plural, one {# of the {total, number} rows could not be undone} other {# of the {total, number} rows could not be undone}}",
       "bulkAssigned": "{count, plural, one {# row answered} other {# rows answered}}",
       "bulkDuplicated": "{count, plural, one {# copy made} other {# copies made}}",
       "bulkTrashed": "{count, plural, one {# row to the trash} other {# rows to the trash}}",

@@ -1,5 +1,5 @@
-import { describe, expect, it, mock } from 'bun:test';
-import { render } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, jest, mock } from 'bun:test';
+import { act, render } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { createRef, type RefObject } from 'react';
 import en from '../../../../../messages/en.json';
@@ -41,9 +41,27 @@ const openPageAsking = (wanted: string, standing: string): void => {
   );
 };
 
-const waitFor = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+const waitFor = async (ms: number): Promise<void> => {
+  await act(async () => {
+    jest.advanceTimersByTime(ms);
+    await Promise.resolve();
+  });
+};
+
+const useFakeClock = (): void => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+};
 
 describe('arriving at a page with a block in the address', () => {
+  useFakeClock();
+
   it('says nothing while the block is there', async () => {
     errors.length = 0;
     openPageAsking('block-1', 'block-1');
@@ -64,6 +82,8 @@ describe('arriving at a page with a block in the address', () => {
 });
 
 describe('following a link to a block on the page one is already reading', () => {
+  useFakeClock();
+
   it('answers the new address, not only the one the page was opened with', async () => {
     errors.length = 0;
     openPageAsking('block-1', 'block-1');

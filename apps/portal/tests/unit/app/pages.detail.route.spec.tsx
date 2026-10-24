@@ -20,6 +20,7 @@ const getPageBacklinks = mock(async () => ({
 const pageId = '44444444-4444-4444-8444-444444444444';
 const spaceId = '22222222-2222-4222-8222-222222222222';
 const storedPage = {
+  canEdit: true,
   content: { content: [], schemaVersion: 1, type: 'doc' },
   id: pageId,
   lifecycle: 'ACTIVE',
@@ -27,7 +28,7 @@ const storedPage = {
   parentId: null,
   title: 'Getting Started',
 };
-const pageResult = { getValue: () => storedPage, isOk: () => true };
+const pageResult = { getValue: () => storedPage, isFail: () => false, isOk: () => true };
 const tree = {
   ancestors: [
     { icon: null, id: 'top', isReadable: true, lifecycle: 'ACTIVE', title: 'Top' },
@@ -38,8 +39,10 @@ const tree = {
 };
 const spacesResult = {
   getValue: () => [{ id: spaceId, name: 'Engineering' }],
+  isFail: () => false,
   isOk: () => true,
 };
+const getSpaces = mock(async () => spacesResult);
 const workspace = mock(
   (props: {
     readonly ancestors: readonly { readonly id: string }[];
@@ -148,7 +151,7 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
 }));
 mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({
   getSpaceMembers: async () => ({ getValue: () => [], isOk: () => true }),
-  getSpaces: async () => spacesResult,
+  getSpaces,
 }));
 
 const { default: Page } = await import('@/app/[locale]/(portal)/spaces/[spaceId]/pages/[pageId]/page');
@@ -184,8 +187,35 @@ describe('page detail route reads one page, not the space', () => {
   });
 
   it('says the page does not exist when the reader cannot open it', async () => {
-    getPage.mockImplementationOnce(async () => ({ getValue: () => null as never, isOk: () => true }));
+    getPage.mockImplementationOnce(async () => ({
+      getValue: () => null as never,
+      isFail: () => false,
+      isOk: () => true,
+    }));
 
     await expect(Page({ params: Promise.resolve({ pageId, spaceId }) })).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('raises the failure, not a missing page, when the backend could not be asked for the page', async () => {
+    getPage.mockImplementationOnce(async () => ({
+      getError: () => new Error('Backend unreachable'),
+      getValue: () => null as never,
+      isFail: () => true,
+      isOk: () => false,
+    }));
+
+    await expect(Page({ params: Promise.resolve({ pageId, spaceId }) })).rejects.toThrow('Backend unreachable');
+  });
+
+  it('raises the failure, not a missing page, when the backend could not be asked for the spaces', async () => {
+    const failing = {
+      getError: () => new Error('Spaces unreachable'),
+      getValue: () => [],
+      isFail: () => true,
+      isOk: () => false,
+    };
+    getSpaces.mockImplementationOnce(async () => failing as never);
+
+    await expect(Page({ params: Promise.resolve({ pageId, spaceId }) })).rejects.toThrow('Spaces unreachable');
   });
 });

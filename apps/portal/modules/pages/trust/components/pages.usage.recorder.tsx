@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { callAction } from '@/shared/lib/action-result';
 import { recordPageViewAction } from '../server/actions/pages.usage.actions';
 
 interface IProps {
@@ -9,7 +10,7 @@ interface IProps {
 
 export const PagesUsageRecorder = ({ pageId }: IProps) => {
   useEffect(() => {
-    void recordPageViewAction({ pageId });
+    void callAction(() => recordPageViewAction({ pageId }));
   }, [pageId]);
 
   return null;

@@ -1,6 +1,7 @@
 import { Controller, Delete, Get, Query, UseGuards } from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
+import { PageReadThrottlerGuard } from '../../common/infrastructure/guards/page-read-throttler.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { PageTrashQueryDto } from './dto/page.trash.query.dto';
@@ -15,7 +16,7 @@ export class PageTrashController {
   ) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async list(@Query() dto: PageTrashQueryDto, @User('payload') payload: TokenPayload): Promise<TrashedPageListing> {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     return this.pagesService.listTrashed(

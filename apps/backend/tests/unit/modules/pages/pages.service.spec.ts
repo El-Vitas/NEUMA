@@ -30,6 +30,7 @@ const validPageContent: PageContent = {
 };
 
 const page = {
+  canEdit: true,
   content: {},
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
@@ -67,6 +68,7 @@ const createRepository = (): PageRepositoryContract => ({
   emptyTrash: () => Promise.resolve([]),
   findReadablePageIds: (pageIds) => Promise.resolve(pageIds),
   getAccessible: () => Promise.resolve(page),
+  getEditable: () => Promise.resolve(page),
   findMoveContext: () =>
     Promise.resolve({
       pageId: 'page-a',
@@ -399,17 +401,51 @@ describe('pages service', () => {
       createPurgeRepository(),
       createVersionRetentionRepository(),
     );
-    const result = await service.move(
-      'page-a',
-      'page-b',
-      null,
-      'user-a',
-      'workspace-a',
-      'mutation-a',
-      USER_ROLE.WORKER,
-    );
+    const result = await service.move({
+      expectedVersion: null,
+      mutationId: 'mutation-a',
+      pageId: 'page-a',
+      parentId: 'page-b',
+      role: USER_ROLE.WORKER,
+      targetSpaceId: null,
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
 
     expect(result.isOk()).toBe(true);
+  });
+
+  it('hands the version the caller saw to the move, which checks it while it holds the page', async () => {
+    const received: (null | number)[] = [];
+    const service = new PagesService(
+      {
+        ...createRepository(),
+        move: ({ expectedVersion }) => {
+          received.push(expectedVersion);
+          return Promise.resolve(page);
+        },
+      },
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
+    );
+
+    const result = await service.move({
+      expectedVersion: 9,
+      mutationId: 'mutation-a',
+      pageId: 'page-a',
+      parentId: 'page-b',
+      role: USER_ROLE.WORKER,
+      targetSpaceId: null,
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(received).toEqual([9]);
   });
 
   it('rejects creating a page under a parent from another space', async () => {
@@ -466,15 +502,16 @@ describe('pages service', () => {
       createPurgeRepository(),
       createVersionRetentionRepository(),
     );
-    const result = await service.move(
-      'page-a',
-      'page-b',
-      null,
-      'user-a',
-      'workspace-a',
-      'mutation-c',
-      USER_ROLE.WORKER,
-    );
+    const result = await service.move({
+      expectedVersion: null,
+      mutationId: 'mutation-c',
+      pageId: 'page-a',
+      parentId: 'page-b',
+      role: USER_ROLE.WORKER,
+      targetSpaceId: null,
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_CYCLE');
@@ -1453,15 +1490,16 @@ describe('mention redaction on served page content', () => {
       createVersionRetentionRepository(),
     );
 
-    const result = await service.move(
-      'page-a',
-      'page-b',
-      null,
-      'user-a',
-      'workspace-a',
-      'mutation-a',
-      USER_ROLE.WORKER,
-    );
+    const result = await service.move({
+      expectedVersion: null,
+      mutationId: 'mutation-a',
+      pageId: 'page-a',
+      parentId: 'page-b',
+      role: USER_ROLE.WORKER,
+      targetSpaceId: null,
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
     const serialized = JSON.stringify(result.getValue().content);
 
     expect(result.isOk()).toBe(true);
@@ -1532,6 +1570,55 @@ describe('markdown export', () => {
     expect(result.isFail()).toBe(true);
   });
 
+  it('carries only the files the exported pages name, not the ones of blocks the reader cannot see', async () => {
+    const withImage: JsonValue = {
+      content: [{ attrs: { assetId: 'asset-seen' }, type: 'image' }],
+      schemaVersion: 1,
+      type: 'doc',
+    };
+    const readKeys: string[] = [];
+    const service = new PagesService(
+      { ...createRepository(), listAccessible: () => Promise.resolve([buildPageWithContent(withImage)]) },
+      createSchemaRepository(),
+      {
+        ...createAttachmentsCleanupRepository(),
+        listAssetsForPages: () =>
+          Promise.resolve([
+            { id: 'asset-seen', originalFilename: 'seen.png', size: 1, storageKey: 'key-seen' },
+            { id: 'asset-hidden', originalFilename: 'hidden.png', size: 1, storageKey: 'key-hidden' },
+          ]),
+      },
+      {
+        ...createStorageProvider(),
+        read: (key: string) => {
+          readKeys.push(key);
+          return Promise.resolve(Buffer.from(''));
+        },
+      },
+      createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
+    );
+
+    const result = await service.exportAsMarkdown(
+      'space-a',
+      { kind: 'space' },
+      'workspace-a',
+      'user-a',
+      USER_ROLE.WORKER,
+      'Sin nombre',
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(readKeys).toEqual(['key-seen']);
+    expect(
+      result
+        .getValue()
+        .map((file) => file.path)
+        .filter((path) => path.includes('hidden')),
+    ).toEqual([]);
+  });
+
   it('refuses an export whose attachments pass the cap, before reading any of them', async () => {
     let reads = 0;
     const attachmentsRepository = {
@@ -1546,8 +1633,13 @@ describe('markdown export', () => {
         return Promise.resolve(Buffer.from(''));
       },
     };
+    const namingTheFile: JsonValue = {
+      content: [{ attrs: { assetId: 'asset-a' }, type: 'image' }],
+      schemaVersion: 1,
+      type: 'doc',
+    };
     const service = new PagesService(
-      createRepository(),
+      { ...createRepository(), listAccessible: () => Promise.resolve([buildPageWithContent(namingTheFile)]) },
       createSchemaRepository(),
       attachmentsRepository,
       storageProvider,
@@ -1662,6 +1754,56 @@ describe('pages service — updating what a row holds', () => {
 
     expect(result.isOk()).toBe(true);
     expect(written[0]).toEqual({ notes: 'Sigue igual', status: 'done0001' });
+  });
+
+  describe('when the caller names the version of the row it saw', () => {
+    const edit = (expectedVersion?: number) => ({
+      ...(expectedVersion === undefined ? {} : { expectedVersion }),
+      pageId: 'page-a',
+      propertyValues: { status: 'done0001' },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    const receivedBy = async (expectedVersion?: number): Promise<UpdatePagePropertyValuesInput[]> => {
+      const received: UpdatePagePropertyValuesInput[] = [];
+      const service = new PagesService(
+        {
+          ...createRepository(),
+          getAccessible: () => Promise.resolve({ ...page, propertyValues: { status: 'todo0001' } }),
+          updatePropertyValues: (input, merge) => {
+            received.push(input);
+            const merged = merge({ status: 'todo0001' });
+            return Promise.resolve(merged.isFail() ? Result.fail(merged.getError()) : Result.ok(page));
+          },
+        },
+        {
+          ...createSchemaRepository(),
+          resolveSchemaProperties: () => Promise.resolve([titleProperty, statusProperty]),
+        },
+        createAttachmentsCleanupRepository(),
+        createStorageProvider(),
+        createLogger(),
+        createPurgeRepository(),
+        createVersionRetentionRepository(),
+      );
+      await service.updateProperties(edit(expectedVersion));
+      return received;
+    };
+
+    it('hands the version to the write, which checks it while it holds the row', async () => {
+      const received = await receivedBy(7);
+
+      expect(received[0]?.expectedVersion).toBe(7);
+    });
+
+    it('names no version to the write when the caller named none', async () => {
+      const received = await receivedBy();
+
+      expect(received[0]).not.toHaveProperty('expectedVersion');
+    });
   });
 
   it('renames the row in the same write as its properties, so both land or neither does', async () => {

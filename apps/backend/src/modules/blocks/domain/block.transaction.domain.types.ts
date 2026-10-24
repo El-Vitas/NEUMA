@@ -14,11 +14,9 @@ import type { RolesById } from '../../../common/domain/block-access.domain.types
 import type { DomainError } from '../../../common/domain/domain.error';
 import type { SchemaPropertyDefinition } from '../../../common/domain/schema.domain.types';
 import type { BlockRecord, RecordsById } from './block.domain.types';
-import type { BLOCK_BAG_VALUES, BLOCK_LINK_KIND, BLOCK_WRITABLE_FIELD_VALUES } from './block.operation.constants';
+import type { BLOCK_BAG_VALUES, BLOCK_LINK_KIND } from './block.operation.constants';
 
 export type BlockBag = (typeof BLOCK_BAG_VALUES)[number];
-
-export type BlockWritableField = (typeof BLOCK_WRITABLE_FIELD_VALUES)[number];
 
 export type BlockLinkKind = (typeof BLOCK_LINK_KIND)[keyof typeof BLOCK_LINK_KIND];
 
@@ -265,6 +263,12 @@ export interface ViewWrite {
   readonly configuration: PageViewConfiguration;
   readonly id: string;
   readonly manualOrder: readonly string[] | null;
+  readonly version: number;
+}
+
+/** The version of a block as its writer read it; the write is refused when the block is at another one. */
+export interface BlockExpectedVersion {
+  readonly blockId: string;
   readonly version: number;
 }
 

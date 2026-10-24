@@ -14,6 +14,7 @@ export interface EngineClient {
   readonly engine: BlockSyncEngine;
   readonly participants: (readonly PageCollaborationParticipant[])[];
   readonly readOnlyCalls: number[];
+  readonly replaceFault: { isActive: boolean };
   readonly replaced: PageContent[];
   readonly saveStates: PagesAutosaveDisplayState[];
   readonly session: FakeSession;

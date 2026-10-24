@@ -7,12 +7,16 @@ const readWindows = mock(async (): Promise<readonly PageTreeChildren[] | null> =
 /** The provider reaches server actions for its reads, which refuse to load outside a server. */
 mock.module('@/modules/pages/tree/lib/pages.tree.client.lib', () => ({
   readTreeWindowsFromServer: readWindows,
-  requestPageTreeLiveToken: async () => null,
+}));
+
+mock.module('@/modules/pages/block-sync/lib/block-sync.token.lib', () => ({
+  requestBlockLiveToken: async () => null,
 }));
 
 const { PagesTreeProvider } = await import('@/modules/pages/tree/components/pages.tree.provider');
 
 const entry = (id: string, version: number): PageTreeEntry => ({
+  canEdit: true,
   hasChildren: false,
   hasOwnPermissions: false,
   icon: null,

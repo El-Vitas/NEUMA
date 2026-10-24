@@ -35,6 +35,7 @@ import { SCHEMA_CHANGED_MEANWHILE, SCHEMA_OPTION_ALREADY_MOVED } from '../../con
 import { readPageValues } from '../../domain/page.block.domain';
 import { PageAccessDeniedError } from '../../domain/page.error';
 import { buildValueRewriteOperations, diffPageValues } from '../../domain/page.operation.domain';
+import { keepFilesTheViewerMayName } from '../../domain/page-schema.domain';
 import type { PageSchemaSideEffects, RollupDependent } from '../../domain/page-schema.domain.types';
 import type { PageViewer } from '../../types/page.block.types';
 import type { StoredPageBlock } from '../../types/page.types';
@@ -286,14 +287,12 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     const byId = new Map(blocks.map((block) => [block.id, block]));
     const rows = rowIds.flatMap((id) => {
       const block = byId.get(id);
-      return block !== undefined && block.parentId === pageId && block.lifecycle === PageLifecycle.ACTIVE
-        ? [block]
-        : [];
+      return block?.parentId === pageId && block.lifecycle === PageLifecycle.ACTIVE ? [block] : [];
     });
     const properties = await this.resolveSchemaProperties(pageId);
     const related = await this.readRelatedRows(rows, properties, { role, userId, workspaceId });
     return {
-      attachedFiles: await this.readAttachedFiles(rows, properties, workspaceId),
+      attachedFiles: await this.readAttachedFiles(rows, properties, workspaceId, userId),
       hasMore: false,
       relatedRows: related.rows,
       rows: rows.map((row, order) => ({
@@ -386,17 +385,30 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     rows: readonly StoredPageBlock[],
     properties: readonly SchemaPropertyDefinition[],
     workspaceId: string,
+    userId: string,
   ): Promise<PageRowsPage['attachedFiles']> {
     const fileKeys = properties
       .filter((property) => property.type === DatabasePropertyType.FILES)
       .map(({ key }) => key);
     const ids = listCellIds(rows, fileKeys);
     if (ids.length === 0) return [];
-    const assets = await this.prisma.models.FileAsset.select('id', 'mimeType', 'originalFilename', 'size')
+    const assets = await this.prisma.models.FileAsset.select(
+      'id',
+      'mimeType',
+      'originalFilename',
+      'ownerId',
+      'pageId',
+      'size',
+    )
       .where({ lifecycle: FileAssetLifecycle.ACTIVE, workspaceId })
       .where((asset) => asset.id.in(ids))
       .all();
-    return assets.map((asset) => ({
+    const visible = keepFilesTheViewerMayName(
+      assets,
+      rows.map((row) => row.id),
+      userId,
+    );
+    return visible.map((asset) => ({
       id: asset.id,
       mimeType: asset.mimeType,
       name: asset.originalFilename,

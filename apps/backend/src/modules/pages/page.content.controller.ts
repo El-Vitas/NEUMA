@@ -1,6 +1,7 @@
 import { Body, Controller, Param, Post, Put, UseGuards } from '@nestjs/common';
 import type { PageContent } from '@neuma/shared';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
+import { BlockWriteThrottlerGuard } from '../../common/infrastructure/guards/block-write-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
@@ -10,7 +11,7 @@ import type { PageContentWriter } from './types/page.types';
 
 /** Writes page content from outside the editor, always through the live document. */
 @Controller('spaces/:spaceId/pages/:pageId')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BlockWriteThrottlerGuard)
 export class PageContentController {
   constructor(
     private readonly pageContentService: PageContentService,

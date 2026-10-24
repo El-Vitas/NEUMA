@@ -8,7 +8,8 @@ export const listRelationCandidatesToShow = (
   query: string,
 ): readonly PageRelatedRow[] => {
   const typed = query.trim().toLowerCase();
+  const chosen = new Set(chosenIds);
   return (candidates ?? [])
-    .filter((row) => !chosenIds.includes(row.id) && row.title.toLowerCase().includes(typed))
+    .filter((row) => !chosen.has(row.id) && row.title.toLowerCase().includes(typed))
     .slice(0, PAGE_RELATION_PICKER_VISIBLE_LIMIT);
 };

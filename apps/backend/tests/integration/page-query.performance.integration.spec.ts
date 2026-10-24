@@ -153,7 +153,10 @@ describe('Reading big collections stays fast and uses the indexes (Integration)'
       });
       await prisma.models.Block.createAndCount(rows);
     }
-    await prisma.models.Block.where({ id: collectionId }).update({ children: ids });
+    const collection = await prisma.models.Block.where({ id: collectionId }).first();
+    await prisma.models.Block.where({ id: collectionId }).update({
+      children: [...(collection?.children ?? []), ...ids],
+    });
   };
 
   const run = (body: PageQueryRequest, collectionId: string) =>

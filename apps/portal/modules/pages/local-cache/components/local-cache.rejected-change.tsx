@@ -10,10 +10,11 @@ import type { RejectedTransaction } from '../types/local-cache.types';
 interface IProps {
   readonly item: RejectedTransaction;
   readonly onDiscard: () => void;
+  readonly onRetry: () => void;
 }
 
 /** One change the server refused: why, what the person wrote in it, and what they can do with it. */
-export const LocalCacheRejectedChange = ({ item, onDiscard }: IProps) => {
+export const LocalCacheRejectedChange = ({ item, onDiscard, onRetry }: IProps) => {
   const t = useTranslations('pages.rejectedChanges');
   const [isCopied, setIsCopied] = useState(false);
   const text = readRejectedText(item);
@@ -33,6 +34,11 @@ export const LocalCacheRejectedChange = ({ item, onDiscard }: IProps) => {
         </pre>
       )}
       <div className="flex gap-2">
+        {item.kind === 'view-write' && (
+          <Button onClick={onRetry} size="sm" type="button" variant="outline">
+            {t('retry')}
+          </Button>
+        )}
         {text !== '' && (
           <Button onClick={() => void copy()} size="sm" type="button" variant="outline">
             {isCopied ? t('copied') : t('copy')}

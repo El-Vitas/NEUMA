@@ -20,10 +20,12 @@ interface IProps {
 export const PagesSharingButton = ({ hasOwnPermissions, onChanged, pageId, spaceId, title }: IProps) => {
   const t = useTranslations('pages.sharing');
   const [isOpen, setIsOpen] = useState(false);
-  const [isRestricted, setIsRestricted] = useState(hasOwnPermissions);
+  /** What the dialog just saved, kept only while the prop it was saved against has not moved on. */
+  const [saved, setSaved] = useState<{ readonly basedOn: boolean; readonly value: boolean } | null>(null);
+  const isRestricted = saved !== null && saved.basedOn === hasOwnPermissions ? saved.value : hasOwnPermissions;
 
   const handleChanged = (change: SharingChange): void => {
-    setIsRestricted(change.hasOwnPermissions);
+    setSaved({ basedOn: hasOwnPermissions, value: change.hasOwnPermissions });
     onChanged?.(change);
   };
 

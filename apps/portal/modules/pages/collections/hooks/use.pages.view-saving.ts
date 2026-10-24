@@ -4,7 +4,7 @@ import { diffPageViewConfigurations, readPageViewConfiguration, toPageViewEnvelo
 import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { applyPageViewOperationsAction } from '../server/actions/pages.collections.actions';
 import type { PageChangedView } from '../types/pages.query.types';
 import type { PageSchema, PageSchemaViewDraft } from '../types/pages.schema.types';
@@ -50,15 +50,17 @@ export const usePagesViewSaving = (schema: PageSchema, activeViewName: string, s
     );
     if (operations.length === 0) return;
     startSaving(async () => {
-      const saved = await applyPageViewOperationsAction({
-        operations: operations.map((operation) => {
-          const { args, command, path } = toPageViewEnvelope(stored.id, operation);
-          return { args, command, path: [...path] };
+      const saved = await callAction(() =>
+        applyPageViewOperationsAction({
+          operations: operations.map((operation) => {
+            const { args, command, path } = toPageViewEnvelope(stored.id, operation);
+            return { args, command, path: [...path] };
+          }),
+          pageId: schema.pageId,
+          spaceId,
+          viewId: stored.id,
         }),
-        pageId: schema.pageId,
-        spaceId,
-        viewId: stored.id,
-      });
+      );
       if (!isActionSuccess<PageChangedView>(saved)) {
         setViews(before);
         toast.error(tErrors('generic'));

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type NeumaTransaction, PageLifecycle } from '@neuma/db';
-import type { PageContent } from '@neuma/shared';
+import { canEditBlock, type PageContent } from '@neuma/shared';
 import { PinoLogger } from 'nestjs-pino';
 import { readBlockTitle } from '../../../../common/domain/block-access.domain';
 import { findLatestPageVersions } from '../../../../common/infrastructure/persistence/page-latest-version.lib';
@@ -92,6 +92,7 @@ export class PageSummaryReader {
     const lastEdit = findLastEdit(block, content);
     const document = buildPageDocument(block, content);
     return {
+      canEdit: canEditBlock(access.role),
       content: document.isOk() ? pageStoredJsonSchema.parse(document.getValue()) : null,
       cover: readPageCover(block.format),
       createdAt: block.createdAt,

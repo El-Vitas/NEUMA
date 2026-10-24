@@ -33,4 +33,5 @@ export const BLOCK_WRITE_FAILURE_CODE = {
   locked: 'PAGE_LOCKED',
   transactionIdTaken: 'BLOCK_TRANSACTION_ID_TAKEN',
   treeInvalid: 'BLOCK_TREE_INVALID',
+  versionConflict: 'BLOCK_VERSION_CONFLICT',
 } as const;

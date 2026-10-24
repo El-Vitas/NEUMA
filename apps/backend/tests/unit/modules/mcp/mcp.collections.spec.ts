@@ -486,6 +486,7 @@ const connect = async (
     discussions: {
       getDiscussion: notUsedHere,
       listPageDiscussions: notUsedHere,
+      locateComment: notUsedHere,
       openDiscussion: notUsedHere,
       removeComment: notUsedHere,
       reply: notUsedHere,

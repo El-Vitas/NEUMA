@@ -85,6 +85,9 @@ export interface BlockLiveSyncReader {
 
 export type BlockLiveRawSocket = Parameters<WebsocketHandler>[0];
 
+/** What the live channel needs of a socket to send to it and to close it. */
+export type BlockLiveWritableSocket = Pick<BlockLiveRawSocket, 'bufferedAmount' | 'close' | 'readyState' | 'send'>;
+
 export type BlockLiveRawSocketMessage = ArrayBuffer | Buffer | Buffer[];
 
 export interface BlockLiveSettings {
@@ -130,6 +133,8 @@ export interface BlockLiveConnection {
   readonly id: string;
   isClosed: boolean;
   messageWindow: MessageWindow;
+  /** Messages received and not yet handled, the one being handled included. */
+  pendingMessages: number;
   queue: Promise<void>;
   reader: BlockReader | null;
   readonly socket: BlockLiveSocket;

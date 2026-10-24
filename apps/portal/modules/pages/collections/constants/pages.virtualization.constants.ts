@@ -4,6 +4,9 @@ export const PAGE_SCROLL_CONTAINER_SELECTOR = '[data-scroll-container]';
 /** Before any item is drawn, no height is known. */
 export const NO_MEASURED_HEIGHTS: ReadonlyMap<number, number> = new Map();
 
+/** The range read before the list is laid out: nothing in view. */
+export const NO_VISIBLE_RANGE_KEY = '0:-1';
+
 /** Items drawn above and below what is in view, so scrolling fast does not show blank space before they arrive. */
 export const PAGE_VIRTUAL_OVERSCAN = 10;
 

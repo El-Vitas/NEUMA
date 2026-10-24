@@ -1,4 +1,4 @@
-import type { PageFormulaOutcome, PageFormulaScalar, PageFormulaValue } from '@neuma/shared';
+import type { PageFormulaOutcome, PageFormulaScalar, PageFormulaTraceStep, PageFormulaValue } from '@neuma/shared';
 import { ACCESS_TOKEN_PERMISSIONS, readPageDateValue } from '@neuma/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import {
@@ -12,6 +12,7 @@ import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { testFormulaInputSchema, testFormulaOutputSchema } from '../schemas/mcp.collections.schemas';
 import type {
   McpComputedDraft,
+  McpComputedPreview,
   McpPreviewValue,
   McpTestFormulaInput,
   McpTestFormulaOutput,
@@ -34,6 +35,21 @@ const toPreviewValue = (outcome: PageFormulaOutcome): McpPreviewValue => {
 
 const toPreviewError = (outcome: PageFormulaOutcome): { error?: { code: string; message: string } } =>
   outcome.isOk ? {} : { error: outcome.error };
+
+const toPreviewTrace = (trace: readonly PageFormulaTraceStep[]) =>
+  trace.map((step) => ({
+    ...toPreviewError(step.outcome),
+    text: step.text,
+    value: toPreviewValue(step.outcome),
+  }));
+
+const toPreviewRow = (row: McpComputedPreview['rows'][number]) => ({
+  ...toPreviewError(row.outcome),
+  id: row.id,
+  title: row.title,
+  ...(row.trace === undefined ? {} : { trace: toPreviewTrace(row.trace) }),
+  value: toPreviewValue(row.outcome),
+});
 
 const toComputedDraft = (input: McpTestFormulaInput): McpComputedDraft => {
   if ((input.formula === undefined) === (input.rollup === undefined)) {
@@ -101,21 +117,7 @@ export const testFormulaTool: McpToolDefinition = {
             return testFormulaOutputSchema.parse({
               reads: preview.reads,
               resultType: preview.resultType,
-              rows: preview.rows.map((row) => ({
-                ...toPreviewError(row.outcome),
-                id: row.id,
-                title: row.title,
-                ...(row.trace === undefined
-                  ? {}
-                  : {
-                      trace: row.trace.map((step) => ({
-                        ...toPreviewError(step.outcome),
-                        text: step.text,
-                        value: toPreviewValue(step.outcome),
-                      })),
-                    }),
-                value: toPreviewValue(row.outcome),
-              })),
+              rows: preview.rows.map(toPreviewRow),
             });
           },
           formatPreviewText,

@@ -33,6 +33,7 @@ mock.module('@/modules/pages/navigation/components/pages.move.form', () => ({
 const { PagesPropertiesPanel } = await import('@/modules/pages/collections/components/pages.properties.panel');
 
 const buildPage = (overrides: Partial<PageSummary> = {}): PageSummary => ({
+  canEdit: true,
   content: { content: [], schemaVersion: 1, type: 'doc' },
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
