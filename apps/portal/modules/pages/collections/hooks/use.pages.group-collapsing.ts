@@ -5,7 +5,7 @@ import { diffPageViewConfigurations, readPageViewConfiguration, toPageViewEnvelo
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { hasActionError } from '@/shared/lib/action-result';
+import { callAction, hasActionError } from '@/shared/lib/action-result';
 import { PAGE_KEY_SEPARATOR } from '../constants/pages.aggregates.constants';
 import { applyPageViewOperationsAction } from '../server/actions/pages.collections.actions';
 import type { PagesGroupCollapsing } from '../types/pages.group-collapsing.types';
@@ -45,15 +45,17 @@ export const usePagesGroupCollapsing = (
       setTravelling((count) => count + 1);
       const current = readViewConfiguration(schema, activeViewName);
       const operations = diffPageViewConfigurations(current, { ...current, collapsedGroups: next });
-      void applyPageViewOperationsAction({
-        operations: operations.map((operation) => {
-          const { args, command, path } = toPageViewEnvelope(view.id, operation);
-          return { args, command, path: [...path] };
+      void callAction(() =>
+        applyPageViewOperationsAction({
+          operations: operations.map((operation) => {
+            const { args, command, path } = toPageViewEnvelope(view.id, operation);
+            return { args, command, path: [...path] };
+          }),
+          pageId: schema.pageId,
+          spaceId,
+          viewId: view.id,
         }),
-        pageId: schema.pageId,
-        spaceId,
-        viewId: view.id,
-      })
+      )
         .then((saved) => {
           if (!hasActionError(saved)) return;
           setFolded(before);

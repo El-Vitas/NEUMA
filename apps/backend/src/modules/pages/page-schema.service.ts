@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DatabasePropertyType } from '@neuma/db';
+import { DatabasePropertyType, PageLifecycle } from '@neuma/db';
 import {
   DEFAULT_PAGE_PROPERTY_CONFIG,
   isPageComputedPropertyType,
@@ -19,7 +19,13 @@ import {
   SCHEMA_CHANGED_MEANWHILE,
   SCHEMA_OPTION_ALREADY_MOVED,
 } from './constants/pages.constants';
-import { PageAccessDeniedError, PageSchemaChangedError, type PageSchemaDefinitionError } from './domain/page.error';
+import {
+  PageAccessDeniedError,
+  PageLifecycleError,
+  PageLockedError,
+  PageSchemaChangedError,
+  type PageSchemaDefinitionError,
+} from './domain/page.error';
 import {
   listForeignRollupTargetIds,
   listOwnRollupTargetIds,
@@ -32,8 +38,8 @@ import {
   validatePageSchemaDefinition,
   validatePageSchemaViews,
 } from './domain/page-schema.domain';
-import type { RelationPlan } from './domain/page-schema.domain.types';
-import type { PageRepositoryContract } from './types/page.types';
+import type { PageSchemaSideEffects, RelationPlan } from './domain/page-schema.domain.types';
+import type { PageRepositoryContract, PageSummary } from './types/page.types';
 import type {
   DefinePageSchemaInput,
   PageSchemaRepositoryContract,
@@ -52,14 +58,21 @@ export class PageSchemaService {
 
   async defineSchema(
     input: DefinePageSchemaInput,
-  ): Promise<Result<PageSchemaSummary, PageAccessDeniedError | PageSchemaChangedError | PageSchemaDefinitionError>> {
-    if (input.role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const page = await this.pageRepository.getAccessible(input.pageId, input.workspaceId, input.userId, input.role);
-    if (page === null) return Result.fail(new PageAccessDeniedError());
+  ): Promise<
+    Result<
+      PageSchemaSummary,
+      PageAccessDeniedError | PageLifecycleError | PageLockedError | PageSchemaChangedError | PageSchemaDefinitionError
+    >
+  > {
+    const editable = await this.requireEditableCollection(input);
+    if (editable.isFail()) return Result.fail(editable.getError());
+    const page = editable.getValue();
     const stored = await this.pageSchemaRepository.getSchema(input.pageId);
     const resolved = resolveSchemaDrafts(input.properties, stored.properties, generateOptionId);
     const planned = await this.planRelations(input, page, stored.properties, resolved);
     if (planned.isFail()) return Result.fail(planned.getError());
+    const mirrorsEditable = await this.canEditMirrorTargets(input, planned.getValue().sideEffects);
+    if (!mirrorsEditable) return Result.fail(new PageAccessDeniedError());
     const computed = await this.planComputed(input, page, stored.properties, planned.getValue().definitions);
     if (computed.isFail()) return Result.fail(computed.getError());
     const properties = validatePageSchemaDefinition(computed.getValue());
@@ -117,10 +130,15 @@ export class PageSchemaService {
   /** A schema diff cannot tell a rename from remove-and-add, which would orphan row values. */
   async rewriteOption(
     input: RewritePageOptionInput,
-  ): Promise<Result<PageSchemaSummary, PageAccessDeniedError | SchemaPropertyDefinitionError>> {
-    if (input.role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const page = await this.pageRepository.getAccessible(input.pageId, input.workspaceId, input.userId, input.role);
-    if (page === null) return Result.fail(new PageAccessDeniedError());
+  ): Promise<
+    Result<
+      PageSchemaSummary,
+      PageAccessDeniedError | PageLifecycleError | PageLockedError | SchemaPropertyDefinitionError
+    >
+  > {
+    const editable = await this.requireEditableCollection(input);
+    if (editable.isFail()) return Result.fail(editable.getError());
+    const page = editable.getValue();
     const schema = await this.pageSchemaRepository.getSchema(input.pageId);
     const rewritten = rewriteSchemaOption(schema.properties, {
       optionId: input.optionId,
@@ -173,6 +191,38 @@ export class PageSchemaService {
     return Result.ok({ ...schema, spaceId: page.spaceId });
   }
 
+  /** Changing a schema is an edit of the collection: reading is not enough, and a locked or trashed one stays. */
+  private async requireEditableCollection(input: {
+    readonly pageId: string;
+    readonly role: UserRole;
+    readonly userId: string;
+    readonly workspaceId: string;
+  }): Promise<Result<PageSummary, PageAccessDeniedError | PageLifecycleError | PageLockedError>> {
+    if (input.role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const page = await this.pageRepository.getEditable(input.pageId, input.workspaceId, input.userId, input.role);
+    if (page === null) return Result.fail(new PageAccessDeniedError());
+    if (page.lifecycle !== PageLifecycle.ACTIVE) return Result.fail(new PageLifecycleError());
+    if (page.lockedAt !== null) return Result.fail(new PageLockedError());
+    return Result.ok(page);
+  }
+
+  /** A mirror is added to, or let go from, the other collection: the caller must be able to edit that one too. */
+  private async canEditMirrorTargets(
+    input: { readonly role: UserRole; readonly userId: string; readonly workspaceId: string },
+    sideEffects: PageSchemaSideEffects,
+  ): Promise<boolean> {
+    const targetIds = new Set([
+      ...sideEffects.mirrorsToCreate.map((mirror) => mirror.targetCollectionId),
+      ...sideEffects.mirrorsToUnlink.map((mirror) => mirror.collectionId),
+    ]);
+    const editable = await Promise.all(
+      [...targetIds].map((targetId) =>
+        this.pageRepository.getEditable(targetId, input.workspaceId, input.userId, input.role),
+      ),
+    );
+    return editable.every((target) => target !== null);
+  }
+
   /**
    * Formulas and rollups are read against what they reach: the related collections of the rollups (the ones the
    * caller names must be openable and in the same space) and, further on, the collections those rollups read.
@@ -220,7 +270,7 @@ export class PageSchemaService {
     targetId: string,
   ): Promise<boolean> {
     const target = await this.pageRepository.getAccessible(targetId, input.workspaceId, input.userId, input.role);
-    return target !== null && target.spaceId === page.spaceId;
+    return target?.spaceId === page.spaceId;
   }
 
   /** The targets of the relations the caller asks for must be collections the caller can open, in the same space. */
@@ -242,7 +292,7 @@ export class PageSchemaService {
     const targetSchemas = new Map<string, readonly SchemaPropertyDefinition[]>();
     for (const targetId of targetIds) {
       const target = await this.pageRepository.getAccessible(targetId, input.workspaceId, input.userId, input.role);
-      if (target === null || target.spaceId !== page.spaceId) continue;
+      if (target?.spaceId !== page.spaceId) continue;
       const schema = await this.pageSchemaRepository.getSchema(targetId);
       if (pageCarriesSchema(schema.properties)) targetSchemas.set(targetId, schema.properties);
     }

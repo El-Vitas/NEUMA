@@ -48,6 +48,10 @@ export const getPortalSidebarExpandedPageIds = (
     (treeItem) => treeItem.children,
   );
 
+/** The workspace role opens the actions; the member's role on the page itself has the last word. */
+export const canEditPortalSidebarPage = (page: PortalSidebarPage, canEditByRole: boolean): boolean =>
+  canEditByRole && page.canEdit;
+
 /** The chevron shows from the flag the backend sent, before any child is loaded (ADR 030). */
 export const hasPortalSidebarPageChildren = (page: PortalSidebarPage, loadedChildCount: number): boolean =>
   page.hasChildren === true || loadedChildCount > 0;

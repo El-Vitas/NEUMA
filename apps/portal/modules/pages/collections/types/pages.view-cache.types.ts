@@ -22,7 +22,7 @@ export interface HeldRowVersion {
 }
 
 /** What forgetting revoked rows needs of a cache: to see what it holds and to let go of it. */
-export type RevocableCache = Pick<LocalCache<CacheableBody>, 'purgeRecords' | 'readRecord'>;
+export type RevocableCache = Pick<LocalCache<CacheableBody>, 'purgeRecords' | 'readRecord' | 'rewriteLayouts'>;
 
 export interface CacheRevocationInput {
   readonly cache: RevocableCache;

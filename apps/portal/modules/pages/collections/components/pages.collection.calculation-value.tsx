@@ -12,7 +12,7 @@ interface IProps {
   readonly aggregates: Promise<PageViewAggregates | null>;
   readonly calculation: PageViewCalculation;
   /** Absent for the whole view; the key of a group for the footer of that group. */
-  readonly groupKey?: string | undefined;
+  readonly groupKey?: string;
   readonly propertyKey: string;
 }
 

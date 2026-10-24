@@ -80,7 +80,10 @@ describe('Formulas and rollups over 10,000 rows with relations (Integration)', (
         })),
       );
     }
-    await prisma.models.Block.where({ id: collectionId }).update({ children: [...ids] });
+    const collection = await prisma.models.Block.where({ id: collectionId }).first();
+    await prisma.models.Block.where({ id: collectionId }).update({
+      children: [...(collection?.children ?? []), ...ids],
+    });
     return ids;
   };
 

@@ -77,6 +77,7 @@ const spaces: readonly SpaceSummary[] = [
   },
 ];
 const page: PageSummary = {
+  canEdit: true,
   content: {
     content: [
       { attrs: { id: 'heading-1', level: 1 }, content: [{ text: 'Setup', type: 'text' }], type: 'heading' },
@@ -194,6 +195,7 @@ const createDiscussions = (listed: readonly DiscussionView[]): McpDiscussions =>
     );
   },
   listPageDiscussions: () => Promise.resolve(Result.ok({ discussions: listed, nextCursor: null })),
+  locateComment: () => Promise.reject(new Error('Not used in this test')),
   openDiscussion: () => Promise.reject(new Error('Not used in this test')),
   removeComment: () => Promise.reject(new Error('Not used in this test')),
   reply: () => Promise.reject(new Error('Not used in this test')),

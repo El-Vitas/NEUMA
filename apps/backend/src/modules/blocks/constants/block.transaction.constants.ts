@@ -12,6 +12,9 @@ export const BLOCK_TRANSACTIONS_MAX_PER_REQUEST = 20;
 
 export const BLOCK_OPERATIONS_MAX_PER_TRANSACTION = 100;
 
+/** The backend's own writes (a column on every row, a copied branch) are larger than a client's, not unbounded. */
+export const BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION = 25_000;
+
 export const BLOCK_TRANSACTION_ID_MAX_LENGTH = 64;
 
 /** `[bag, key]` is the deepest path an operation addresses, such as `['format', 'textColor']`. */

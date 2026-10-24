@@ -13,6 +13,7 @@ import { PortalSkeleton } from '@/modules/portal/components/portal.skeleton';
 import { PortalLayout } from '@/modules/portal/layout/portal.layout';
 import { resolvePortalSpaceKind } from '@/modules/portal/lib/portal.sidebar.lib';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
+import { RecentsOwnerProvider } from '@/shared/components/portal/recents-owner.provider';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 import { readRequestTheme } from '@/shared/server/lib/theme.server';
@@ -25,7 +26,11 @@ const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) =
     return null;
   }
 
-  const [spacesResult, favoritesResult] = await Promise.all([getSpaces(), getFavoritePages()]);
+  const [spacesResult, favoritesResult, theme] = await Promise.all([
+    getSpaces(),
+    getFavoritePages(),
+    readRequestTheme(),
+  ]);
   const spaceSummaries = spacesResult.isOk() ? spacesResult.getValue() : [];
   const favorites = favoritesResult.isOk() ? favoritesResult.getValue() : [];
   const spaceRoots = await Promise.all(
@@ -41,23 +46,24 @@ const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) =
     name: space.name,
   }));
   const portalUser = { email: user.email, name: user.name };
-  const theme = await readRequestTheme();
 
   return (
-    <PagesCollectionCacheProvider userId={user.id}>
-      <PagesTreeProvider spaces={spaceRoots}>
-        <PagesTreeLive spaceIds={spaces.map((space) => space.id)} watermarks={listPageTreeWatermarks(spaceRoots)} />
-        <PortalLayout
-          favorites={favorites}
-          role={user.role}
-          spaces={spaces}
-          themeChoice={theme.choice}
-          user={portalUser}
-        >
-          {children}
-        </PortalLayout>
-      </PagesTreeProvider>
-    </PagesCollectionCacheProvider>
+    <RecentsOwnerProvider userId={user.id}>
+      <PagesCollectionCacheProvider userId={user.id}>
+        <PagesTreeProvider spaces={spaceRoots}>
+          <PagesTreeLive spaceIds={spaces.map((space) => space.id)} watermarks={listPageTreeWatermarks(spaceRoots)} />
+          <PortalLayout
+            favorites={favorites}
+            role={user.role}
+            spaces={spaces}
+            themeChoice={theme.choice}
+            user={portalUser}
+          >
+            {children}
+          </PortalLayout>
+        </PagesTreeProvider>
+      </PagesCollectionCacheProvider>
+    </RecentsOwnerProvider>
   );
 };
 

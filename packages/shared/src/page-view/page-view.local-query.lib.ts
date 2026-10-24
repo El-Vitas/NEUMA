@@ -70,7 +70,7 @@ interface Placed<Row extends LocalPageQueryRow> {
 const encodeCursor = (offset: number): string => `${CURSOR_PREFIX}${String(offset)}`;
 
 const decodeCursor = (cursor: string | undefined): number => {
-  if (cursor === undefined || !cursor.startsWith(CURSOR_PREFIX)) return 0;
+  if (cursor?.startsWith(CURSOR_PREFIX) !== true) return 0;
   const offset = Number(cursor.slice(CURSOR_PREFIX.length));
   return Number.isInteger(offset) && offset > 0 ? offset : 0;
 };

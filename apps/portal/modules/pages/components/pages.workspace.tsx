@@ -9,6 +9,7 @@ import {
   EMPTY_PAGE_BACKLINKS,
   EMPTY_PAGE_EMBEDDED_COLLECTIONS,
   EMPTY_PAGE_PERSON_OPTIONS,
+  EMPTY_PAGE_REFERENCES,
   EMPTY_PAGE_RELATED_ROWS,
   EMPTY_PAGE_SYNCED_SOURCES,
 } from '../constants/pages.constants';
@@ -33,7 +34,6 @@ interface IProps {
   readonly blockSync?: readonly SyncedBlock[] | null;
   /** The blocks could not be read: the page opens read-only and says why. */
   readonly blockSyncFailed?: boolean;
-  readonly canEditContent: boolean;
   readonly canSeePageUsage?: boolean;
   readonly collectionSection?: ReactNode;
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
@@ -63,7 +63,6 @@ export const PagesWorkspace = ({
   backlinks = EMPTY_PAGE_BACKLINKS,
   blockSync,
   blockSyncFailed = false,
-  canEditContent,
   canSeePageUsage = false,
   collectionSection = null,
   embeddedCollections = EMPTY_PAGE_EMBEDDED_COLLECTIONS,
@@ -74,7 +73,7 @@ export const PagesWorkspace = ({
   panelBundle = null,
   parentSchema = null,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
-  references = [],
+  references = EMPTY_PAGE_REFERENCES,
   relatedRows = EMPTY_PAGE_RELATED_ROWS,
   spaceId,
   spaceName,
@@ -93,7 +92,7 @@ export const PagesWorkspace = ({
         attachments={attachments}
         backlinks={backlinks}
         blockSync={blockSync}
-        canEdit={canEditPage(canEditContent, page.lifecycle) && !blockSyncFailed}
+        canEdit={canEditPage(page) && !blockSyncFailed}
         canSeeUsage={canSeePageUsage}
         collectionSection={collectionSection}
         currentUserDisplayName={currentUserDisplayName}
@@ -114,7 +113,6 @@ export const PagesWorkspace = ({
       {panelBundle !== null && (
         <PagesSidePanel
           bundle={panelBundle}
-          canEditContent={canEditContent}
           currentUserDisplayName={currentUserDisplayName}
           currentUserId={currentUserId}
           key={`${panelBundle.page.id}:${panelBundle.page.lifecycle}`}

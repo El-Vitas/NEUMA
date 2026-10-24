@@ -76,6 +76,16 @@ export const createMemoryStorage = <Body extends CacheableBody>(): LocalStorageB
         rejected.set(transaction.id, transaction);
         return Promise.resolve();
       },
+      rejectTransaction: (transaction) => {
+        rejected.set(transaction.id, transaction);
+        transactions.delete(transaction.id);
+        return Promise.resolve();
+      },
+      restoreTransaction: (transaction) => {
+        transactions.set(transaction.id, transaction);
+        rejected.delete(transaction.id);
+        return Promise.resolve();
+      },
       updateTransaction: storeTransaction,
     },
   };

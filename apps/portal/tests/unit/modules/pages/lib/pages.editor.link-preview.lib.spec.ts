@@ -44,6 +44,36 @@ describe('what a page says about itself', () => {
     expect(readLinkPreviewFromHtml(absolute, 'https://example.com/a')?.icon).toBe('https://cdn.example.com/i.png');
   });
 
+  it('does not stall on a hostile page made of tags that never close', () => {
+    const hostile = '<link '.repeat(300_000);
+    const started = performance.now();
+
+    const preview = readLinkPreviewFromHtml(`${hostile}<title`.repeat(1), 'https://example.com/a');
+
+    expect(preview).toEqual({ url: 'https://example.com/a' });
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+
+  it('does not stall on a title that never closes or tags that close far away', () => {
+    const started = performance.now();
+    const unclosedTitles = '<title>x'.repeat(200_000);
+    const farTags = `${'<meta '.repeat(200_000)}>`;
+
+    readLinkPreviewFromHtml(unclosedTitles, 'https://example.com/a');
+    readLinkPreviewFromHtml(farTags, 'https://example.com/a');
+
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it('finds tags written in capitals and ignores look-alike tag names', () => {
+    const html = pageSaying('<TITLE>Mayúsculas</TITLE><linked rel="icon" href="/no.png">');
+
+    expect(readLinkPreviewFromHtml(html, 'https://example.com/a')).toEqual({
+      title: 'Mayúsculas',
+      url: 'https://example.com/a',
+    });
+  });
+
   it('says nothing about what is not a page at all', () => {
     expect(readLinkPreviewFromHtml('no soy html', 'https://example.com/a')).toEqual({ url: 'https://example.com/a' });
   });

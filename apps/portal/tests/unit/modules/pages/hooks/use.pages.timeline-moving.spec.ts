@@ -55,6 +55,7 @@ describe('mover y estirar una barra de la línea de tiempo', () => {
 
     expect(updatePageRowPropertiesAction.mock.calls).toHaveLength(1);
     expect(updatePageRowPropertiesAction.mock.calls[0]?.[0]).toEqual({
+      expectedVersion: rangeRow.version,
       pageId: 'row-a',
       propertyValues: { when: { end: '2026-09-21', start: '2026-09-17' } },
       spaceId: 'space-a',

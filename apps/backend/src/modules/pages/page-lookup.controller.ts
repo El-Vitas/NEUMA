@@ -1,6 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
+import { PageReadThrottlerGuard } from '../../common/infrastructure/guards/page-read-throttler.guard';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { PageLookupContentDto, PageLookupDto } from './dto/page-lookup.dto';
 import { PageTreeService } from './page-tree.service';
@@ -13,7 +14,7 @@ export class PageLookupController {
 
   @Post('lookup')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async lookup(
     @Body() dto: PageLookupDto,
     @User('payload') payload: TokenPayload,
@@ -23,7 +24,7 @@ export class PageLookupController {
 
   @Post('lookup-content')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async lookupContent(
     @Body() dto: PageLookupContentDto,
     @User('payload') payload: TokenPayload,

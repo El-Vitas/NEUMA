@@ -21,6 +21,7 @@ import { PagesSharingBadge } from '@/modules/pages/sharing/components/pages.shar
 import type { PagesTreeSpaceView } from '@/modules/pages/tree/types/pages.tree.types';
 import {
   buildSidebarTreeIndent,
+  canEditPortalSidebarPage,
   hasPortalSidebarPageChildren,
   isPortalSidebarPageMoveShortcut,
 } from '@/modules/portal/lib/portal.sidebar.lib';
@@ -100,7 +101,8 @@ export const SidebarPageTreeItem = ({
   const isExpanded = expandedPageIds.has(page.id);
   const isSelected = selectedPageId === page.id;
   const isActive = page.lifecycle === 'ACTIVE';
-  const isDraggable = canEdit && isActive && !selectionMode;
+  const canEditHere = canEditPortalSidebarPage(page, canEdit);
+  const isDraggable = canEditHere && isActive && !selectionMode;
   const isPickedForSelection = selectedPageIds.has(page.id);
   const childrenId = `sidebar-page-children-${page.id}`;
 
@@ -188,7 +190,7 @@ export const SidebarPageTreeItem = ({
           <span className="min-w-0 truncate">{pageTitle}</span>
           <PagesSharingBadge isVisible={page.hasOwnPermissions === true} scope="page" />
         </Link>
-        {canEdit && !selectionMode && (
+        {canEditHere && !selectionMode && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button

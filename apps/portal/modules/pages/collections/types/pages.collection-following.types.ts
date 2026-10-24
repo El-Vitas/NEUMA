@@ -8,7 +8,7 @@ export interface PagesCollectionFollowingInput {
   readonly createController: () => ChangesController;
   readonly enabled: boolean;
   /** The view moved on with the same settings: the order of its rows may be another one. */
-  readonly onViewReordered?: (() => void) | undefined;
+  readonly onViewReordered?: () => void;
   readonly pageId: string;
   readonly spaceId: string;
   readonly view: PageSchemaView;

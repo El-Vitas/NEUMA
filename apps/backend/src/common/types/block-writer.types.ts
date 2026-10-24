@@ -12,6 +12,8 @@ export interface BlockWriteWithin {
 
 /** One client transaction: operations in the wire shape of `POST /transactions`, applied all or nothing. */
 export interface BlockWriteRequest {
+  /** The write is refused, and nothing is changed, when a block is not at the version the caller read. */
+  readonly expectedVersions?: readonly { readonly blockId: string; readonly version: number }[];
   readonly id: string;
   readonly operations: readonly unknown[];
   readonly spaceId: string;

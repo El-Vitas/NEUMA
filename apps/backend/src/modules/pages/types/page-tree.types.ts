@@ -1,9 +1,12 @@
 import type { JsonValue } from '@neuma/db';
 import type { PageIcon } from '@neuma/shared';
+import type { StoredPageBlock } from './page.types';
 import type { PageOutlineReader, PageOutlineWindow } from './page-outline.types';
 
 /** What the sidebar draws for a page: no content, and whether a chevron is worth showing (ADR 030). */
 export interface PageTreeEntry {
+  /** The reader may create pages under it: their role on the page is the one the create path asks for. */
+  readonly canEdit: boolean;
   /** A page the reader can open sits right under it. Always false for a collection, whose rows are not in the tree. */
   readonly hasChildren: boolean;
   readonly hasOwnPermissions: boolean;
@@ -17,6 +20,12 @@ export interface PageTreeEntry {
   readonly title: string;
   /** The version the database keeps on the block itself, the one the client record cache compares. */
   readonly version: number;
+}
+
+/** A readable sibling with whether the reader may create pages under it, which is the rule of the create path. */
+export interface ReadableSibling {
+  readonly block: StoredPageBlock;
+  readonly canEdit: boolean;
 }
 
 /** What the entries of a window need to know about their pages beyond the block itself. */

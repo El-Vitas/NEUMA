@@ -12,6 +12,7 @@ import {
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface TreeEntry {
+  readonly canEdit: boolean;
   readonly hasChildren: boolean;
   readonly hasOwnPermissions: boolean;
   readonly icon: unknown;
@@ -202,6 +203,29 @@ describe('The page tree on demand (Integration)', () => {
       expect(workerRoots.entries.find((entry) => entry.id === lonely)?.hasChildren).toBe(false);
       expect(adminRoots.entries.find((entry) => entry.id === lonely)?.hasChildren).toBe(true);
       expect(asAdmin.entries.find((entry) => entry.id === hidden)?.hasOwnPermissions).toBe(true);
+    });
+
+    it('says per page whether the reader may create pages under it, by the role the create path checks', async () => {
+      const parent = await createPage('Con roles');
+      const open = await createPage('Editable', parent);
+      const readOnly = await createPage('Solo lectura', parent);
+      const locked = await createPage('Bloqueada', parent);
+      await prisma.models.Block.where({ id: readOnly }).update({
+        permissions: [
+          { principal: { kind: 'user', userId: admin.id }, role: 'full' },
+          { principal: { kind: 'space' }, role: 'reader' },
+        ],
+      });
+      await prisma.models.Block.where({ id: locked }).update({ lockedAt: new Date() });
+
+      const asWorker = await readTree(worker, parent);
+      const asAdmin = await readTree(admin, parent);
+
+      const canEditOf = (body: TreeChildren, id: string) => body.entries.find((entry) => entry.id === id)?.canEdit;
+      expect(canEditOf(asWorker, open)).toBe(true);
+      expect(canEditOf(asWorker, readOnly)).toBe(false);
+      expect(canEditOf(asWorker, locked)).toBe(false);
+      expect(canEditOf(asAdmin, readOnly)).toBe(true);
     });
 
     it('does not list a space the reader cannot read', async () => {
@@ -399,6 +423,30 @@ describe('The page tree on demand (Integration)', () => {
       const response = await api().get(`/api/v1/spaces/${recentSpace}/pages/recent`).set(as(worker)).expect(HTTP_OK);
 
       expect((response.body as { entries: { id: string }[] }).entries.map((entry) => entry.id)).toEqual([open]);
+    });
+  });
+
+  describe('recent pages and blocks the reader cannot open', () => {
+    it('does not show who edited a hidden block, nor when', async () => {
+      const recentSpace = await createSeededSpace(testApp, admin.token, SpaceVisibility.PUBLIC_INTERNAL);
+      const page = await createPage('Con bloque oculto', undefined, recentSpace);
+      const longAgo = new Date(Date.now() - 3_600_000);
+      await prisma.models.Block.where({ id: page }).update({ editedAt: longAgo, editedById: worker.id });
+      const [paragraph] = await prisma.models.Block.select('id').where({ parentId: page }).all();
+      if (paragraph === undefined) throw new Error('The page has no content block');
+      await prisma.models.Block.where({ id: paragraph.id }).update({
+        editedAt: new Date(),
+        editedById: admin.id,
+        permissions: onlyUserPermissions(admin.id),
+      });
+
+      const response = await api().get(`/api/v1/spaces/${recentSpace}/pages/recent`).set(as(worker)).expect(HTTP_OK);
+      const [entry] = (response.body as { entries: { id: string; updatedAt: string; updatedByName: string }[] })
+        .entries;
+
+      expect(entry?.id).toBe(page);
+      expect(entry?.updatedByName).toBe('Tree Worker');
+      expect(new Date(entry?.updatedAt ?? '').getTime()).toBe(longAgo.getTime());
     });
   });
 

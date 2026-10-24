@@ -25,6 +25,7 @@ const isBookOfPictures = (answered: unknown): answered is IconifyJSON =>
 
 const askForBookOfPictures = async (name: string): Promise<IconifyJSON> => {
   const answer = await fetch(`${DIAGRAM_ICONS_PATH}${name}`);
+  if (!answer.ok) throw new Error('diagram-icons-unavailable');
   const said: unknown = await answer.json();
   if (!isBookOfPictures(said)) throw new Error('diagram-icons-unreadable');
   return said;

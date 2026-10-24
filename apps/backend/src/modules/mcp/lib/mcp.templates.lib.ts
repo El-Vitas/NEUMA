@@ -71,7 +71,8 @@ const formatTemplateLine = (template: McpTemplateOutput): string => {
   const filled = template.variables.map((variable) => `${variable.column} = ${variable.word}`).join(', ');
   const details = [values, filled].filter((part) => part !== '').join('; ');
   const mark = template.isDefault ? ' [default]' : '';
-  return `- ${template.title}${mark} (template ${template.id}) ${template.url}${details === '' ? '' : `\n  ${details}`}`;
+  const detailLine = details === '' ? '' : `\n  ${details}`;
+  return `- ${template.title}${mark} (template ${template.id}) ${template.url}${detailLine}`;
 };
 
 export const formatMcpTemplateText = (template: McpTemplateOutput): string => formatTemplateLine(template);

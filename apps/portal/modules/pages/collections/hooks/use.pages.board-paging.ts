@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useContext, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { PAGE_COLLECTION_LOOKUPS_UPDATER_CONTEXT } from '../constants/pages.lookups.context.constants';
 import { PAGE_VIEW_FLAT_GROUP_KEY } from '../constants/pages.query.constants';
 import { listColumnsToRefresh, mergeLoadedCards } from '../lib/pages.board-paging.lib';
@@ -65,16 +65,18 @@ export const usePagesBoardPaging = ({ bands, pageId, spaceId, viewId }: PagesBoa
     });
     startRefreshing(async () => {
       const wanted = loaded[key]?.rows.length ?? 1;
-      const refreshed = await refreshPageRowsAction({
-        ...addressOf(column.bandKey, column.groupKey),
-        cursor: column.drawnCursor,
-        pageId,
-        quickFilter,
-        search,
-        spaceId,
-        viewId,
-        wanted,
-      });
+      const refreshed = await callAction(() =>
+        refreshPageRowsAction({
+          ...addressOf(column.bandKey, column.groupKey),
+          cursor: column.drawnCursor,
+          pageId,
+          quickFilter,
+          search,
+          spaceId,
+          viewId,
+          wanted,
+        }),
+      );
       claimed.current = new Set([...claimed.current].filter((candidate) => candidate !== key));
       if (!isActionSuccess<PageRowsContinuation>(refreshed)) {
         toast.error(t('loadMoreError'));
@@ -111,15 +113,17 @@ export const usePagesBoardPaging = ({ bands, pageId, spaceId, viewId }: PagesBoa
     if (drawn === undefined || cursor === null || loading.has(key)) return;
     setLoading((current) => new Set(current).add(key));
     startLoading(async () => {
-      const more = await loadMorePageRowsAction({
-        cursor,
-        ...addressOf(bandKey, groupKey),
-        pageId,
-        quickFilter,
-        search,
-        spaceId,
-        viewId,
-      });
+      const more = await callAction(() =>
+        loadMorePageRowsAction({
+          cursor,
+          ...addressOf(bandKey, groupKey),
+          pageId,
+          quickFilter,
+          search,
+          spaceId,
+          viewId,
+        }),
+      );
       finish(key);
       if (!isActionSuccess<PageRowsContinuation>(more)) {
         toast.error(t('loadMoreError'));

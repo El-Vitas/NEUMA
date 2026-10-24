@@ -10,7 +10,7 @@ const cursorSchema = z.object({ k: z.array(z.string().nullable()).max(32), s: z.
 
 /** Two cursors fit the same order only if the sorts and the group they read are the same. */
 export const signOrder = (sorts: readonly PageSort[], groupKey: string | null): string =>
-  createHash('sha1').update(JSON.stringify({ groupKey, sorts })).digest('hex').slice(0, 16);
+  createHash('sha256').update(JSON.stringify({ groupKey, sorts })).digest('hex').slice(0, 16);
 
 export const encodeCursor = (signature: string, values: readonly (string | null)[]): string =>
   Buffer.from(JSON.stringify({ k: values, s: signature })).toString('base64url');

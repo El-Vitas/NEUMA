@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from '@/i18n/navigation';
-import { hasActionError } from '@/shared/lib/action-result';
+import { callAction, hasActionError } from '@/shared/lib/action-result';
 import {
   addSchemaOption,
   isSchemaOptionNameTaken,
@@ -58,13 +58,15 @@ export const usePagesBoardColumns = (
 
   const rewrite = (optionId: string, to: null | string): void => {
     startRewriting(async () => {
-      const written = await rewritePageCollectionOptionAction({
-        optionId,
-        pageId: schema.pageId,
-        propertyKey: groupByKey,
-        spaceId,
-        to,
-      });
+      const written = await callAction(() =>
+        rewritePageCollectionOptionAction({
+          optionId,
+          pageId: schema.pageId,
+          propertyKey: groupByKey,
+          spaceId,
+          to,
+        }),
+      );
       if (hasActionError(written)) {
         toast.error(tErrors('generic'));
         return;

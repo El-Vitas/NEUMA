@@ -45,6 +45,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(UserInterceptor)
   async logout(@AuthUser('payload') payload: TokenPayload): Promise<void> {
-    await this.authService.logoutUser(payload.sub);
+    await this.authService.logoutUser(payload);
   }
 }

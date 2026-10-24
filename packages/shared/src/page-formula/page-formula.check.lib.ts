@@ -115,6 +115,33 @@ const inferProperty = (node: Extract<PageFormulaNode, { kind: 'PROPERTY' }>, ins
   return Result.ok(type);
 };
 
+type BinaryNode = Extract<PageFormulaNode, { kind: 'BINARY' }>;
+
+const inferLogical = (node: BinaryNode, left: PageFormulaType, right: PageFormulaType): TypeResult =>
+  left === PAGE_FORMULA_TYPE.BOOLEAN && right === PAGE_FORMULA_TYPE.BOOLEAN
+    ? Result.ok(PAGE_FORMULA_TYPE.BOOLEAN)
+    : mismatch(`${node.operator} joins two conditions`, node);
+
+const inferEquality = (node: BinaryNode, left: PageFormulaType, right: PageFormulaType): TypeResult =>
+  left === right && left !== PAGE_FORMULA_TYPE.LIST
+    ? Result.ok(PAGE_FORMULA_TYPE.BOOLEAN)
+    : mismatch(`Cannot compare ${describeType(left)} with ${describeType(right)}`, node);
+
+const inferOrdering = (node: BinaryNode, left: PageFormulaType, right: PageFormulaType): TypeResult =>
+  left === right && COMPARABLE_TYPES.includes(left)
+    ? Result.ok(PAGE_FORMULA_TYPE.BOOLEAN)
+    : mismatch(`Cannot order ${describeType(left)} against ${describeType(right)}`, node);
+
+const inferAddition = (node: BinaryNode, left: PageFormulaType, right: PageFormulaType): TypeResult =>
+  left === right && (left === PAGE_FORMULA_TYPE.NUMBER || left === PAGE_FORMULA_TYPE.TEXT)
+    ? Result.ok(left)
+    : mismatch(`Cannot add ${describeType(right)} to ${describeType(left)}`, node);
+
+const inferArithmetic = (node: BinaryNode, left: PageFormulaType, right: PageFormulaType): TypeResult =>
+  left === PAGE_FORMULA_TYPE.NUMBER && right === PAGE_FORMULA_TYPE.NUMBER
+    ? Result.ok(PAGE_FORMULA_TYPE.NUMBER)
+    : mismatch(`${node.operator} needs two numbers`, node);
+
 const inferBinary = (node: Extract<PageFormulaNode, { kind: 'BINARY' }>, inspection: Inspection): TypeResult => {
   const operands = inferEach([node.left, node.right], inspection);
   if (operands.isFail()) return Result.fail(operands.getError());
@@ -124,29 +151,19 @@ const inferBinary = (node: Extract<PageFormulaNode, { kind: 'BINARY' }>, inspect
   switch (node.operator) {
     case 'and':
     case 'or':
-      return left === PAGE_FORMULA_TYPE.BOOLEAN && right === PAGE_FORMULA_TYPE.BOOLEAN
-        ? Result.ok(PAGE_FORMULA_TYPE.BOOLEAN)
-        : mismatch(`${node.operator} joins two conditions`, node);
+      return inferLogical(node, left, right);
     case '==':
     case '!=':
-      return left === right && left !== PAGE_FORMULA_TYPE.LIST
-        ? Result.ok(PAGE_FORMULA_TYPE.BOOLEAN)
-        : mismatch(`Cannot compare ${describeType(left)} with ${describeType(right)}`, node);
+      return inferEquality(node, left, right);
     case '<':
     case '<=':
     case '>':
     case '>=':
-      return left === right && COMPARABLE_TYPES.includes(left)
-        ? Result.ok(PAGE_FORMULA_TYPE.BOOLEAN)
-        : mismatch(`Cannot order ${describeType(left)} against ${describeType(right)}`, node);
+      return inferOrdering(node, left, right);
     case '+':
-      return left === right && (left === PAGE_FORMULA_TYPE.NUMBER || left === PAGE_FORMULA_TYPE.TEXT)
-        ? Result.ok(left)
-        : mismatch(`Cannot add ${describeType(right)} to ${describeType(left)}`, node);
+      return inferAddition(node, left, right);
     default:
-      return left === PAGE_FORMULA_TYPE.NUMBER && right === PAGE_FORMULA_TYPE.NUMBER
-        ? Result.ok(PAGE_FORMULA_TYPE.NUMBER)
-        : mismatch(`${node.operator} needs two numbers`, node);
+      return inferArithmetic(node, left, right);
   }
 };
 
@@ -159,16 +176,15 @@ const inferUnary = (node: Extract<PageFormulaNode, { kind: 'UNARY' }>, inspectio
     : mismatch(`${node.operator} needs a ${describeType(expected)}`, node);
 };
 
+const inferLiteralType = (value: string | number | boolean): PageFormulaType => {
+  if (typeof value === 'number') return PAGE_FORMULA_TYPE.NUMBER;
+  return typeof value === 'boolean' ? PAGE_FORMULA_TYPE.BOOLEAN : PAGE_FORMULA_TYPE.TEXT;
+};
+
 const inferType = (node: PageFormulaNode, inspection: Inspection): TypeResult => {
   switch (node.kind) {
     case 'LITERAL':
-      return Result.ok(
-        typeof node.value === 'number'
-          ? PAGE_FORMULA_TYPE.NUMBER
-          : typeof node.value === 'boolean'
-            ? PAGE_FORMULA_TYPE.BOOLEAN
-            : PAGE_FORMULA_TYPE.TEXT,
-      );
+      return Result.ok(inferLiteralType(node.value));
     case 'PROPERTY':
       return inferProperty(node, inspection);
     case 'CALL':

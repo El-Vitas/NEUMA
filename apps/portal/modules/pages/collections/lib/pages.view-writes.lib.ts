@@ -1,4 +1,5 @@
 import type { StoredTransaction } from '../../local-cache/types/local-cache.types';
+import { STORAGE_REFUSED_WRITE_MESSAGE, VIEW_WRITE_MAXIMUM_ATTEMPTS } from '../constants/pages.view-writes.constants';
 import { pageViewWriteSchema } from '../schemas/pages.view-writes.schemas';
 import type {
   PageViewWrite,
@@ -7,7 +8,9 @@ import type {
   ViewWriteQueueOptions,
   ViewWriteSendResult,
   ViewWriteSettled,
+  ViewWriteVerdict,
 } from '../types/pages.view-writes.types';
+import { withoutExpectedVersion } from './pages.view-writes.versioning.lib';
 
 const readStoredWrite = (stored: StoredTransaction): PageViewWrite | null => {
   const parsed = pageViewWriteSchema.safeParse(stored.operations[0]);
@@ -29,6 +32,8 @@ export const createViewWriteQueue = (options: ViewWriteQueueOptions): ViewWriteQ
   const listeners = new Set<() => void>();
   /** Told apart from the disk's list, which may have been read just before the answer was written. */
   const answeredIds = new Set<string>();
+  /** Writes the person asked to send again: they go without the version that made the server refuse them. */
+  const putBackIds = new Set<string>();
   let lastStamp = 0;
   let isPumping = false;
   let failures = 0;
@@ -64,10 +69,7 @@ export const createViewWriteQueue = (options: ViewWriteQueueOptions): ViewWriteQ
   };
 
   /** The server answered the first write: it leaves the disk, or moves to the refused ones, and the next goes on. */
-  const settleHead = async (
-    head: QueueItem,
-    result: Exclude<ViewWriteSendResult, { kind: 'offline' }>,
-  ): Promise<void> => {
+  const settleHead = async (head: QueueItem, result: ViewWriteVerdict): Promise<void> => {
     failures = 0;
     if (result.kind === 'applied') await outbox.remove(head.id);
     else await outbox.markRejected(head.id, result.cause, result.message);
@@ -76,15 +78,24 @@ export const createViewWriteQueue = (options: ViewWriteQueueOptions): ViewWriteQ
     announce();
   };
 
+  /** What the server decided about a write, or null when the write must wait for another try. */
+  const readVerdict = (head: QueueItem, result: ViewWriteSendResult): ViewWriteVerdict | null => {
+    if (result.kind === 'offline') return null;
+    if (result.kind !== 'retry') return result;
+    head.failedAttempts += 1;
+    if (head.failedAttempts < VIEW_WRITE_MAXIMUM_ATTEMPTS) return null;
+    return { cause: result.cause, kind: 'rejected', message: result.message };
+  };
+
   const drain = async (): Promise<void> => {
     for (let head = items[0]; head !== undefined; head = items[0]) {
-      const result = await options.send(head.write);
-      if (result.kind === 'offline') {
+      const verdict = readVerdict(head, await options.send(head.write));
+      if (verdict === null) {
         settleAsQueued(head);
         scheduleRetry();
         return;
       }
-      await settleHead(head, result);
+      await settleHead(head, verdict);
     }
   };
 
@@ -105,32 +116,49 @@ export const createViewWriteQueue = (options: ViewWriteQueueOptions): ViewWriteQ
       await outbox.markRejected(stored.id, 'invalid', 'It could not be read back');
       return;
     }
-    items.push({ createdAt: stored.createdAt, id: stored.id, settle: null, write });
+    items.push({
+      createdAt: stored.createdAt,
+      failedAttempts: 0,
+      id: stored.id,
+      settle: null,
+      write: putBackIds.has(stored.id) ? withoutExpectedVersion(write) : write,
+    });
   };
 
   return {
     enqueue: async (write, description) => {
       const id = options.newId();
       const createdAt = nextStamp();
-      await outbox.append({
-        attempts: 0,
-        createdAt,
-        id,
-        kind: 'view-write',
-        operations: [write],
-        ownerId: options.ownerId,
-        pageId: collectionId,
-        previews: [{ blockId: id, property: '', text: description }],
-        spaceId: write.spaceId,
-      });
+      try {
+        await outbox.append({
+          attempts: 0,
+          createdAt,
+          id,
+          kind: 'view-write',
+          operations: [write],
+          ownerId: options.ownerId,
+          pageId: collectionId,
+          previews: [{ blockId: id, property: '', text: description }],
+          spaceId: write.spaceId,
+        });
+      } catch (error) {
+        options.onStorageFailure?.(error);
+        const refused: ViewWriteSettled = { cause: 'other', kind: 'rejected', message: STORAGE_REFUSED_WRITE_MESSAGE };
+        options.onAnswered?.(id, write, refused);
+        return refused;
+      }
       const settled = new Promise<ViewWriteSettled>((resolve) => {
-        items.push({ createdAt, id, settle: resolve, write });
+        items.push({ createdAt, failedAttempts: 0, id, settle: resolve, write });
       });
       announce();
       void pump();
       return settled;
     },
     pendingCount: () => items.length,
+    release: (id) => {
+      answeredIds.delete(id);
+      putBackIds.add(id);
+    },
     resume: async () => {
       const stored = (await outbox.listPending()).filter((candidate) => isViewWriteOf(candidate, collectionId));
       for (const candidate of stored) await restoreOne(candidate);

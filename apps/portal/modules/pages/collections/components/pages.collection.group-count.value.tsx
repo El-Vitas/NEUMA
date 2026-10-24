@@ -7,11 +7,11 @@ import type { PageViewAggregates } from '../types/pages.schema.types';
 interface IProps {
   readonly aggregates: Promise<PageViewAggregates | null>;
   /** A whole band of a board with bands: the cards of all its columns, counted by what the band's value is. */
-  readonly bandKey?: string | undefined;
+  readonly bandKey?: string;
   /** What to show if the count could not be worked out: the rows the server drew for the group. */
   readonly drawn: number;
-  readonly groupKey?: string | undefined;
-  readonly subKey?: string | undefined;
+  readonly groupKey?: string;
+  readonly subKey?: string;
 }
 
 export const PagesCollectionGroupCountValue = ({ aggregates, bandKey, drawn, groupKey, subKey }: IProps) => {

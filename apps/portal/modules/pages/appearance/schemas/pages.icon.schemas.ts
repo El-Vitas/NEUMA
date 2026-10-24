@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export { pageIconSchema };
 
-export const pageIconLocatorSchema = z.object({ pageId: z.string().min(1), spaceId: z.string().min(1) });
+export const pageIconLocatorSchema = z.object({ pageId: z.uuid(), spaceId: z.uuid() });
 
 export const pageIconEmojiInputSchema = pageIconLocatorSchema.extend({
   value: pageEmojiIconSchema.shape.value,

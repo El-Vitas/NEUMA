@@ -3,6 +3,7 @@
 import 'server-only';
 
 import { updateTag } from 'next/cache';
+import { logger } from '@/lib/logger';
 import { actionClient } from '@/lib/safe-action';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { ApiError } from '@/shared/lib/api';
@@ -75,21 +76,43 @@ import type {
 } from '../../types/pages.schema.types';
 import { countRowsWithoutDate, readRowsInScope } from '../lib/pages.rows-reading.server';
 
-/** Page and shape are created together: a page without a shape is indistinguishable from an ordinary one. */
+/** A page whose shape never landed is an ordinary empty page; trashing it is the best that can be done from here. */
+const discardPageWithoutShape = async (spaceId: string, pageId: string): Promise<void> => {
+  try {
+    await authenticatedRequest(PAGE_API_ROUTES.trash(spaceId, pageId), 'POST', {});
+  } catch (error) {
+    logger.error(
+      { err: error, pageId, spaceId },
+      'A collection page was left without its shape and could not be trashed',
+    );
+  }
+};
+
+/**
+ * Page and shape are two calls, so a failed shape sends the page to the trash and the person sees the failure. The
+ * id the caller chose makes a second attempt find the page the first one made.
+ */
 export const createPageCollectionAction = actionClient
   .inputSchema(pageCollectionCreateSchema)
   .action(async ({ parsedInput }) =>
     withAction({ action: 'createPageCollection' }, async (): Promise<PageSummary> => {
       const created = await authenticatedRequest(PAGE_API_ROUTES.list(parsedInput.spaceId), 'POST', {
         content: parsedInput.content,
+        id: parsedInput.id,
         parentId: parsedInput.parentId,
         title: parsedInput.title,
       });
       const page = pageSummarySchema.parse(created);
-      await authenticatedRequest(PAGE_API_ROUTES.schema(parsedInput.spaceId, page.id), 'POST', {
-        properties: parsedInput.properties.map(toRequestedProperty),
-        views: parsedInput.views,
-      });
+      try {
+        await authenticatedRequest(PAGE_API_ROUTES.schema(parsedInput.spaceId, page.id), 'POST', {
+          properties: parsedInput.properties.map(toRequestedProperty),
+          views: parsedInput.views,
+        });
+      } catch (error) {
+        await discardPageWithoutShape(parsedInput.spaceId, page.id);
+        updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+        throw error;
+      }
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
       return page;
     }),
@@ -101,6 +124,7 @@ export const updatePageRowPropertiesAction = actionClient
   .action(async ({ parsedInput }) =>
     withAction({ action: 'updatePageRowProperties' }, async (): Promise<void> => {
       await authenticatedRequest(PAGE_API_ROUTES.properties(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
+        expectedVersion: parsedInput.expectedVersion,
         propertyValues: parsedInput.propertyValues,
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
@@ -152,6 +176,7 @@ export const movePageRowAction = actionClient.inputSchema(pageRowMoveSchema).act
       {
         after: parsedInput.after,
         before: parsedInput.before,
+        expectedVersion: parsedInput.expectedVersion,
         listChanges: parsedInput.listChanges,
         rowId: parsedInput.rowId,
         values: parsedInput.values,

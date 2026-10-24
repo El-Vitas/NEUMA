@@ -20,7 +20,12 @@ import type { DomainError } from '../../common/domain/domain.error';
 import type { SchemaPropertyDefinition } from '../../common/domain/schema.domain.types';
 import { isPropertyValue } from '../../common/domain/schema-property.domain';
 import { PAGE_COMPUTED_CANDIDATE_LIMIT, PAGE_SCHEMA_REPOSITORY } from './constants/pages.constants';
-import { evaluateComputedCells, expandComputedKeys, listRequiredValueKeys } from './domain/page-computed.domain';
+import {
+  evaluateComputedCells,
+  expandComputedKeys,
+  listRequiredValueKeys,
+  toFormulaPropertyInfo,
+} from './domain/page-computed.domain';
 import type { ComputedCells, ComputedRowInput } from './domain/page-computed.domain.types';
 import type { PageQueryTooManyRestrictedRowsError } from './domain/page-query.error';
 import { PageQueryComputedTooLargeError } from './domain/page-query.error';
@@ -40,14 +45,6 @@ import type {
 } from './types/page-computed.types';
 import type { CandidateRow } from './types/page-query.sql.types';
 import type { PageSchemaRepositoryContract } from './types/page-schema.types';
-
-const toInfo = (property: SchemaPropertyDefinition): PageFormulaPropertyInfo => ({
-  key: property.key,
-  label: property.label,
-  options: property.options,
-  resultType: property.computed?.formula?.resultType ?? property.computed?.rollup?.resultType ?? null,
-  type: property.type,
-});
 
 const listRollupTargets = (properties: readonly SchemaPropertyDefinition[]): readonly string[] => [
   ...new Set(properties.flatMap((property) => property.computed?.rollup?.targetCollectionId ?? [])),
@@ -323,7 +320,7 @@ export class PageComputedService {
         ids.filter((id) => targetValues.getValue().has(id)).map((id) => targetValues.getValue().get(id)),
       ]),
     );
-    return Result.ok({ target: toInfo(targetProperty), values });
+    return Result.ok({ target: toFormulaPropertyInfo(targetProperty), values });
   }
 
   /** The target property in each live related row the reader may open; a row that holds none maps to `undefined`. */

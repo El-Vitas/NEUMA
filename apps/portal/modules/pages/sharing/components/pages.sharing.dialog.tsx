@@ -23,11 +23,7 @@ export const PagesSharingDialog = ({ blockId, onChanged, onClose, scope, spaceId
 
   const renderBody = () => {
     if (state.kind === 'loading') {
-      return (
-        <p className="text-muted-foreground text-sm" role="status">
-          {t('loading')}
-        </p>
-      );
+      return <output className="block text-muted-foreground text-sm">{t('loading')}</output>;
     }
     if (state.kind === 'failed' && state.reason === 'forbidden') {
       return <p className="text-sm">{t('loadForbidden')}</p>;

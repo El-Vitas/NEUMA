@@ -99,10 +99,28 @@ const emptySpace: PortalLayoutSpace = {
 
 /** What each space holds once the sidebar has loaded it. A space in the trash only holds nothing the sidebar shows. */
 const pagesBySpace: Readonly<Record<string, readonly PortalSidebarPage[]>> = {
-  archive: [{ id: 'old-handbook', icon: null, lifecycle: 'TRASHED', order: 0, parentId: null, title: 'Old handbook' }],
+  archive: [
+    {
+      canEdit: true,
+      id: 'old-handbook',
+      icon: null,
+      lifecycle: 'TRASHED',
+      order: 0,
+      parentId: null,
+      title: 'Old handbook',
+    },
+  ],
   engineering: [
-    { id: 'handbook', icon: null, lifecycle: 'ACTIVE', order: 0, parentId: null, title: 'Handbook' },
-    { id: 'architecture', icon: null, lifecycle: 'ACTIVE', order: 0, parentId: 'handbook', title: 'Architecture' },
+    { canEdit: true, id: 'handbook', icon: null, lifecycle: 'ACTIVE', order: 0, parentId: null, title: 'Handbook' },
+    {
+      canEdit: true,
+      id: 'architecture',
+      icon: null,
+      lifecycle: 'ACTIVE',
+      order: 0,
+      parentId: 'handbook',
+      title: 'Architecture',
+    },
   ],
 };
 

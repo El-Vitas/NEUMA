@@ -191,7 +191,10 @@ export const listPagesTakenByOtherRows = (rows: readonly AccessTokenDraftRow[], 
 export const excludePageOptions = (
   options: readonly AccessTokenPageOption[],
   excludedPageIds: readonly string[],
-): readonly AccessTokenPageOption[] => options.filter((option) => !excludedPageIds.includes(option.id));
+): readonly AccessTokenPageOption[] => {
+  const excluded = new Set(excludedPageIds);
+  return options.filter((option) => !excluded.has(option.id));
+};
 
 export const readPageSearchState = (
   query: string,

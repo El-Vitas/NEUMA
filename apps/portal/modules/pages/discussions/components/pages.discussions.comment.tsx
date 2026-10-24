@@ -34,8 +34,11 @@ export const PagesDiscussionsComment = ({ comment, currentUserId, onEdit, onRemo
 
   const remove = async (): Promise<void> => {
     setIsBusy(true);
-    await onRemove(comment.id);
-    setIsBusy(false);
+    try {
+      await onRemove(comment.id);
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   return (

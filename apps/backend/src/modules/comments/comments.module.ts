@@ -7,7 +7,6 @@ import { WorkspaceContextService } from '../../common/infrastructure/persistence
 import { CommentsController } from './comments.controller';
 import { CommentsService } from './comments.service';
 import { COMMENT_REPOSITORY } from './constants/comments.constants';
-import { CommentWriteThrottlerGuard } from './infrastructure/guards/comment-write-throttler.guard';
 import { CommentRepository } from './infrastructure/persistence/comment.repository';
 
 @Module({
@@ -20,7 +19,6 @@ import { CommentRepository } from './infrastructure/persistence/comment.reposito
     CommentRepository,
     { provide: COMMENT_REPOSITORY, useExisting: CommentRepository },
     CommentsService,
-    CommentWriteThrottlerGuard,
     NotificationWriter,
     WorkspaceContextService,
   ],

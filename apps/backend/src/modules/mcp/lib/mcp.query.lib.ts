@@ -385,9 +385,10 @@ export const describeMcpQueryAnswer = (
     return { ...base, ...describeGroups(describer, counts, answer), rows: [] };
   }
   const results = readResults(answer);
+  const nextCursor = results?.nextCursor ?? null;
   return {
     ...base,
-    ...(results === null || results.nextCursor === null ? {} : { nextCursor: results.nextCursor }),
+    ...(nextCursor === null ? {} : { nextCursor }),
     rows: describer.rowsOf(results?.ids ?? []),
   };
 };

@@ -1,8 +1,12 @@
 import { NO_MEASURED_HEIGHTS } from '../constants/pages.virtualization.constants';
 import type {
+  ItemOffsets,
   PagesHeightsStore,
+  PagesVisibleRange,
+  PagesVisibleRangeInput,
   PagesVisibleWindow,
   PagesVisibleWindowInput,
+  PagesVisibleWindowOfRangeInput,
 } from '../types/pages.virtualization.types';
 
 /** Where the list starts inside what scrolls: the distance from the top of the scroll area to the top of the list. */
@@ -12,12 +16,15 @@ export const readListOffset = (container: HTMLElement, scroller: HTMLElement): n
 const heightOf = (heights: ReadonlyMap<number, number>, index: number, estimateSize: number): number =>
   heights.get(index) ?? estimateSize;
 
-/** The distance from the start of the list to the start of each item, and the height of all of them together. */
-const readOffsets = (
+/**
+ * The distance from the start of the list to the start of each item, and the height of all of them together. Built
+ * once per change of count or heights, and searched on every scroll.
+ */
+export const buildItemOffsets = (
   count: number,
   estimateSize: number,
   heights: ReadonlyMap<number, number>,
-): { readonly starts: readonly number[]; readonly total: number } => {
+): ItemOffsets => {
   const starts: number[] = [];
   let running = 0;
   for (let index = 0; index < count; index += 1) {
@@ -43,6 +50,48 @@ const findFirstEndingAfter = (
   return low;
 };
 
+/** The first and last item in view with a margin of `overscan` on each side: a binary search, no walk of the list. */
+export const readVisibleRange = ({
+  count,
+  estimateSize,
+  heights,
+  offsets,
+  overscan,
+  viewport,
+}: PagesVisibleRangeInput): PagesVisibleRange => {
+  const heightAt = (index: number): number => heightOf(heights, index, estimateSize);
+  const top = Math.max(0, viewport.top - viewport.offset);
+  const first = findFirstEndingAfter(offsets.starts, heightAt, top);
+  const last = findFirstEndingAfter(offsets.starts, heightAt, top + viewport.height);
+  return { from: Math.max(0, first - overscan), to: Math.min(count - 1, last + overscan) };
+};
+
+/** The range as text, so React compares it by value and draws again only when the first or last item changes. */
+export const toRangeKey = (range: PagesVisibleRange): string => `${String(range.from)}:${String(range.to)}`;
+
+export const fromRangeKey = (key: string): PagesVisibleRange => {
+  const [from = '0', to = '-1'] = key.split(':');
+  return { from: Number(from), to: Number(to) };
+};
+
+/** The items of a range, the one that must stay drawn, and the room of the ones left out above and below. */
+export const toVisibleWindow = ({
+  count,
+  estimateSize,
+  heights,
+  keepIndex,
+  offsets,
+  range,
+}: PagesVisibleWindowOfRangeInput): PagesVisibleWindow => {
+  const { from, to } = range;
+  const indexes = Array.from({ length: Math.max(0, to - from + 1) }, (_unused, offset) => from + offset);
+  const kept = keepIndex !== null && keepIndex >= 0 && keepIndex < count && !indexes.includes(keepIndex);
+  const drawn = kept ? [...indexes, keepIndex].sort((left, right) => left - right) : indexes;
+  const before = offsets.starts[from] ?? 0;
+  const after = Math.max(0, offsets.total - ((offsets.starts[to] ?? 0) + heightOf(heights, to, estimateSize)));
+  return { after, before, indexes: drawn };
+};
+
 /**
  * What to draw of a long list: the items in view with a margin of `overscan` on each side, plus the one that must
  * stay drawn, and how much room the ones left out take above and below so the scroll does not jump.
@@ -55,19 +104,9 @@ export const readVisibleIndexes = ({
   overscan,
   viewport,
 }: PagesVisibleWindowInput): PagesVisibleWindow => {
-  const { starts, total } = readOffsets(count, estimateSize, heights);
-  const heightAt = (index: number): number => heightOf(heights, index, estimateSize);
-  const top = Math.max(0, viewport.top - viewport.offset);
-  const first = findFirstEndingAfter(starts, heightAt, top);
-  const last = findFirstEndingAfter(starts, heightAt, top + viewport.height);
-  const from = Math.max(0, first - overscan);
-  const to = Math.min(count - 1, last + overscan);
-  const indexes = Array.from({ length: to - from + 1 }, (_unused, offset) => from + offset);
-  const kept = keepIndex !== null && keepIndex >= 0 && keepIndex < count && !indexes.includes(keepIndex);
-  const drawn = kept ? [...indexes, keepIndex].sort((left, right) => left - right) : indexes;
-  const before = starts[from] ?? 0;
-  const after = Math.max(0, total - ((starts[to] ?? 0) + heightAt(to)));
-  return { after, before, indexes: drawn };
+  const offsets = buildItemOffsets(count, estimateSize, heights);
+  const range = readVisibleRange({ count, estimateSize, heights, offsets, overscan, viewport });
+  return toVisibleWindow({ count, estimateSize, heights, keepIndex, offsets, range });
 };
 
 /**

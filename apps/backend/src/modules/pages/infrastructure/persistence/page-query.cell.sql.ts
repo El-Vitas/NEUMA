@@ -12,8 +12,10 @@ import { frag, sqlParameter, sqlText, sqlTextList } from './page-query.sql.lib';
 
 const row = (column: string): SqlFragment => sqlText(`"${ROW}"."${column}"`);
 
+const isoInstantFormat: SqlFragment = sqlText(`'${ISO_INSTANT_FORMAT}'`);
+
 const derivedTime = (column: string): SqlFragment =>
-  frag`jsonb_build_object('start', to_char(${row(column)} AT TIME ZONE 'UTC', ${sqlText(`'${ISO_INSTANT_FORMAT}'`)}))`;
+  frag`jsonb_build_object('start', to_char(${row(column)} AT TIME ZONE 'UTC', ${isoInstantFormat}))`;
 
 export const storedCell = (key: string): SqlFragment =>
   frag`NULLIF(${row('properties')} -> 'values' -> ${sqlParameter(key, 'text')}, 'null'::jsonb)`;
@@ -66,18 +68,25 @@ export const numberOf = (cell: SqlFragment): SqlFragment =>
 export const entriesOf = (cell: SqlFragment): SqlFragment =>
   frag`jsonb_array_elements_text(CASE WHEN ${typeOf(cell)} = 'array' THEN ${cell} ELSE '[]'::jsonb END)`;
 
-export const isDateCell = (cell: SqlFragment): SqlFragment =>
-  frag`(${typeOf(cell)} = 'object' AND ${typeOf(frag`(${cell} -> 'start')`)} = 'string' AND (${cell} -> 'end' IS NULL OR ${typeOf(frag`(${cell} -> 'end')`)} = 'string'))`;
+export const isDateCell = (cell: SqlFragment): SqlFragment => {
+  const start = frag`(${cell} -> 'start')`;
+  const end = frag`(${cell} -> 'end')`;
+  return frag`(${typeOf(cell)} = 'object' AND ${typeOf(start)} = 'string' AND (${cell} -> 'end' IS NULL OR ${typeOf(end)} = 'string'))`;
+};
 
 /** A day is the start of that day in UTC and an instant is itself, which is how `Date.parse` reads them. */
 export const instantOf = (text: SqlFragment): SqlFragment =>
   frag`(CASE WHEN ${text} ~ ${sqlText(DAY_PATTERN)} THEN (${text} || 'T00:00:00Z')::timestamptz WHEN ${text} ~ ${sqlText(INSTANT_PATTERN)} THEN (${text})::timestamptz END)`;
 
-export const dateStartOf = (cell: SqlFragment): SqlFragment =>
-  frag`(CASE WHEN ${isDateCell(cell)} THEN ${instantOf(frag`(${cell} ->> 'start')`)} END)`;
+export const dateStartOf = (cell: SqlFragment): SqlFragment => {
+  const start = frag`(${cell} ->> 'start')`;
+  return frag`(CASE WHEN ${isDateCell(cell)} THEN ${instantOf(start)} END)`;
+};
 
-export const dateEndOf = (cell: SqlFragment): SqlFragment =>
-  frag`(CASE WHEN ${isDateCell(cell)} THEN ${instantOf(frag`COALESCE(${cell} ->> 'end', ${cell} ->> 'start')`)} END)`;
+export const dateEndOf = (cell: SqlFragment): SqlFragment => {
+  const end = frag`COALESCE(${cell} ->> 'end', ${cell} ->> 'start')`;
+  return frag`(CASE WHEN ${isDateCell(cell)} THEN ${instantOf(end)} END)`;
+};
 
 /** A date written without a time, which belongs to a calendar day and not to an instant. */
 export const isDayCell = (cell: SqlFragment): SqlFragment => frag`((${cell} ->> 'start') ~ ${sqlText(DAY_PATTERN)})`;

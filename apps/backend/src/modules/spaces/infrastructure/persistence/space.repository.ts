@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, SpaceVisibility } from '@neuma/db';
+import { and, isUniqueViolation, SpaceVisibility } from '@neuma/db';
 import { type PageIcon, type UserRole } from '@neuma/shared';
 import { placeBefore } from '../../../../common/domain/ordering.domain';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
@@ -89,14 +89,19 @@ export class SpaceRepository implements SpaceRepositoryContract {
     return this.listAccessible(workspaceId, userId, role);
   }
 
-  async create(input: CreateSpaceInput): Promise<SpaceSummary> {
-    const space = await this.prisma.models.Space.select(...SPACE_SUMMARY_FIELDS).create({
-      name: input.name,
-      slug: input.slug,
-      visibility: input.visibility,
-      workspaceId: input.workspaceId,
-    });
-    return { ...space, icon: parseStoredPageIcon(space.icon) };
+  async create(input: CreateSpaceInput): Promise<SpaceSummary | null> {
+    try {
+      const space = await this.prisma.models.Space.select(...SPACE_SUMMARY_FIELDS).create({
+        name: input.name,
+        slug: input.slug,
+        visibility: input.visibility,
+        workspaceId: input.workspaceId,
+      });
+      return { ...space, icon: parseStoredPageIcon(space.icon) };
+    } catch (error) {
+      if (isUniqueViolation(error)) return null;
+      throw error;
+    }
   }
 
   async rename(

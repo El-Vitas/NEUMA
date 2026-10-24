@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { VIEW_WRITE_MAXIMUM_ATTEMPTS } from '@/modules/pages/collections/constants/pages.view-writes.constants';
 import { createViewWriteQueue } from '@/modules/pages/collections/lib/pages.view-writes.lib';
 import type { PageViewWrite, ViewWriteSendResult } from '@/modules/pages/collections/types/pages.view-writes.types';
 import { createMemoryStorage } from '@/modules/pages/local-cache/lib/local-cache.memory-storage.lib';
@@ -72,6 +73,95 @@ describe('createViewWriteQueue', () => {
 
     expect(sent).toHaveLength(2);
     expect(await outbox.listPending()).toEqual([]);
+    expect(queue.pendingCount()).toBe(0);
+  });
+
+  it('keeps the whole backlog queued when the server fails, instead of refusing every write', async () => {
+    const failure: ViewWriteSendResult = { cause: 'other', kind: 'retry', message: 'unexpected' };
+    const { outbox, queue, retries, sent } = createFixture([failure]);
+
+    const first = await queue.enqueue(cell('row-1', 'a'), 'a');
+
+    expect(first).toEqual({ kind: 'queued' });
+    expect(sent).toHaveLength(1);
+    expect(retries).toHaveLength(1);
+    expect((await outbox.listPending()).map((stored) => stored.id)).toEqual(['write-1']);
+    expect(await outbox.listRejected()).toEqual([]);
+
+    await queue.resume();
+    expect(await outbox.listPending()).toEqual([]);
+  });
+
+  it('sets a write aside only after the server kept failing past the cap', async () => {
+    const failure: ViewWriteSendResult = { cause: 'other', kind: 'retry', message: 'unexpected' };
+    const { outbox, queue } = createFixture(Array.from({ length: 10 }, () => failure));
+
+    await queue.enqueue(cell('row-1', 'a'), 'a');
+    for (let attempt = 0; attempt < VIEW_WRITE_MAXIMUM_ATTEMPTS; attempt += 1) await queue.resume();
+
+    expect(await outbox.listPending()).toEqual([]);
+    expect((await outbox.listRejected()).map((stored) => stored.id)).toEqual(['write-1']);
+  });
+
+  it('sends again a refused write the person put back', async () => {
+    const { outbox, queue, sent } = createFixture([{ cause: 'invalid', kind: 'rejected', message: 'invalid' }]);
+    await queue.enqueue(cell('row-1', 'a'), 'a');
+
+    await outbox.retryRejected('write-1');
+    queue.release('write-1');
+    await queue.resume();
+
+    expect(sent).toHaveLength(2);
+    expect(await outbox.listPending()).toEqual([]);
+    expect(await outbox.listRejected()).toEqual([]);
+  });
+
+  it('sends a put-back write without the version the row had, so the person keeps their value', async () => {
+    const stale: PageViewWrite = {
+      expectedVersion: 4,
+      kind: 'cell',
+      pageId: 'row-1',
+      propertyValues: { status: 'a' },
+      spaceId: 'space-1',
+    };
+    const { outbox, queue, sent } = createFixture([{ cause: 'conflict', kind: 'rejected', message: 'conflict' }]);
+    await queue.enqueue(stale, 'a');
+
+    await outbox.retryRejected('write-1');
+    queue.release('write-1');
+    await queue.resume();
+
+    expect(sent[0]).toEqual(stale);
+    expect(sent[1]).toEqual(cell('row-1', 'a'));
+  });
+
+  it('answers a refusal, and tells who is waiting, when the disk will not keep the write', async () => {
+    const bundle = createMemoryStorage<CacheableBody>();
+    const failing = createOutbox({
+      now: () => 5000,
+      storage: {
+        ...bundle.outbox,
+        appendTransaction: () => Promise.reject(new Error('quota')),
+      },
+    });
+    const answered: string[] = [];
+    const failures: unknown[] = [];
+    const queue = createViewWriteQueue({
+      collectionId: 'collection-1',
+      newId: () => 'write-1',
+      onAnswered: (id) => answered.push(id),
+      onStorageFailure: (error) => failures.push(error),
+      outbox: failing,
+      ownerId: 'tab-1',
+      scheduleRetry: () => () => undefined,
+      send: async () => ({ kind: 'applied' }),
+    });
+
+    const settled = await queue.enqueue(cell('row-1', 'a'), 'a');
+
+    expect(settled).toMatchObject({ kind: 'rejected' });
+    expect(answered).toEqual(['write-1']);
+    expect(failures).toHaveLength(1);
     expect(queue.pendingCount()).toBe(0);
   });
 

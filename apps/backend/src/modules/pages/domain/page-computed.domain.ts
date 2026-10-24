@@ -9,7 +9,7 @@ import {
 import type { SchemaPropertyDefinition } from '../../../common/domain/schema.domain.types';
 import type { ComputedCells, ComputedEvaluationInput, ComputedRowInput } from './page-computed.domain.types';
 
-const toInfo = (property: SchemaPropertyDefinition): PageFormulaPropertyInfo => ({
+export const toFormulaPropertyInfo = (property: SchemaPropertyDefinition): PageFormulaPropertyInfo => ({
   key: property.key,
   label: property.label,
   options: property.options,
@@ -24,6 +24,12 @@ const failOnCycle = (label: string): PageFormulaOutcome => ({
 
 const failOnMissing = (key: string): PageFormulaOutcome => ({
   error: { code: PAGE_FORMULA_RUNTIME_ERROR.DEPENDENCY_ERROR, message: `${key} is not a formula or a rollup` },
+  isOk: false,
+});
+
+/** An engine fault becomes a cell error, so one bad formula never fails the read; its detail stays out. */
+const failOnEngineFault = (label: string): PageFormulaOutcome => ({
+  error: { code: PAGE_FORMULA_RUNTIME_ERROR.INVALID_ARGUMENT, message: `${label} could not be computed` },
   isOk: false,
 });
 
@@ -77,7 +83,7 @@ export const expandComputedKeys = (
  */
 export const evaluateComputedCells = (input: ComputedEvaluationInput): ComputedCells => {
   const properties = new Map(input.properties.map((property) => [property.key, property]));
-  const infos = new Map(input.properties.map((property) => [property.key, toInfo(property)]));
+  const infos = new Map(input.properties.map((property) => [property.key, toFormulaPropertyInfo(property)]));
   const wanted = input.properties.filter(
     (property) => isPageComputedPropertyType(property.type) && (input.keys?.has(property.key) ?? true),
   );
@@ -102,7 +108,19 @@ export const evaluateComputedCells = (input: ComputedEvaluationInput): ComputedC
       subject: ComputedRowInput,
       readOther: (key: string) => PageFormulaOutcome,
     ): PageFormulaOutcome => {
-      if (property.type === DatabasePropertyType.ROLLUP) return computeRollup(property, subject);
+      try {
+        return property.type === DatabasePropertyType.ROLLUP
+          ? computeRollup(property, subject)
+          : computeFormula(property, subject, readOther);
+      } catch {
+        return failOnEngineFault(property.label);
+      }
+    };
+    const computeFormula = (
+      property: SchemaPropertyDefinition,
+      subject: ComputedRowInput,
+      readOther: (key: string) => PageFormulaOutcome,
+    ): PageFormulaOutcome => {
       const formula = property.computed?.formula;
       if (formula === null || formula === undefined) return failOnMissing(property.key);
       return evaluatePageFormula(

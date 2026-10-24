@@ -53,6 +53,8 @@ model Block {
   @@index([parentId], map: "Block_parentId_idx")
   @@index([spaceId, lifecycle], map: "Block_spaceId_lifecycle_idx")
   @@index([parentId, changeXid], map: "Block_parentId_changeXid_idx")
+  @@index([spaceId, editedAt], map: "Block_spaceId_editedAt_idx")
+  @@index([spaceId, changeXid], map: "Block_spaceId_changeXid_idx")
   @@index([ownerId], map: "Block_ownerId_idx")
   @@index([purgeAfter], map: "Block_purgeAfter_idx")
   @@index([verificationExpiresAt], map: "Block_verificationExpiresAt_idx")

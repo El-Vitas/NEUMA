@@ -7,6 +7,7 @@ import {
   PageLifecycleError,
   PageLockedError,
   PageParentError,
+  PageVersionConflictError,
 } from '../../domain/page.error';
 import { PageBlockWriteError } from '../errors/page.block-write.error';
 
@@ -29,6 +30,8 @@ export const readWriteFailure = (failure: BlockWriteFailure): DomainError | null
       return new PageCycleError();
     case BLOCK_WRITE_FAILURE_CODE.treeInvalid:
       return new PageParentError();
+    case BLOCK_WRITE_FAILURE_CODE.versionConflict:
+      return new PageVersionConflictError();
     case BLOCK_WRITE_FAILURE_CODE.contentInvalid:
       return new PageContentValidationError(failure.details);
     default:

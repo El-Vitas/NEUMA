@@ -58,6 +58,7 @@ mock.module('@/i18n/navigation', () => ({
 const { PagesWorkspace } = await import('@/modules/pages/components/pages.workspace');
 
 const handbook: PageSummary = {
+  canEdit: true,
   content: { content: [], schemaVersion: 1, type: 'doc' },
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
@@ -96,7 +97,7 @@ const buildPanelBundle = (overrides: Partial<PagesSidePanelBundle> = {}): PagesS
 const renderWorkspace = (props: Partial<Parameters<typeof PagesWorkspace>[0]> = {}) =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <PagesWorkspace ancestors={[]} canEditContent page={handbook} spaceId={handbook.spaceId} {...props} />
+      <PagesWorkspace ancestors={[]} page={handbook} spaceId={handbook.spaceId} {...props} />
     </NextIntlClientProvider>,
   );
 
@@ -133,6 +134,24 @@ describe('PagesWorkspace collaboration propagation', () => {
     expect(editor.getAttribute('data-block-count')).toBe('0');
     expect(editor.getAttribute('data-user-id')).toBe('user-1');
     expect(editor.getAttribute('data-can-edit')).toBe('true');
+  });
+
+  it('makes the page read-only when the viewer holds only a reader role on it, whatever the workspace role', () => {
+    renderWorkspace({ blockSync: [], page: { ...handbook, canEdit: false } });
+
+    expect(screen.getByTestId('selected-page').getAttribute('data-can-edit')).toBe('false');
+  });
+
+  it('makes the side panel page read-only when the viewer holds only a reader role on it', () => {
+    renderWorkspace({
+      blockSync: [],
+      panelBundle: buildPanelBundle({ page: { ...panelPage, canEdit: false } }),
+    });
+
+    const panelEditor = screen
+      .getAllByTestId('selected-page')
+      .find((editor) => editor.getAttribute('data-page-id') === panelPage.id);
+    expect(panelEditor?.getAttribute('data-can-edit')).toBe('false');
   });
 
   it('makes the page read-only, and says why, when its blocks could not be read', () => {

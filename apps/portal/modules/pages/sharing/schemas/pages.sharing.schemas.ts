@@ -34,12 +34,12 @@ export const blockAccessSchema = z.object({
   viewerId: z.string(),
 });
 
-export const blockAccessRequestSchema = z.object({ blockId: z.string().min(1) });
+export const blockAccessRequestSchema = z.object({ blockId: z.uuid() });
 
 export const blockPermissionsRequestSchema = z.object({
-  blockId: z.string().min(1),
+  blockId: z.uuid(),
   permissions: blockPermissionsSchema,
-  spaceId: z.string().min(1),
+  spaceId: z.uuid(),
 });
 
 export const blockTransactionsResponseSchema = z.object({

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { browserLogger } from '../../lib/pages.browser-logger.lib';
-import { LOCAL_CACHE_OUTBOX_CHANGED_EVENT } from '../constants/local-cache.constants';
+import { LOCAL_CACHE_OUTBOX_CHANGED_EVENT, LOCAL_CACHE_OUTBOX_RETRY_EVENT } from '../constants/local-cache.constants';
 import { openBrowserLocalCache } from '../lib/local-cache.browser.lib';
 import { filterRejectedOfPage } from '../lib/local-cache.rejected.lib';
 import type { CacheableBody, Outbox, RejectedChanges } from '../types/local-cache.types';
@@ -59,5 +59,16 @@ export const useRejectedChanges = (userId: null | string, pageId: string): Rejec
     await read(outbox);
   };
 
-  return { discard, items };
+  const retry = async (id: string): Promise<void> => {
+    if (outbox === null) return;
+    try {
+      await outbox.retryRejected(id);
+      window.dispatchEvent(new CustomEvent<string>(LOCAL_CACHE_OUTBOX_RETRY_EVENT, { detail: id }));
+    } catch (error) {
+      browserLogger.error({ err: error }, 'A change that was not applied could not be put back to be sent again');
+    }
+    await read(outbox);
+  };
+
+  return { discard, items, retry };
 };

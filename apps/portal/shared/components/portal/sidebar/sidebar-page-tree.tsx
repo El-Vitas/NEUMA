@@ -29,7 +29,7 @@ import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { usePagesStart } from '@/shared/hooks/use.pages-start.hook';
 import { useSidebarPageDrag } from '@/shared/hooks/use.sidebar-page-drag.hook';
 import { useSidebarPageSelection } from '@/shared/hooks/use.sidebar-page-selection.hook';
-import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { SidebarPageBatchMoveDialog } from './sidebar-page-batch-move-dialog';
 import { SidebarPageBatchTrashDialog } from './sidebar-page-batch-trash-dialog';
@@ -119,12 +119,14 @@ export const SidebarPageTree = ({ id, onNavigate, role, spaceId, treeView }: IPr
   const duplicatePage = (page: PortalSidebarPage, includeChildren: boolean): void => {
     setPageToDuplicate(null);
     startTransition(async () => {
-      const result = await duplicatePageAction({
-        includeChildren,
-        pageId: page.id,
-        spaceId,
-        title: tDuplicate('copyName', { title: page.title.length > 0 ? page.title : t('untitled') }),
-      });
+      const result = await callAction(() =>
+        duplicatePageAction({
+          includeChildren,
+          pageId: page.id,
+          spaceId,
+          title: tDuplicate('copyName', { title: page.title.length > 0 ? page.title : t('untitled') }),
+        }),
+      );
       if (hasActionError(result)) {
         toast.error(tDuplicate('error'));
         return;

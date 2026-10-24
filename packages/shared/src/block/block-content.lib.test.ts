@@ -100,8 +100,9 @@ const SAMPLES: Readonly<Record<BlockType, Sample>> = {
 
 describe('block types', () => {
   test('has a schema and a sample for every type', () => {
-    expect(Object.keys(BLOCK_CONTENT_SCHEMAS).sort()).toEqual([...BLOCK_TYPE_VALUES].sort());
-    expect(Object.keys(SAMPLES).sort()).toEqual([...BLOCK_TYPE_VALUES].sort());
+    const byName = (first: string, second: string): number => first.localeCompare(second);
+    expect(Object.keys(BLOCK_CONTENT_SCHEMAS).sort(byName)).toEqual([...BLOCK_TYPE_VALUES].sort(byName));
+    expect(Object.keys(SAMPLES).sort(byName)).toEqual([...BLOCK_TYPE_VALUES].sort(byName));
     expect(blockContentSchema.options).toHaveLength(BLOCK_TYPE_VALUES.length);
   });
 

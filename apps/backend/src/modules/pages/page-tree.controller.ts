@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
+import { PageReadThrottlerGuard } from '../../common/infrastructure/guards/page-read-throttler.guard';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { PageTreeQueryDto } from './dto/page-tree.query.dto';
 import { PageRecentQueryDto } from './dto/page-tree.recent.dto';
@@ -13,7 +14,7 @@ export class PageTreeController {
   constructor(private readonly treeService: PageTreeService) {}
 
   @Get('tree')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async listChildren(
     @Param('spaceId') spaceId: string,
     @Query() dto: PageTreeQueryDto,
@@ -29,7 +30,7 @@ export class PageTreeController {
   }
 
   @Get('recent')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async listRecent(
     @Param('spaceId') spaceId: string,
     @Query() dto: PageRecentQueryDto,
@@ -40,13 +41,13 @@ export class PageTreeController {
   }
 
   @Get(':pageId/path')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async readPath(@Param('pageId') pageId: string, @User('payload') payload: TokenPayload): Promise<PageTreePath> {
     return this.treeService.readPath(pageId, await this.treeService.openReader(payload));
   }
 
   @Get(':pageId/ancestors')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async listAncestors(
     @Param('pageId') pageId: string,
     @User('payload') payload: TokenPayload,

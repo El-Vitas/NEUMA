@@ -6,6 +6,9 @@ import type { PagesRowSelection } from '../types/pages.row-selection.types';
 /** Milliseconds. Longer than a plain toast: it offers an undo, and the user needs time to notice the mistake. */
 export const PAGE_BULK_UNDO_DURATION = 12_000;
 
+/** Requests of one bulk action in flight at once; the rest wait their turn. */
+export const PAGE_BULK_CONCURRENCY = 8;
+
 /**
  * How the rows of a table that follows its own order are put in another place. Null when they cannot be: the view
  * sorts them, or whoever looks may not edit.

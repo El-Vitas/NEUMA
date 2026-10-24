@@ -45,6 +45,7 @@ export class BlockLiveRegistry {
       id: randomUUID(),
       isClosed: false,
       messageWindow: createMessageWindow(now),
+      pendingMessages: 0,
       queue: Promise.resolve(),
       reader: null,
       socket,
@@ -65,6 +66,10 @@ export class BlockLiveRegistry {
 
   listConnections(): readonly BlockLiveConnection[] {
     return [...this.connections.values()];
+  }
+
+  countUnauthenticated(): number {
+    return this.listConnections().filter((connection) => connection.reader === null).length;
   }
 
   countAuthenticatedFor(userId: string): number {

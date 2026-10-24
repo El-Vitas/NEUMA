@@ -41,9 +41,9 @@ export interface PageComputedDraft {
 
 export interface PageSchemaProperty {
   /** The formula or rollup a computed property was saved with. */
-  readonly computed?: PageComputedConfig | undefined;
+  readonly computed?: PageComputedConfig;
   /** What is being changed in it; absent while it is as saved. */
-  readonly computedDraft?: PageComputedDraft | undefined;
+  readonly computedDraft?: PageComputedDraft;
   readonly config: PagePropertyConfig;
   readonly key: string;
   readonly label: string;
@@ -64,11 +64,11 @@ export interface PagePersonOption {
 export interface PageSchemaViewDraft {
   readonly configuration: Readonly<Record<string, unknown>>;
   /** Sent back so a renamed or moved tab stays the same view and keeps its manual order. */
-  readonly id?: string | undefined;
+  readonly id?: string;
   readonly isDefault: boolean;
   readonly name: string;
   readonly type: PageViewType;
-  readonly version?: number | undefined;
+  readonly version?: number;
 }
 
 export interface PageSchemaView extends PageSchemaViewDraft {
@@ -87,7 +87,7 @@ export interface PageSchema {
 
 export interface PageRow {
   /** The formulas and rollups of the row that could not be computed, with why. */
-  readonly computedErrors?: Readonly<Record<string, PageComputedError>> | undefined;
+  readonly computedErrors?: Readonly<Record<string, PageComputedError>>;
   readonly id: string;
   readonly parentId: string | null;
   readonly spaceId: string;

@@ -1,5 +1,10 @@
 import { BLOCK_TYPE } from '@neuma/shared';
-import { isBlockReadableInPage, isPageReadable, toViewerAccess } from './block.live.access.domain';
+import {
+  hasAccessChangeAbove,
+  isBlockReadableInPage,
+  isPageReadable,
+  toViewerAccess,
+} from './block.live.access.domain';
 import { BLOCK_LIVE_COLLECTION_MESSAGE_MAX_ROWS } from './block.live.constants';
 import type {
   CollectionDeliveryInput,
@@ -75,6 +80,7 @@ const planFor = (subscription: CollectionSubscription, input: CollectionDelivery
   if (!isPageReadable(subscription.collectionId, access)) {
     return [toDelivery(subscription, { collectionId: subscription.collectionId, type: 'collection-revoked' })];
   }
+  if (hasAccessChangeAbove(subscription.collectionId, input.blocks, input.context)) return [toResync(subscription)];
   const slice = sliceRows(subscription, input, access);
   return slice.isResyncNeeded ? [toResync(subscription)] : toChanges(subscription, input, slice.rows);
 };

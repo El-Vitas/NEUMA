@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { formatDate } from '@/shared/utils/formatters';
 import { restorePageAction } from '../../server/actions/pages.actions';
 import { usePageRestoreNotice } from '../hooks/use.pages.trash.restore-notice';
@@ -31,7 +31,9 @@ export const PagesTrashItem = ({ canDeleteForever, locale, page }: IProps) => {
   const title = page.title.length > 0 ? page.title : t('untitled');
 
   const performRestore = async (includeChildren: boolean): Promise<void> => {
-    const result = await restorePageAction({ includeChildren, pageId: page.id, spaceId: page.spaceId });
+    const result = await callAction(() =>
+      restorePageAction({ includeChildren, pageId: page.id, spaceId: page.spaceId }),
+    );
     if (!isActionSuccess<TrashRestoreOutcome>(result)) {
       toast.error(t('trashScreen.restoreError'));
       return;
@@ -42,7 +44,7 @@ export const PagesTrashItem = ({ canDeleteForever, locale, page }: IProps) => {
 
   const requestRestore = (): void => {
     startTransition(async () => {
-      const preview = await getPageRestorePreviewAction({ pageId: page.id, spaceId: page.spaceId });
+      const preview = await callAction(() => getPageRestorePreviewAction({ pageId: page.id, spaceId: page.spaceId }));
       const childPageCount = isActionSuccess<TrashDescendantsPreview>(preview)
         ? preview.data.childPageCount
         : page.trashedChildCount;

@@ -6,6 +6,7 @@ import {
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 
 const buildPageSummary = (id: string, title: string): PageSummary => ({
+  canEdit: true,
   content: { content: [], schemaVersion: 1, type: 'doc' },
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,

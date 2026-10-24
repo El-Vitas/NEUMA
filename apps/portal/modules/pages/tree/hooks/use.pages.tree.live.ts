@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { env } from '@/config/env.config';
 import { openBrowserBlockLiveSocket } from '../../block-sync/lib/block-sync.socket.lib';
+import { requestBlockLiveToken } from '../../block-sync/lib/block-sync.token.lib';
 import { PAGE_TREE_RELOAD_DEBOUNCE_MS } from '../constants/pages.tree.constants';
-import { requestPageTreeLiveToken } from '../lib/pages.tree.client.lib';
 import { createPageTreeLiveSession } from '../lib/pages.tree.live.lib';
 import type { PageTreeStore } from '../types/pages.tree.types';
 
@@ -52,7 +52,7 @@ export const usePagesTreeLive = (
         },
       },
       openSocket: openBrowserBlockLiveSocket,
-      requestToken: requestPageTreeLiveToken,
+      requestToken: requestBlockLiveToken,
       spaceIds: spaces,
       url: env.NEXT_PUBLIC_LIVE_WS_URL,
       watermarks,

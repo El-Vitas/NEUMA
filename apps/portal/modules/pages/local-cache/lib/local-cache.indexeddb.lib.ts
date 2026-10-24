@@ -61,6 +61,21 @@ const writeAll = async (
   await done;
 };
 
+/** Deletes a key from one store and puts a value in another in the same transaction. */
+const moveBetweenStores = async (
+  database: IDBDatabase,
+  fromStore: string,
+  toStore: string,
+  key: string,
+  value: unknown,
+): Promise<void> => {
+  const transaction = database.transaction([fromStore, toStore], 'readwrite');
+  const done = waitForTransaction(transaction);
+  transaction.objectStore(toStore).put(value);
+  transaction.objectStore(fromStore).delete(key);
+  await done;
+};
+
 const readAll = async <Value>(database: IDBDatabase, storeName: string): Promise<readonly Value[]> => {
   const transaction = database.transaction(storeName, 'readonly');
   return waitForRequest<Value[]>(transaction.objectStore(storeName).getAll());
@@ -115,9 +130,23 @@ export const openIndexedDbStorage = async <Body extends CacheableBody>(
       listRejected: () => readAll<RejectedTransaction>(database, STORE.rejected),
       listTransactions: () => readAll<StoredTransaction>(database, STORE.transactions),
       putRejected: (transaction) => put(STORE.rejected, [transaction]),
+      rejectTransaction: (transaction) =>
+        moveBetweenStores(database, STORE.transactions, STORE.rejected, transaction.id, transaction),
+      restoreTransaction: (transaction) =>
+        moveBetweenStores(database, STORE.rejected, STORE.transactions, transaction.id, transaction),
       updateTransaction: (transaction) => put(STORE.transactions, [transaction]),
     },
   };
+};
+
+/** Counts the pending writes of one database and lets go of it, so a later deletion is not left waiting. */
+export const countIndexedDbTransactions = async (factory: IDBFactory, name: string): Promise<number> => {
+  const database = await openDatabase(factory, name);
+  try {
+    return (await readAll<StoredTransaction>(database, STORE.transactions)).length;
+  } finally {
+    database.close();
+  }
 };
 
 export const deleteIndexedDbDatabases = async (factory: IDBFactory, names: readonly string[]): Promise<void> => {

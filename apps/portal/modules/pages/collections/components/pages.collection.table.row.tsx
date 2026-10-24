@@ -21,7 +21,7 @@ interface IProps {
   readonly columnAppearances: Readonly<Record<string, PageTableAppearance>>;
   readonly frozenCells: readonly { readonly className?: string; readonly style?: { readonly left: number } }[];
   /** Set when the row is one of a windowed list. */
-  readonly index?: number | undefined;
+  readonly index?: number;
   readonly openFullPageLabel: string;
   readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
@@ -91,6 +91,7 @@ export const PagesCollectionTableRow = ({
               personOptions={personOptions}
               property={property}
               rowId={row.id}
+              rowVersion={row.version}
               spaceId={spaceId}
               value={computed.valueOf(property.key)}
             />

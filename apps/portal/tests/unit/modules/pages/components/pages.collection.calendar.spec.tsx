@@ -9,7 +9,12 @@ import { defaultConfig } from '../lib/pages.options.fixture';
 import { buildView } from '../lib/pages.views.fixture';
 import { COLLECTION_ACTION_STUBS } from '../stubs/pages.actions.stubs';
 
-const written: { pageId: string; propertyValues: Record<string, unknown>; spaceId: string }[] = [];
+const written: {
+  expectedVersion?: number;
+  pageId: string;
+  propertyValues: Record<string, unknown>;
+  spaceId: string;
+}[] = [];
 const created: { propertyValues: Record<string, unknown>; title: string }[] = [];
 const navigated: string[] = [];
 
@@ -180,6 +185,7 @@ describe('PagesCollectionCalendar', () => {
 
     await waitFor(() => expect(written).toHaveLength(1));
     expect(written[0]).toEqual({
+      expectedVersion: 1,
       pageId: 'row-1',
       propertyValues: { dueDate: { start: '2026-09-11' } },
       spaceId: 'space-1',
@@ -235,6 +241,7 @@ describe('PagesCollectionCalendar', () => {
 
     await waitFor(() => expect(written).toHaveLength(1));
     expect(written[0]).toEqual({
+      expectedVersion: 1,
       pageId: 'row-range',
       propertyValues: { dueDate: { end: '2026-09-16', start: '2026-09-14' } },
       spaceId: 'space-1',

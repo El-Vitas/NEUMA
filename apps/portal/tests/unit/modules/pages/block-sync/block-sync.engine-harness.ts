@@ -34,10 +34,12 @@ export const createClient = (
   const readOnlyCalls: number[] = [];
   let session: FakeSession | null = null;
   const client: { content: PageContent; engine: BlockSyncEngine | null } = { content: initial, engine: null };
+  const replaceFault = { isActive: false };
   const engine = createBlockSyncEngine({
     bridge: {
       readContent: () => client.content,
       replaceContent: (content) => {
+        if (replaceFault.isActive) throw new Error('The editor cannot hold this content');
         client.content = content;
         replaced.push(content);
         client.engine?.notifyContentChange(content);
@@ -79,6 +81,7 @@ export const createClient = (
     engine,
     participants,
     readOnlyCalls,
+    replaceFault,
     replaced,
     saveStates,
     session: openedSession,

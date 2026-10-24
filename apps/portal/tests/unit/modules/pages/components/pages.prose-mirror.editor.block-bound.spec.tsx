@@ -76,6 +76,34 @@ describe('PagesProseMirrorEditor on the block channel', () => {
     expect(screen.getByText('Ana')).not.toBeNull();
   });
 
+  it('keeps what was typed when the page turns read-only', () => {
+    const ref = createRef<Handle>();
+    const editor = (canEdit: boolean) => (
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesProseMirrorEditor
+          blockCollaboration={{ participants: [], status: 'connected' }}
+          canEdit={canEdit}
+          content={createEmptyPageContent()}
+          onContentChange={() => undefined}
+          pageId={PAGE_ID}
+          ref={ref}
+          spaceId="space-1"
+        />
+      </NextIntlClientProvider>
+    );
+    const { container, rerender } = render(editor(true));
+    act(() => {
+      ref.current?.runCommand((state, dispatch) => {
+        dispatch?.(state.tr.insertText('typed words'));
+        return true;
+      });
+    });
+
+    rerender(editor(false));
+
+    expect(container.querySelector('.ProseMirror')?.textContent).toContain('typed words');
+  });
+
   it('tells where the cursor went each time the selection changes', async () => {
     const selections: number[] = [];
     const ref = createRef<Handle>();

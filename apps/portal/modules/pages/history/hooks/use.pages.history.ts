@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { listPageVersionsAction, readPageVersionAction } from '../server/actions/pages.history.actions';
 import type {
   PageHistoryLoadStatus,
@@ -34,7 +34,7 @@ export const usePagesHistory = ({ pageId, spaceId }: IProps): PagesHistory => {
     setSelectedVersion(version);
     setDocument(null);
     setPreviewStatus('loading');
-    void readPageVersionAction({ pageId, spaceId, version }).then((result) => {
+    void callAction(() => readPageVersionAction({ pageId, spaceId, version })).then((result) => {
       if (request !== latestPreviewRequest.current) return;
       if (!isActionSuccess<PageVersionDocument>(result)) {
         setPreviewStatus('error');
@@ -47,7 +47,7 @@ export const usePagesHistory = ({ pageId, spaceId }: IProps): PagesHistory => {
 
   const loadFirstPage = (): void => {
     setListStatus('loading');
-    void listPageVersionsAction({ pageId, spaceId }).then((result) => {
+    void callAction(() => listPageVersionsAction({ pageId, spaceId })).then((result) => {
       if (!isActionSuccess<PageVersionListing>(result)) {
         setListStatus('error');
         return;
@@ -63,7 +63,7 @@ export const usePagesHistory = ({ pageId, spaceId }: IProps): PagesHistory => {
   const loadMore = (): void => {
     if (nextCursor === null || isLoadingMore) return;
     setIsLoadingMore(true);
-    void listPageVersionsAction({ cursor: nextCursor, pageId, spaceId }).then((result) => {
+    void callAction(() => listPageVersionsAction({ cursor: nextCursor, pageId, spaceId })).then((result) => {
       setIsLoadingMore(false);
       setDidLoadMoreFail(!isActionSuccess<PageVersionListing>(result));
       if (!isActionSuccess<PageVersionListing>(result)) return;

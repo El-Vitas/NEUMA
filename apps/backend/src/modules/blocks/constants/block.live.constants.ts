@@ -54,6 +54,18 @@ export const BLOCK_LIVE_MAX_TREE_SUBSCRIPTIONS_PER_CONNECTION = 20;
 
 export const BLOCK_LIVE_MAX_CONNECTIONS_PER_USER = 10;
 
+/** Sockets still waiting to authenticate: each costs an entry and two timers for the whole auth timeout. */
+export const BLOCK_LIVE_MAX_UNAUTHENTICATED_CONNECTIONS = 200;
+
+/**
+ * Messages that may wait behind the one being handled. They are processed one at a time, so a client that sends
+ * faster than the database answers would otherwise grow the memory of the server without bound.
+ */
+export const BLOCK_LIVE_MAX_QUEUED_MESSAGES = 20;
+
+/** What may wait unsent to one client; past it the client reads too slowly to be kept (4 MiB). */
+export const BLOCK_LIVE_MAX_BUFFERED_BYTES = 4_194_304;
+
 /** A client that pings every 30 s and sends presence on every move stays far below this. */
 export const BLOCK_LIVE_RATE_LIMIT = { maxMessages: 120, windowMs: 10_000 } as const;
 

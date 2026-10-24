@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/components/ui/dialog';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 
 interface IProps {
   readonly anchorPageId: string;
@@ -49,12 +49,14 @@ export const SidebarPageBatchMoveDialog = ({ anchorPageId, onClose, onMoved, ope
 
   const selectDestination = (destination: PageMoveDestination): void => {
     startTransition(async () => {
-      const result = await batchMovePagesAction({
-        pageIds: [...pageIds],
-        parentId: destination.pageId,
-        spaceId,
-        targetSpaceId: destination.spaceId === spaceId ? undefined : destination.spaceId,
-      });
+      const result = await callAction(() =>
+        batchMovePagesAction({
+          pageIds: [...pageIds],
+          parentId: destination.pageId,
+          spaceId,
+          targetSpaceId: destination.spaceId === spaceId ? undefined : destination.spaceId,
+        }),
+      );
       if (!isActionSuccess<PortalPageBatchOutcome>(result)) {
         toast.error(t('moveError'));
         return;

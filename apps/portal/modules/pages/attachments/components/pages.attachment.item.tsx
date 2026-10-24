@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import {
   formatAttachmentSize,
   formatAttachmentType,
@@ -29,7 +29,7 @@ export const PagesAttachmentItem = ({ attachment, canEdit, onDeleted }: IProps) 
 
   const download = () => {
     startTransition(async () => {
-      const result = await downloadPageAttachmentAction({ attachmentId: attachment.id });
+      const result = await callAction(() => downloadPageAttachmentAction({ attachmentId: attachment.id }));
       if (!isActionSuccess<AttachmentDownload>(result)) {
         toast.error(t('downloadError'));
         return;
@@ -42,7 +42,7 @@ export const PagesAttachmentItem = ({ attachment, canEdit, onDeleted }: IProps) 
     setIsConfirmingDelete(false);
     setIsDeleting(true);
     startTransition(async () => {
-      const result = await deletePageAttachmentAction({ attachmentId: attachment.id });
+      const result = await callAction(() => deletePageAttachmentAction({ attachmentId: attachment.id }));
       setIsDeleting(false);
       if (hasActionError(result)) {
         toast.error(t('deleteError'));

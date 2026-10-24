@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/components/ui/dialog';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 
 interface IProps {
   readonly onClose: () => void;
@@ -33,7 +33,7 @@ export const SidebarPageBatchTrashDialog = ({ onClose, onTrashed, open, pageIds,
 
   const confirmTrash = (): void => {
     startTransition(async () => {
-      const result = await batchTrashPagesAction({ pageIds: [...pageIds], spaceId });
+      const result = await callAction(() => batchTrashPagesAction({ pageIds: [...pageIds], spaceId }));
       if (!isActionSuccess<PortalPageBatchOutcome>(result)) {
         toast.error(t('trashError'));
         return;

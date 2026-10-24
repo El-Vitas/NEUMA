@@ -4,6 +4,7 @@ import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, type PageContent } fr
 import request from 'supertest';
 import { z } from 'zod';
 import {
+  MCP_INACCESSIBLE_MESSAGE,
   MCP_PAGE_LOCKED_MESSAGE,
   MCP_PAGE_MANAGE_REFUSED_MESSAGE,
   MCP_PROTECTED_UNREADABLE_DESCENDANT_MESSAGE,
@@ -217,6 +218,28 @@ describe('MCP page management (Integration)', () => {
       await call(secret, 'delete_comment', { block: introOf(pageId), comment: comment.id, page: pageId });
 
       expect(await storedContent(pageId)).not.toContain(comment.discussionId);
+    });
+
+    it('refuses to delete a comment that lives on another page than the one named', async () => {
+      const pageId = await freshPage('Página nombrada');
+      const otherPageId = await freshPage('Página ajena');
+      const commented = await call(secret, 'comment_on_block', {
+        block: introOf(otherPageId),
+        page: otherPageId,
+        text: 'No se borra desde otra página',
+      });
+      const { comment } = commentedShape.parse(commented.structuredContent);
+
+      const refused = await call(secret, 'delete_comment', {
+        block: introOf(pageId),
+        comment: comment.id,
+        page: pageId,
+      });
+
+      expect(refused.isError).toBe(true);
+      expect(readMcpText(refused)).toContain(MCP_INACCESSIBLE_MESSAGE);
+      const listed = await call(secret, 'list_discussions', { page: otherPageId });
+      expect(discussionsShape.parse(listed.structuredContent).discussions).toHaveLength(1);
     });
 
     it('lists the discussions of a page and replies to one as the token owner', async () => {

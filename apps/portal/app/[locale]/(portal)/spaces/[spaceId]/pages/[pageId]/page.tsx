@@ -1,6 +1,5 @@
 import type { PageCollectionReference, Result } from '@neuma/shared';
 import {
-  canEditContent,
   canManageWorkspace,
   extractPageCollectionReferences,
   isPageComputedPropertyType,
@@ -40,7 +39,6 @@ import {
 } from '@/modules/pages/collections/lib/pages.properties.lib';
 import { readPageViewReading } from '@/modules/pages/collections/server/lib/pages.view-reading.server';
 import { getPageSchema } from '@/modules/pages/collections/server/queries/pages.schema.queries';
-import type { CollectionRowsRequest } from '@/modules/pages/collections/types/pages.collections.types';
 import type { PagePersonOption, PageSchema } from '@/modules/pages/collections/types/pages.schema.types';
 import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
 import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants';
@@ -59,6 +57,7 @@ import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 import type { FavoritePage } from '@/shared/types/favorites.types';
 import type { RouteSearchParams, RouteSearchParamValue } from '@/shared/types/route-search-params.types';
+import type { PageViewing } from './types/page.viewing.types';
 
 interface IProps {
   readonly params: Promise<{ pageId: string; spaceId: string }>;
@@ -160,14 +159,13 @@ const resolvePersonOptionsIfNeeded = async (
 /** Reads only the active view: reading every view of a collection costs one round trip each. */
 const buildCollectionSection = async (
   ownSchema: PageSchema | null,
-  spaceId: string,
-  pageId: string,
-  requestedViewName: null | string,
-  rowsRequest: CollectionRowsRequest,
+  location: { readonly pageId: string; readonly spaceId: string },
+  viewing: Pick<PageViewing, 'requestedViewName' | 'rowsRequest' | 'viewerId'>,
   canEdit: boolean,
   personOptions: readonly PagePersonOption[],
-  viewerId: null | string,
 ): Promise<ReactNode> => {
+  const { pageId, spaceId } = location;
+  const { requestedViewName, rowsRequest, viewerId } = viewing;
   if (ownSchema === null || ownSchema.properties.length === 0) return null;
   const activeView = resolveActiveCollectionView(ownSchema.views, requestedViewName);
   if (activeView === null) return null;
@@ -225,12 +223,9 @@ const buildPageEditorBundle = async (
   spaceId: string,
   targetPage: PageSummary,
   ancestors: readonly PageBreadcrumbParent[],
-  canEditRole: boolean,
-  favoritesResult: Result<readonly FavoritePage[], Error>,
-  requestedViewName: null | string,
-  rowsRequest: CollectionRowsRequest,
-  viewerId: null | string,
+  viewing: PageViewing,
 ): Promise<PagesEditorBundle> => {
+  const { favoritesResult } = viewing;
   const [attachmentsResult, backlinksResult, ownSchemaResult, parentSchema] = await Promise.all([
     getPageAttachments(targetPage.id),
     getPageBacklinks(targetPage.id),
@@ -240,19 +235,16 @@ const buildPageEditorBundle = async (
   const ownSchema = ownSchemaResult.isOk() ? ownSchemaResult.getValue() : null;
   const [pageWithComputed, personOptions, referencesRead] = await Promise.all([
     withComputedValues(spaceId, targetPage, parentSchema),
-    resolvePersonOptionsIfNeeded(spaceId, [ownSchema, parentSchema], canEditPage(canEditRole, targetPage.lifecycle)),
+    resolvePersonOptionsIfNeeded(spaceId, [ownSchema, parentSchema], canEditPage(targetPage)),
     readPageReferences(targetPage, parentSchema),
   ]);
   const [collectionSection, embeddedCollections] = await Promise.all([
     buildCollectionSection(
       ownSchema,
-      spaceId,
-      targetPage.id,
-      requestedViewName,
-      rowsRequest,
-      canEditPage(canEditRole, targetPage.lifecycle),
+      { pageId: targetPage.id, spaceId },
+      viewing,
+      canEditPage(targetPage),
       personOptions,
-      viewerId,
     ),
     buildEmbeddedCollections(targetPage, referencesRead.references),
   ]);
@@ -291,22 +283,15 @@ const withComputedValues = async (
 const buildPanelBundle = async (
   spaceId: string,
   panelPage: PageSummary,
-  canEditRole: boolean,
-  favoritesResult: Result<readonly FavoritePage[], Error>,
-  viewerId: null | string,
+  viewing: PageViewing,
 ): Promise<PagesSidePanelBundle> => {
   const ancestors = await readPageAncestors(spaceId, panelPage.id);
   const [bundle, blocksResult] = await Promise.all([
-    buildPageEditorBundle(
-      spaceId,
-      panelPage,
-      ancestors,
-      canEditRole,
-      favoritesResult,
-      null,
-      UNSEARCHED_ROWS_REQUEST,
-      viewerId,
-    ),
+    buildPageEditorBundle(spaceId, panelPage, ancestors, {
+      ...viewing,
+      requestedViewName: null,
+      rowsRequest: UNSEARCHED_ROWS_REQUEST,
+    }),
     getPageBlocks(panelPage.id),
   ]);
   const blockStart = resolveBlockEditorStart(blocksResult, panelPage.id);
@@ -327,15 +312,13 @@ const readPageAncestors = async (spaceId: string, pageId: string): Promise<reado
 const buildPanelBundleFor = async (
   spaceId: string,
   panelPageId: string | null,
-  canEditRole: boolean,
-  favoritesResult: Result<readonly FavoritePage[], Error>,
-  viewerId: null | string,
+  viewing: PageViewing,
 ): Promise<PagesSidePanelBundle | null> => {
   if (panelPageId === null) return null;
   const panelResult = await getPage(spaceId, panelPageId);
   const panelPage = panelResult.isOk() ? panelResult.getValue() : null;
   if (panelPage === null) return null;
-  return buildPanelBundle(spaceId, panelPage, canEditRole, favoritesResult, viewerId);
+  return buildPanelBundle(spaceId, panelPage, viewing);
 };
 
 /** Depends on the session and the space, so it resolves fully before responding. */
@@ -355,36 +338,34 @@ export default async function Page({ params, searchParams }: IProps) {
       searchParams ?? Promise.resolve<RouteSearchParams>({}),
       getPageBlocks(pageId),
     ]);
-  const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
-  const selectedPage = pageResult.isOk() ? pageResult.getValue() : null;
+  if (spacesResult.isFail()) throw spacesResult.getError();
+  if (pageResult.isFail()) throw pageResult.getError();
+  const space = spacesResult.getValue().find((candidate) => candidate.id === spaceId);
+  const selectedPage = pageResult.getValue();
   if (selectedPage === null) await followThePageToItsSpace(pageId, spaceId);
   if (space === undefined || selectedPage === null) notFound();
 
   const path = pathResult.isOk() ? pathResult.getValue() : null;
   const blockStart = resolveBlockEditorStart(blockSyncResult, pageId);
-  const canEditRole = canEditContent(user?.role ?? USER_ROLE.CLIENT);
   const canSeePageUsage = canManageWorkspace(user?.role ?? USER_ROLE.CLIENT);
   const panelPageId = resolvePanelPageId(resolvedSearchParams?.panel, pageId);
 
   const requestedViewName = resolveRequestedViewName(resolvedSearchParams?.[PAGE_COLLECTION_VIEW_SEARCH_PARAM]);
   const viewerId = user?.id ?? null;
+  const viewing: PageViewing = {
+    favoritesResult,
+    requestedViewName,
+    rowsRequest: {
+      day: readCollectionDay(resolvedSearchParams?.[PAGE_COLLECTION_DAY_SEARCH_PARAM]),
+      month: readCollectionMonth(resolvedSearchParams?.[PAGE_COLLECTION_MONTH_SEARCH_PARAM]),
+      quickFilter: readCollectionQuickFilter(resolvedSearchParams?.[PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM]),
+      search: readCollectionSearch(resolvedSearchParams?.[PAGE_COLLECTION_ROW_SEARCH_PARAM]),
+    },
+    viewerId,
+  };
   const [mainBundle, panelBundle] = await Promise.all([
-    buildPageEditorBundle(
-      spaceId,
-      selectedPage,
-      toBreadcrumbParents(path?.ancestors ?? []),
-      canEditRole,
-      favoritesResult,
-      requestedViewName,
-      {
-        day: readCollectionDay(resolvedSearchParams?.[PAGE_COLLECTION_DAY_SEARCH_PARAM]),
-        month: readCollectionMonth(resolvedSearchParams?.[PAGE_COLLECTION_MONTH_SEARCH_PARAM]),
-        quickFilter: readCollectionQuickFilter(resolvedSearchParams?.[PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM]),
-        search: readCollectionSearch(resolvedSearchParams?.[PAGE_COLLECTION_ROW_SEARCH_PARAM]),
-      },
-      viewerId,
-    ),
-    buildPanelBundleFor(spaceId, panelPageId, canEditRole, favoritesResult, viewerId),
+    buildPageEditorBundle(spaceId, selectedPage, toBreadcrumbParents(path?.ancestors ?? []), viewing),
+    buildPanelBundleFor(spaceId, panelPageId, viewing),
   ]);
 
   return (
@@ -395,7 +376,6 @@ export default async function Page({ params, searchParams }: IProps) {
         backlinks={mainBundle.backlinks}
         blockSync={blockStart.blocks}
         blockSyncFailed={blockStart.isFailed}
-        canEditContent={canEditRole}
         canSeePageUsage={canSeePageUsage}
         collectionSection={mainBundle.collectionSection}
         currentUserDisplayName={user?.name}

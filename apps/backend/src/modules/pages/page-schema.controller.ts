@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { readPagePropertyConfig } from '@neuma/shared';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
+import { BlockWriteThrottlerGuard } from '../../common/infrastructure/guards/block-write-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
+import { PageReadThrottlerGuard } from '../../common/infrastructure/guards/page-read-throttler.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { PageAccessDeniedError } from './domain/page.error';
@@ -16,7 +18,7 @@ export class PageSchemaController {
   ) {}
 
   @Post('schema')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BlockWriteThrottlerGuard)
   async defineSchema(
     @Param('spaceId') spaceId: string,
     @Param('pageId') pageId: string,
@@ -61,7 +63,7 @@ export class PageSchemaController {
   }
 
   @Post('schema/properties/:propertyKey/rewrite-option')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BlockWriteThrottlerGuard)
   async rewriteOption(
     @Param('spaceId') spaceId: string,
     @Param('pageId') pageId: string,
@@ -84,7 +86,7 @@ export class PageSchemaController {
   }
 
   @Get('schema')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PageReadThrottlerGuard)
   async getSchema(
     @Param('spaceId') spaceId: string,
     @Param('pageId') pageId: string,

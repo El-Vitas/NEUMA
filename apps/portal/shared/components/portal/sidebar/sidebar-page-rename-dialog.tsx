@@ -7,7 +7,7 @@ import { renamePageAction } from '@/modules/pages/server/actions/pages.actions';
 import { Button } from '@/shared/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Input } from '@/shared/components/ui/input';
-import { hasActionError } from '@/shared/lib/action-result';
+import { callAction, hasActionError } from '@/shared/lib/action-result';
 
 interface IProps {
   readonly onClose: () => void;
@@ -25,7 +25,7 @@ export const SidebarPageRenameDialog = ({ onClose, onRenamed, page, spaceId }: I
 
   const rename = (): void => {
     startTransition(async () => {
-      const result = await renamePageAction({ pageId: page.id, spaceId, title: title.trim() });
+      const result = await callAction(() => renamePageAction({ pageId: page.id, spaceId, title: title.trim() }));
       /** Success returns nothing, so only a reported failure means the rename failed. */
       if (hasActionError(result)) {
         toast.error(t('permissionError'));

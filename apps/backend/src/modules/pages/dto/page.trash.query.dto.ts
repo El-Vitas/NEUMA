@@ -1,10 +1,15 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { PAGE_TRASH_DEFAULT_WINDOW, PAGE_TRASH_MAX_WINDOW } from '../constants/pages.constants';
+import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import {
+  PAGE_TRASH_DEFAULT_WINDOW,
+  PAGE_TRASH_MAX_WINDOW,
+  PAGE_TRASH_SEARCH_MAX_LENGTH,
+} from '../constants/pages.constants';
 
 export class PageTrashQueryDto {
   @IsOptional()
   @IsString()
+  @MaxLength(PAGE_TRASH_SEARCH_MAX_LENGTH)
   search?: string;
 
   @IsInt()

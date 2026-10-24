@@ -6,9 +6,13 @@ import {
   PAGE_PREVIEW_OPEN_DELAY_MS,
 } from '@/modules/pages/links/constants/pages.preview.constants';
 
+const network = { isDown: false };
+
 mock.module('@/modules/pages/links/server/actions/pages.preview.actions', () => ({
   getPagePreviewAction: () =>
-    Promise.resolve({ data: { fragment: 'Un fragmento', icon: null, properties: [], title: 'Página' } }),
+    network.isDown
+      ? Promise.reject(new Error('offline'))
+      : Promise.resolve({ data: { fragment: 'Un fragmento', icon: null, properties: [], title: 'Página' } }),
 }));
 
 const { usePagesPreview } = await import('@/modules/pages/links/hooks/use.pages.preview');
@@ -135,6 +139,22 @@ describe('usePagesPreview', () => {
     });
 
     expect(result.current.atHand).not.toBeNull();
+  });
+
+  it('answers as denied, instead of leaving the card loading, when the network is down', async () => {
+    network.isDown = true;
+    const { link, surface } = buildSurface();
+    const { result } = renderPreview(surface);
+
+    hoverOver(link);
+    await act(async () => {
+      jest.advanceTimersByTime(PAGE_PREVIEW_OPEN_DELAY_MS);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    network.isDown = false;
+
+    expect(result.current.outcome).toEqual({ kind: 'denied' });
   });
 
   it('lets the preview go when the card says the pointer left it', () => {

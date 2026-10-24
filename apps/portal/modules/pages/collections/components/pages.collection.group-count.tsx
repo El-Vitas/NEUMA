@@ -7,12 +7,12 @@ import { PagesCollectionGroupCountValue } from './pages.collection.group-count.v
 
 interface IProps {
   readonly aggregates: Promise<PageViewAggregates | null>;
-  readonly bandKey?: string | undefined;
+  readonly bandKey?: string;
   /** What to show if the count could not be worked out: the rows the server drew for the group. */
   readonly drawn: number;
-  readonly groupKey?: string | undefined;
+  readonly groupKey?: string;
   /** The band of a board with bands. */
-  readonly subKey?: string | undefined;
+  readonly subKey?: string;
 }
 
 /** The rows the group holds in all, which the database finishes counting after the rows are drawn. */
@@ -20,13 +20,7 @@ export const PagesCollectionGroupCount = (props: IProps) => {
   const t = useTranslations('pages.collection');
 
   return (
-    <Suspense
-      fallback={
-        <span aria-label={t('calculating')} role="status">
-          …
-        </span>
-      }
-    >
+    <Suspense fallback={<output aria-label={t('calculating')}>…</output>}>
       <PagesCollectionGroupCountValue {...props} />
     </Suspense>
   );

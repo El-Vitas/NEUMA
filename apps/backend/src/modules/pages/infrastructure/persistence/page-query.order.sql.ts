@@ -127,6 +127,10 @@ const columnsOfSort = (
   return [flag, ...keys.map((key) => ({ direction, expression: key.expression, type: key.type }) as const)];
 };
 
+const positionRankSql: SqlFragment = sqlText(`"${POSITION}"."pos"`);
+
+const orderKeyAlias = (index: number): SqlFragment => sqlText(`"k${String(index)}"`);
+
 /**
  * The full order of a query: the sorts, then the position of the row in the manual order, then when it was created
  * and its id, so the order is total and a cursor can always say where it stopped.
@@ -139,7 +143,7 @@ export const buildOrderColumns = (
   ...sorts.flatMap((sort) => columnsOfSort(sort, properties, context)),
   {
     direction: 'ASC',
-    expression: frag`COALESCE(${sqlText(`"${POSITION}"."pos"`)}, ${sqlText(String(UNKNOWN_OPTION_RANK))})`,
+    expression: frag`COALESCE(${positionRankSql}, ${sqlText(String(UNKNOWN_OPTION_RANK))})`,
     type: 'int',
   },
   { direction: 'ASC', expression: sqlText(`"${ROW}"."createdAt"`), type: 'timestamptz' },
@@ -155,7 +159,7 @@ export const orderBySql = (columns: readonly OrderColumn[]): SqlFragment =>
 /** The values of the order columns of a row, as text, which is how a cursor carries them. */
 export const orderValuesSql = (columns: readonly OrderColumn[]): SqlFragment =>
   joinSql(
-    columns.map((column, index) => frag`(${column.expression})::text AS ${sqlText(`"k${String(index)}"`)}`),
+    columns.map((column, index) => frag`(${column.expression})::text AS ${orderKeyAlias(index)}`),
     ', ',
   );
 

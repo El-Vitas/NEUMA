@@ -49,7 +49,13 @@ export const usePagesCalendarMoving = (
       setMoved((previous) => ({ ...previous, [rowId]: next }));
       startMoving(async () => {
         const settled = await writes.write(
-          { kind: 'cell', pageId: rowId, propertyValues: { [dateProperty]: next }, spaceId },
+          {
+            ...(row === undefined ? {} : { expectedVersion: row.version }),
+            kind: 'cell',
+            pageId: rowId,
+            propertyValues: { [dateProperty]: next },
+            spaceId,
+          },
           `${dateProperty}: ${next.start}`,
         );
         if (settled.kind !== 'rejected') return;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { DEFAULT_DEBOUNCE_MS } from '@/shared/constants/use-table-action.constants';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { listPageMoveDestinationsAction } from '../../server/actions/pages.actions';
 import { NO_PAGE_MOVE_DESTINATIONS } from '../constants/pages.move.constants';
 import type { PageMoveDestinations } from '../types/pages.move.types';
@@ -25,7 +25,7 @@ export const usePagesMoveDestinations = (
     let isCurrent = true;
     const timeoutId = setTimeout(
       () => {
-        void listPageMoveDestinationsAction({ pageId, query, spaceId }).then((result) => {
+        void callAction(() => listPageMoveDestinationsAction({ pageId, query, spaceId })).then((result) => {
           if (!isCurrent) return;
           setDestinations(isActionSuccess<PageMoveDestinations>(result) ? result.data : NO_PAGE_MOVE_DESTINATIONS);
         });

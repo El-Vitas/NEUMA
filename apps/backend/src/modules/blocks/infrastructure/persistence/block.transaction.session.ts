@@ -1,4 +1,4 @@
-import type { NeumaTransaction } from '@neuma/db';
+import { FileAssetLifecycle, type NeumaTransaction } from '@neuma/db';
 import { BLOCK_TYPE } from '@neuma/shared';
 import type { SchemaPropertyDefinition } from '../../../../common/domain/schema.domain.types';
 import { toSchemaPropertyDefinition } from '../../../../common/infrastructure/persistence/schema-json.adapter';
@@ -11,6 +11,7 @@ import {
   BLOCK_TREE_LOCK_PREFIX,
 } from '../../constants/block.transaction.constants';
 import { BLOCK_TREE_MAX_DEPTH } from '../../constants/blocks.constants';
+import type { StoredFile } from '../../domain/block.row-values.domain.types';
 import type {
   BlockLinkDiff,
   BlockLoad,
@@ -156,8 +157,8 @@ export class PostgresBlockTransactionSession implements BlockTransactionSession 
 
   /** The children of each collection that are pages, in the order the collection lists them. */
   private async readCollectionRowOrders(collectionIds: readonly string[]): Promise<Map<string, string[]>> {
+    if (collectionIds.length === 0) return new Map();
     const orders = new Map<string, string[]>(collectionIds.map((id) => [id, []]));
-    if (collectionIds.length === 0) return orders;
     const { columns } = this.prisma.tables.Block;
     const rows = await this.transaction.query(
       this.prisma.sql`
@@ -175,11 +176,37 @@ export class PostgresBlockTransactionSession implements BlockTransactionSession 
     return orders;
   }
 
+  async listWorkspaceMemberIds(workspaceId: string): Promise<ReadonlySet<string>> {
+    const members = await this.transaction.orm.public.WorkspaceMember.select('userId')
+      .where({ workspaceId })
+      .where((member) => member.user.some({ isActive: true }))
+      .all();
+    return new Set(members.map((member) => member.userId));
+  }
+
+  async readActiveFiles(fileIds: readonly string[], workspaceId: string): Promise<StoredFile[]> {
+    if (fileIds.length === 0) return [];
+    const assets = await this.transaction.orm.public.FileAsset.select('id', 'ownerId', 'pageId')
+      .where({ lifecycle: FileAssetLifecycle.ACTIVE, workspaceId })
+      .where((asset) => asset.id.in([...fileIds]))
+      .all();
+    return assets.map((asset) => ({ id: asset.id, ownerId: asset.ownerId, pageId: asset.pageId }));
+  }
+
+  /** A file that belongs to no page yet follows the row that names it, as it does when the page is saved by the API. */
+  async attachFilesToRows(filesByRow: ReadonlyMap<string, readonly string[]>): Promise<void> {
+    for (const [rowId, fileIds] of filesByRow) {
+      await this.transaction.orm.public.FileAsset.where((asset) => asset.id.in([...fileIds]))
+        .where({ pageId: null })
+        .updateAndCount({ pageId: rowId });
+    }
+  }
+
   async readCollectionSchemas(
     pageIds: readonly string[],
   ): Promise<ReadonlyMap<string, readonly SchemaPropertyDefinition[]>> {
+    if (pageIds.length === 0) return new Map();
     const schemas = new Map<string, SchemaPropertyDefinition[]>(pageIds.map((pageId) => [pageId, []]));
-    if (pageIds.length === 0) return schemas;
     const properties = await this.transaction.orm.public.PageSchemaProperty.select(
       'config',
       'key',

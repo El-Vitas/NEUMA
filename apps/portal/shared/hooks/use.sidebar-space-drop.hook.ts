@@ -17,7 +17,7 @@ import {
 } from '@/modules/portal/lib/portal.sidebar.drag.lib';
 import type { PortalSidebarSpaceDropController } from '@/modules/portal/types/portal.sidebar.drag.types';
 import { reorderSpaceAction } from '@/modules/spaces/server/actions/spaces.actions';
-import { hasActionError, isLockedActionFailure } from '@/shared/lib/action-result';
+import { callAction, hasActionError, isLockedActionFailure } from '@/shared/lib/action-result';
 
 /** The drag kind comes from the types the drag declares, the only thing a browser exposes before the drop. */
 export const useSidebarSpaceDrop = (): PortalSidebarSpaceDropController => {
@@ -52,7 +52,9 @@ export const useSidebarSpaceDrop = (): PortalSidebarSpaceDropController => {
   const movePageIntoSpace = useCallback(
     (pageId: string, fromSpaceId: string, targetSpaceId: string): void => {
       startTransition(async () => {
-        const result = await movePageAction({ pageId, parentId: null, spaceId: fromSpaceId, targetSpaceId });
+        const result = await callAction(() =>
+          movePageAction({ pageId, parentId: null, spaceId: fromSpaceId, targetSpaceId }),
+        );
         if (hasActionError(result)) {
           toast.error(isLockedActionFailure(result) ? tErrors('reasons.locked') : t('moveError'));
           return;
@@ -67,7 +69,7 @@ export const useSidebarSpaceDrop = (): PortalSidebarSpaceDropController => {
   const putSpaceBefore = useCallback(
     (spaceId: string, beforeSpaceId: string): void => {
       startTransition(async () => {
-        const result = await reorderSpaceAction({ beforeSpaceId, spaceId });
+        const result = await callAction(() => reorderSpaceAction({ beforeSpaceId, spaceId }));
         if (hasActionError(result)) {
           toast.error(spacesT('reorderError'));
           return;

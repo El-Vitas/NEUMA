@@ -19,7 +19,12 @@ import en from '../../../../../messages/en.json';
 import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 import { buildView } from '../lib/pages.views.fixture';
 
-const written: { pageId: string; propertyValues: Record<string, unknown>; spaceId: string }[] = [];
+const written: {
+  expectedVersion?: number;
+  pageId: string;
+  propertyValues: Record<string, unknown>;
+  spaceId: string;
+}[] = [];
 const saved: { operations: PageViewWireOperation[]; viewId: string }[] = [];
 const moves: Record<string, unknown>[] = [];
 
@@ -217,7 +222,12 @@ describe('PagesCollectionTable', () => {
     fireEvent.click(await screen.findByRole('option', { name: 'done' }));
 
     await waitFor(() => expect(written).toHaveLength(1));
-    expect(written[0]).toEqual({ pageId: 'row-1', propertyValues: { status: 'done' }, spaceId: 'space-1' });
+    expect(written[0]).toEqual({
+      expectedVersion: 1,
+      pageId: 'row-1',
+      propertyValues: { status: 'done' },
+      spaceId: 'space-1',
+    });
   });
 
   it('offers a foot for each column, and only to whoever may write', async () => {

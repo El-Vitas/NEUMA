@@ -65,9 +65,7 @@ export const PagesCollectionCachedPaint = () => {
 
   return (
     <main className="min-h-full space-y-3 p-4 sm:p-6" data-testid="collection-cached-paint">
-      <p className="text-muted-foreground text-xs" role="status">
-        {t('updating')}
-      </p>
+      <output className="block text-muted-foreground text-xs">{t('updating')}</output>
       <div aria-busy="true" inert>
         <PagesCollectionCachedBody
           bands={revalidation.bands}

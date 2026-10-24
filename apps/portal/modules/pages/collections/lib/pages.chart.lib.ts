@@ -13,15 +13,15 @@ import { toCalculationItemId } from './pages.query-aggregates.lib';
 import { describeGroupKey } from './pages.query-outcome.lib';
 
 /** The groups the database counted, in the order their property declares them and the one without a value last. */
+const listDeclaredOptionIds = (property: PageSchemaProperty | undefined): readonly string[] => {
+  if (property?.options === null || property === undefined) return [];
+  const options =
+    property.type === PAGE_PROPERTY_TYPE.STATUS ? sortPageOptionsByGroup(property.options) : property.options;
+  return options.map((option) => option.id);
+};
+
 const sortGroupKeys = (keys: readonly string[], property: PageSchemaProperty | undefined): readonly string[] => {
-  const declared = [
-    ...PAGE_STATUS_GROUP_VALUES,
-    ...(property?.options === null || property === undefined
-      ? []
-      : (property.type === PAGE_PROPERTY_TYPE.STATUS ? sortPageOptionsByGroup(property.options) : property.options).map(
-          (option) => option.id,
-        )),
-  ];
+  const declared = [...PAGE_STATUS_GROUP_VALUES, ...listDeclaredOptionIds(property)];
   const positionOf = (key: string): number => {
     if (key === UNASSIGNED_GROUP_KEY) return Number.MAX_SAFE_INTEGER;
     const position = declared.indexOf(key);

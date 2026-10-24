@@ -1,5 +1,4 @@
-import type { BlockLiveSocket } from '../../block-sync/types/block-sync.types';
-import { computeCollaborationReconnectDelayMs } from '../../lib/pages.collaboration.lib';
+import { createLiveSocketLoop } from '../../block-sync/lib/block-sync.live-socket.lib';
 import { INBOX_PING_INTERVAL_MS } from '../constants/pages.inbox.constants';
 import { inboxFeedMessageSchema } from '../schemas/pages.inbox.schemas';
 import type { PagesInboxFeed, PagesInboxFeedOptions } from '../types/pages.inbox.types';
@@ -24,69 +23,27 @@ export const createPagesInboxFeed = ({
   requestToken,
   url,
 }: PagesInboxFeedOptions): PagesInboxFeed => {
-  let socket: BlockLiveSocket | null = null;
-  let isDestroyed = false;
-  let attempts = 0;
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  let pingTimer: ReturnType<typeof setInterval> | null = null;
-
-  const stopPing = (): void => {
-    if (pingTimer === null) return;
-    clearInterval(pingTimer);
-    pingTimer = null;
-  };
-
-  const scheduleReconnect = (): void => {
-    if (isDestroyed) return;
-    attempts += 1;
-    reconnectTimer = setTimeout(() => {
-      reconnectTimer = null;
-      void connect();
-    }, computeCollaborationReconnectDelayMs(attempts));
-  };
-
-  const connect = async (): Promise<void> => {
-    if (isDestroyed) return;
-    const token = await requestToken().catch(() => null);
-    if (isDestroyed) return;
-    if (token === null) {
-      scheduleReconnect();
+  const handleMessage = (text: string): void => {
+    const message = parseMessage(text);
+    if (!message.success) return;
+    if (message.data.type === 'notification') {
+      onNotification();
       return;
     }
-    const opened = openSocket(url);
-    socket = opened;
-    opened.listen({
-      onClose: () => {
-        if (socket !== opened || isDestroyed) return;
-        socket = null;
-        stopPing();
-        scheduleReconnect();
-      },
-      onMessage: (text) => {
-        const message = parseMessage(text);
-        if (!message.success) return;
-        if (message.data.type === 'notification') {
-          onNotification();
-          return;
-        }
-        attempts = 0;
-        stopPing();
-        pingTimer = setInterval(() => opened.send(JSON.stringify({ type: 'ping' })), INBOX_PING_INTERVAL_MS);
-        onConnected();
-      },
-      onOpen: () => opened.send(JSON.stringify({ token, type: 'auth' })),
-    });
+    loop.markReady();
+    onConnected();
   };
 
-  void connect();
+  const loop = createLiveSocketLoop({
+    onClosed: (_code, closedLoop) => closedLoop.reconnectLater(),
+    onMessage: handleMessage,
+    openSocket,
+    pingIntervalMs: INBOX_PING_INTERVAL_MS,
+    requestToken,
+    url,
+  });
 
-  return {
-    destroy: () => {
-      isDestroyed = true;
-      stopPing();
-      if (reconnectTimer !== null) clearTimeout(reconnectTimer);
-      socket?.close();
-      socket = null;
-    },
-  };
+  void loop.connect();
+
+  return { destroy: loop.destroy };
 };

@@ -56,6 +56,11 @@ const readProperty = (
 
 const isTruthy = (value: PageFormulaValue): boolean => value === true;
 
+const divideNumbers = (operator: BinaryNode['operator'], left: number, right: number): PageFormulaOutcome => {
+  if (right === 0) return failWith(PAGE_FORMULA_RUNTIME_ERROR.DIVISION_BY_ZERO, 'Cannot divide by zero');
+  return succeedWithNumber(operator === '/' ? left / right : left % right);
+};
+
 const applyArithmetic = (
   operator: BinaryNode['operator'],
   left: PageFormulaValue,
@@ -75,9 +80,7 @@ const applyArithmetic = (
     case '*':
       return succeedWithNumber(leftNumber * rightNumber);
     default:
-      return rightNumber === 0
-        ? failWith(PAGE_FORMULA_RUNTIME_ERROR.DIVISION_BY_ZERO, 'Cannot divide by zero')
-        : succeedWithNumber(operator === '/' ? leftNumber / rightNumber : leftNumber % rightNumber);
+      return divideNumbers(operator, leftNumber, rightNumber);
   }
 };
 

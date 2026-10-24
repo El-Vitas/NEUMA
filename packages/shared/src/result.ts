@@ -1,16 +1,16 @@
+type ResultState<T, E> =
+  | { readonly isSuccess: true; readonly value: T }
+  | { readonly isSuccess: false; readonly error: E };
+
 export class Result<T, E = Error> {
-  private constructor(
-    private readonly success: boolean,
-    private readonly value?: T,
-    private readonly error?: E,
-  ) {}
+  private constructor(private readonly state: ResultState<T, E>) {}
 
   public static ok<T, E = never>(value: T): Result<T, E> {
-    return new Result<T, E>(true, value, undefined);
+    return new Result<T, E>({ isSuccess: true, value });
   }
 
   public static fail<T = never, E = Error>(error: E): Result<T, E> {
-    return new Result<T, E>(false, undefined, error);
+    return new Result<T, E>({ error, isSuccess: false });
   }
 
   public static fromThrow<T, E extends new (...args: unknown[]) => Error>(
@@ -28,24 +28,24 @@ export class Result<T, E = Error> {
   }
 
   public isOk(): boolean {
-    return this.success;
+    return this.state.isSuccess;
   }
 
   public isFail(): boolean {
-    return !this.success;
+    return !this.state.isSuccess;
   }
 
   public getValue(): T {
-    if (!this.success || this.value === undefined) {
+    if (!this.state.isSuccess) {
       throw new Error('Cannot get value from a failed Result');
     }
-    return this.value;
+    return this.state.value;
   }
 
   public getError(): E {
-    if (this.success || this.error === undefined) {
+    if (this.state.isSuccess) {
       throw new Error('Cannot get error from a successful Result');
     }
-    return this.error;
+    return this.state.error;
   }
 }

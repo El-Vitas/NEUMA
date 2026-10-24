@@ -189,16 +189,16 @@ export const buildSiblingAfterOperation = (
   place: PageSiblings,
   pageId: string,
   afterId: null | string,
-): PageBlockOperation =>
-  place.parentId === null
-    ? operate(
-        place.spaceId,
-        BLOCK_WRITE_COMMAND.listAfter,
-        [BLOCK_WRITE_ROOT_PAGES_PATH],
-        afterId === null ? { id: pageId } : { after: afterId, id: pageId },
-        BLOCK_WRITE_SPACE_TABLE,
-      )
-    : buildListAfterOperation(place.parentId, pageId, afterId);
+): PageBlockOperation => {
+  if (place.parentId !== null) return buildListAfterOperation(place.parentId, pageId, afterId);
+  return operate(
+    place.spaceId,
+    BLOCK_WRITE_COMMAND.listAfter,
+    [BLOCK_WRITE_ROOT_PAGES_PATH],
+    afterId === null ? { id: pageId } : { after: afterId, id: pageId },
+    BLOCK_WRITE_SPACE_TABLE,
+  );
+};
 
 /** The page leaves the list of its old place, takes the new parent and goes last among its siblings. */
 export const buildMoveOperations = (pageId: string, from: PageSiblings, to: PageSiblings): PageBlockOperation[] => [

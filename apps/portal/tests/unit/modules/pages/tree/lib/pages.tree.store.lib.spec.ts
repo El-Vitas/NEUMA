@@ -12,6 +12,7 @@ import { buildRecordedPageTreeStore } from '../../stubs/pages.tree.stubs';
 const SPACE_ID = 'space-1';
 
 const entry = (id: string, parentId: string | null, hasChildren = false): PageTreeEntry => ({
+  canEdit: true,
   hasChildren,
   hasOwnPermissions: false,
   icon: null,
@@ -161,5 +162,30 @@ describe('createPageTreeStore', () => {
     await older;
 
     expect(loadedIds(store)).toEqual(['new']);
+  });
+
+  it('reads a window again when a reload landed while it was loading', async () => {
+    let call = 0;
+    let releaseSlowLoad: () => void = () => undefined;
+    const store = createPageTreeStore({
+      readWindows: async (_spaceId, asked) => {
+        call += 1;
+        const current = call;
+        if (current === 1) await new Promise<void>((resolve) => (releaseSlowLoad = resolve));
+        return asked.map((request) =>
+          request.parentId === null
+            ? children(['a'], null)
+            : children(current === 1 ? ['stale'] : ['fresh'], request.parentId),
+        );
+      },
+    });
+    store.seedRoots(SPACE_ID, { entries: [entry('a', null, true)], total: 1 });
+
+    const loading = store.loadChildren(SPACE_ID, 'a');
+    await store.reloadSpace(SPACE_ID);
+    releaseSlowLoad();
+    await loading;
+
+    expect(loadedIds(store)).not.toContain('stale');
   });
 });

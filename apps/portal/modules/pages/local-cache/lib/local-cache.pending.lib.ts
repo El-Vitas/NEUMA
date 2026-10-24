@@ -1,5 +1,5 @@
 import { LOCAL_CACHE_DATABASE_PREFIX } from '../constants/local-cache.constants';
-import { openIndexedDbStorage } from './local-cache.indexeddb.lib';
+import { countIndexedDbTransactions } from './local-cache.indexeddb.lib';
 
 /** How many writes of this browser the server has not answered yet, whoever wrote them; zero without IndexedDB. */
 export const countBrowserPendingTransactions = async (): Promise<number> => {
@@ -8,11 +8,6 @@ export const countBrowserPendingTransactions = async (): Promise<number> => {
   const names = databases.flatMap((database) =>
     database.name?.startsWith(LOCAL_CACHE_DATABASE_PREFIX) === true ? [database.name] : [],
   );
-  const counts = await Promise.all(
-    names.map(async (name) => {
-      const { outbox } = await openIndexedDbStorage(indexedDB, name);
-      return (await outbox.listTransactions()).length;
-    }),
-  );
+  const counts = await Promise.all(names.map((name) => countIndexedDbTransactions(indexedDB, name)));
   return counts.reduce((total, count) => total + count, 0);
 };

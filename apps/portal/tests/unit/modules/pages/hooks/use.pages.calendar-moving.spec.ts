@@ -58,6 +58,7 @@ describe('llevar una entrada a otro día', () => {
     });
 
     expect(updatePageRowPropertiesAction.mock.calls[0]?.[0]).toEqual({
+      expectedVersion: row.version,
       pageId: 'row-a',
       propertyValues: { due: { start: '2026-03-14' } },
       spaceId: 'space-a',

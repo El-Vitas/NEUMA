@@ -1,5 +1,6 @@
 import { isPageComputedPropertyType, PAGE_VIEW_TYPE } from '@neuma/shared';
-import type { PageRow, PageSchemaProperty, PageViewBand } from '../types/pages.schema.types';
+import { PAGE_VIEW_CALCULATION_ITEM_PREFIX } from '../constants/pages.query.constants';
+import type { PageRow, PageSchemaProperty, PageViewAggregates, PageViewBand } from '../types/pages.schema.types';
 import type {
   CachedBandLayout,
   CachedView,
@@ -28,6 +29,38 @@ export const stripComputedValues = (
     const kept = Object.entries(row.propertyValues ?? {}).filter(([key]) => !computedKeys.has(key));
     return { ...rest, propertyValues: row.propertyValues === null ? null : Object.fromEntries(kept) };
   });
+};
+
+const isCalculationOfKeys = (item: string, keys: ReadonlySet<string>): boolean => {
+  const named = item.slice(PAGE_VIEW_CALCULATION_ITEM_PREFIX.length);
+  return keys.has(named.slice(0, named.lastIndexOf(':')));
+};
+
+const withoutCalculationsOf = (
+  calculations: Readonly<Record<string, number | null>>,
+  keys: ReadonlySet<string>,
+): Readonly<Record<string, number | null>> =>
+  Object.fromEntries(Object.entries(calculations).filter(([item]) => !isCalculationOfKeys(item, keys)));
+
+/** What a calculation over a formula or rollup says is worked out on every read, like the cells it sums (ADR 029). */
+export const stripComputedAggregates = (
+  aggregates: PageViewAggregates | null,
+  properties: readonly PageSchemaProperty[],
+): PageViewAggregates | null => {
+  const computedKeys = new Set(
+    properties.filter((property) => isPageComputedPropertyType(property.type)).map((property) => property.key),
+  );
+  if (aggregates === null || computedKeys.size === 0) return aggregates;
+  return {
+    ...aggregates,
+    calculations: withoutCalculationsOf(aggregates.calculations, computedKeys),
+    groupCalculations: Object.fromEntries(
+      Object.entries(aggregates.groupCalculations).map(([group, values]) => [
+        group,
+        withoutCalculationsOf(values, computedKeys),
+      ]),
+    ),
+  };
 };
 
 /** A calendar or a timeline holds its rows as the days on screen and not as groups. */
@@ -65,7 +98,7 @@ export const toCachedView = (input: ToCachedViewInput): CachedView => {
     schema.properties,
   );
   const layout: CachedViewLayout = {
-    aggregates: input.aggregates,
+    aggregates: stripComputedAggregates(input.aggregates, schema.properties),
     bands: toBandLayouts(bands),
     calendar: outcome.kind === 'FLAT_ROWS' ? (outcome.calendar ?? null) : null,
     lookups: input.lookups,

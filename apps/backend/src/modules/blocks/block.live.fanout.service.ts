@@ -22,7 +22,12 @@ import type {
   TreeSubscription,
   VersionNotification,
 } from './domain/block.live.domain.types';
-import { planPresenceDeliveries, planResync, planVersionDeliveries } from './domain/block.live.routing.domain';
+import {
+  listSubscriptionsInOtherSpace,
+  planPresenceDeliveries,
+  planResync,
+  planVersionDeliveries,
+} from './domain/block.live.routing.domain';
 import { listLostTreeSubscriptions, planTreeDeliveries, planTreeResync } from './domain/block.live.tree.domain';
 import type { NotifiedBlock } from './domain/block.transaction.domain.types';
 import { BlockLiveRegistry } from './infrastructure/registry/block.live.registry';
@@ -235,8 +240,10 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
       const context = await this.accessService.loadContext(
         seedIds,
         this.listReaders([...current, ...currentCollections, ...currentTrees]),
+        [notification.spaceId, ...currentTrees.map((subscription) => subscription.spaceId)],
       );
       this.stopFollowingLostSpaces(listLostTreeSubscriptions(context, currentTrees));
+      this.fileMovedPages(current, context);
       return [
         ...planVersionDeliveries({ blocks: notification.blocks, context, subscriptions: current }),
         ...planCollectionDeliveries({
@@ -254,6 +261,12 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
         ...planCollectionResync(followers.collections),
         ...planTreeResync(followers.trees),
       ];
+    }
+  }
+
+  private fileMovedPages(subscriptions: readonly LiveSubscription[], context: LiveAccessContext): void {
+    for (const { connectionId, pageId, spaceId } of listSubscriptionsInOtherSpace(subscriptions, context)) {
+      this.registry.find(connectionId)?.subscriptions.set(pageId, spaceId);
     }
   }
 

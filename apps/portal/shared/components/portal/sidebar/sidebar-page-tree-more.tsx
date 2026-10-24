@@ -24,6 +24,7 @@ export const SidebarPageTreeMore = ({ bounds, depth, direction, isLoading, loade
       ? bounds.hasPrevious
       : shouldOfferPortalSidebarNextWindow(bounds.hasNext, loadedCount, isLoading);
   if (!isOffered) return null;
+  const idleLabel = direction === 'next' ? t('showMore') : t('showPrevious');
 
   return (
     <li>
@@ -38,7 +39,7 @@ export const SidebarPageTreeMore = ({ bounds, depth, direction, isLoading, loade
         type="button"
       >
         {isLoading && <Loader2 aria-hidden="true" className="size-3 animate-spin" />}
-        {isLoading ? t('loading') : t(direction === 'next' ? 'showMore' : 'showPrevious')}
+        {isLoading ? t('loading') : idleLabel}
       </button>
     </li>
   );

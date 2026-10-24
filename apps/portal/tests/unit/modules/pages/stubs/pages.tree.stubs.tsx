@@ -15,6 +15,7 @@ type Reader = (
 ) => Promise<readonly PageTreeChildren[] | null>;
 
 const toEntry = (page: PortalSidebarPage, hasChildren: boolean): PageTreeEntry => ({
+  canEdit: page.canEdit,
   hasChildren: page.hasChildren ?? hasChildren,
   hasOwnPermissions: page.hasOwnPermissions ?? false,
   icon: page.icon,

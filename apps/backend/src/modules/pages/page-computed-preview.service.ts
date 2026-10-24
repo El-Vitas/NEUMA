@@ -1,29 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DatabasePropertyType } from '@neuma/db';
-import type { PageFormulaOutcome, PageFormulaPropertyInfo } from '@neuma/shared';
+import type { PageFormulaOutcome } from '@neuma/shared';
 import { Result, tracePageFormula } from '@neuma/shared';
 import type { DomainError } from '../../common/domain/domain.error';
-import type { SchemaPropertyDefinition } from '../../common/domain/schema.domain.types';
 import {
   PAGE_QUERY_DEFAULT_TIME_ZONE,
   PAGE_SCHEMA_REPOSITORY,
   PREVIEW_PROPERTY_KEY,
   PREVIEW_ROW_LIMIT,
 } from './constants/pages.constants';
+import { toFormulaPropertyInfo } from './domain/page-computed.domain';
 import { PageQueryRepository } from './infrastructure/persistence/page-query.repository';
 import { PageComputedService } from './page-computed.service';
 import { PageQueryService } from './page-query.service';
 import { PageSchemaService } from './page-schema.service';
 import type { PreviewComputedRequest, PreviewComputedResult, PreviewedRow } from './types/page-computed.types';
 import type { PageRowSummary, PageSchemaRepositoryContract } from './types/page-schema.types';
-
-const toInfo = (property: SchemaPropertyDefinition): PageFormulaPropertyInfo => ({
-  key: property.key,
-  label: property.label,
-  options: property.options,
-  resultType: property.computed?.formula?.resultType ?? property.computed?.rollup?.resultType ?? null,
-  type: property.type,
-});
 
 const failedCell = (key: string): PageFormulaOutcome => ({
   error: { code: 'FORMULA_DEPENDENCY_ERROR', message: `${key} could not be computed` },
@@ -63,7 +55,7 @@ export class PageComputedPreviewService {
       viewer,
     });
     if (cells.isFail()) return Result.fail(cells.getError());
-    const infos = new Map(properties.map((property) => [property.key, toInfo(property)]));
+    const infos = new Map(properties.map((property) => [property.key, toFormulaPropertyInfo(property)]));
     const formula = checked?.computed?.formula ?? null;
     const previewed: PreviewedRow[] = rows.getValue().map((row, position) => {
       const rowCells = cells.getValue().get(row.id);

@@ -126,6 +126,17 @@ export class CommentsService {
     });
   }
 
+  async locateComment(
+    viewer: BlockAccessViewer,
+    commentId: string,
+  ): Promise<Result<{ readonly blockId: string; readonly pageId: string }, DomainError>> {
+    const found = await this.requireComment(viewer, commentId);
+    if (found.isFail()) return Result.fail(found.getError());
+    const { blockId } = found.getValue().discussion;
+    const locations = await this.pageLocator.locate([blockId]);
+    return Result.ok({ blockId, pageId: readPageIdOf(blockId, locations) });
+  }
+
   async resolve(viewer: BlockAccessViewer, discussionId: string): Promise<Result<DiscussionView, DomainError>> {
     return this.changeResolution(viewer, discussionId, viewer.userId);
   }

@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
-import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import type { DownloadedFile } from '@/shared/types/downloaded-file.types';
 import { downloadExportedFile } from '../lib/pages.export.download.lib';
 import { buildPagesExportFileName } from '../lib/pages.export.lib';
@@ -17,13 +17,15 @@ export const usePagesExport = (): PagesExportResult => {
 
   const exportPages = ({ exportedName, pageId, pageIds = [], scope, spaceId }: PagesExportRequest): void => {
     startTransition(async () => {
-      const written = await exportPagesAsMarkdownAction({
-        pageId,
-        pageIds: [...pageIds],
-        scope,
-        spaceId,
-        untitledLabel: t('untitled'),
-      });
+      const written = await callAction(() =>
+        exportPagesAsMarkdownAction({
+          pageId,
+          pageIds: [...pageIds],
+          scope,
+          spaceId,
+          untitledLabel: t('untitled'),
+        }),
+      );
       if (!isActionSuccess<DownloadedFile>(written)) {
         toast.error(tErrors(`reasons.${readActionFailureReason(written)}`));
         return;

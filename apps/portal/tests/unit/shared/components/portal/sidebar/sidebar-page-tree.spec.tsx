@@ -122,6 +122,7 @@ const { PagesTreeStoreStub, buildSeededPageTreeStore } = await import(
 const spaceId = 'engineering';
 
 const parentPage: PortalSidebarPage = {
+  canEdit: true,
   id: 'parent-page',
   icon: null,
   lifecycle: 'ACTIVE',
@@ -131,6 +132,7 @@ const parentPage: PortalSidebarPage = {
 };
 
 const childPage: PortalSidebarPage = {
+  canEdit: true,
   id: 'child-page',
   icon: null,
   lifecycle: 'ACTIVE',
@@ -140,6 +142,7 @@ const childPage: PortalSidebarPage = {
 };
 
 const siblingPage: PortalSidebarPage = {
+  canEdit: true,
   id: 'sibling-page',
   icon: null,
   lifecycle: 'ACTIVE',
@@ -149,6 +152,7 @@ const siblingPage: PortalSidebarPage = {
 };
 
 const trashedPage: PortalSidebarPage = {
+  canEdit: true,
   id: 'trashed-page',
   icon: null,
   lifecycle: 'TRASHED',
@@ -163,6 +167,7 @@ const TreeUnderTest = ({ role }: { readonly role: 'ADMIN' | 'CLIENT' }) => {
 };
 
 const pageTreeEntry = (overrides: Partial<PageTreeEntry> & Pick<PageTreeEntry, 'id' | 'title'>): PageTreeEntry => ({
+  canEdit: true,
   hasChildren: false,
   hasOwnPermissions: false,
   icon: null,
@@ -276,6 +281,13 @@ describe('SidebarPageTree', () => {
     renderSidebarPageTree([parentPage], 'CLIENT');
 
     expect(screen.queryByRole('button', { name: 'Actions for Parent page' })).toBeNull();
+  });
+
+  it('offers no actions on a page the member may only read, whatever their role in the workspace', () => {
+    renderSidebarPageTree([{ ...parentPage, canEdit: false }, siblingPage]);
+
+    expect(screen.queryByRole('button', { name: 'Actions for Parent page' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Actions for Sibling page' })).toBeDefined();
   });
 
   it('expands the ancestor path when the current route selects a nested page', () => {

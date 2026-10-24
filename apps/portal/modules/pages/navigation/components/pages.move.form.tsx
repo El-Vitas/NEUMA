@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandInput, CommandList } from '@/shared/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
-import { hasActionError, isActionSuccess, isLockedActionFailure } from '@/shared/lib/action-result';
+import { callAction, hasActionError, isActionSuccess, isLockedActionFailure } from '@/shared/lib/action-result';
 import { getSpaceMoveAccessLossAction } from '@/shared/server/actions/space-move-access.actions';
 import type { SpaceMoveAccessLoss } from '@/shared/types/space-move-access.types';
 import { movePageAction } from '../../server/actions/pages.actions';
@@ -52,12 +52,14 @@ export const PagesMoveForm = ({ ariaLabelledBy, page, spaceId }: IProps) => {
 
   const executeMove = (destination: PageMoveDestination): void => {
     startTransition(async () => {
-      const result = await movePageAction({
-        pageId: page.id,
-        parentId: destination.pageId,
-        spaceId,
-        targetSpaceId: destination.spaceId === page.spaceId ? undefined : destination.spaceId,
-      });
+      const result = await callAction(() =>
+        movePageAction({
+          pageId: page.id,
+          parentId: destination.pageId,
+          spaceId,
+          targetSpaceId: destination.spaceId === page.spaceId ? undefined : destination.spaceId,
+        }),
+      );
       if (hasActionError(result)) {
         toast.error(isLockedActionFailure(result) ? tErrors('reasons.locked') : t('moveError'));
         return;
@@ -74,10 +76,12 @@ export const PagesMoveForm = ({ ariaLabelledBy, page, spaceId }: IProps) => {
       return;
     }
     startTransition(async () => {
-      const result = await getSpaceMoveAccessLossAction({
-        sourceSpaceId: page.spaceId,
-        targetSpaceId: destination.spaceId,
-      });
+      const result = await callAction(() =>
+        getSpaceMoveAccessLossAction({
+          sourceSpaceId: page.spaceId,
+          targetSpaceId: destination.spaceId,
+        }),
+      );
       if (!isActionSuccess<SpaceMoveAccessLoss>(result)) {
         toast.error(t('moveAccessWarning.checkError'));
         return;

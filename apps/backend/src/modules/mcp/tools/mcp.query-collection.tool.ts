@@ -14,7 +14,8 @@ const formatGroupLine = (group: NonNullable<McpQueryCollectionOutput['groups']>[
   const aggregates = group.aggregates === undefined ? '' : ` ${JSON.stringify(group.aggregates)}`;
   const more = group.nextCursor === undefined ? '' : `\n  more rows: cursor ${group.nextCursor}`;
   const rows = group.rows.map(formatMcpRowText).join('\n');
-  return `## ${group.name}: ${String(group.count)} rows${aggregates}${rows === '' ? '' : `\n${rows}`}${more}`;
+  const rowLines = rows === '' ? '' : `\n${rows}`;
+  return `## ${group.name}: ${String(group.count)} rows${aggregates}${rowLines}${more}`;
 };
 
 const formatQueryText = (output: McpQueryCollectionOutput): string => {
@@ -26,7 +27,8 @@ const formatQueryText = (output: McpQueryCollectionOutput): string => {
   }
   const rows = output.rows.map(formatMcpRowText).join('\n');
   const next = output.nextCursor === undefined ? '' : `\nRead the rest with cursor ${output.nextCursor}.`;
-  return `${header}${rows === '' ? '' : `\n${rows}`}${next}`;
+  const rowLines = rows === '' ? '' : `\n${rows}`;
+  return `${header}${rowLines}${next}`;
 };
 
 /** Uses the portal's query, so what an agent counts is what a person sees; counts only rows the token can read. */

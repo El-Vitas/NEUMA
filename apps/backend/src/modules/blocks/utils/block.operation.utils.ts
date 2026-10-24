@@ -1,12 +1,14 @@
 import { isOneOf, Result } from '@neuma/shared';
 import type { z } from 'zod';
 import type { DomainError } from '../../../common/domain/domain.error';
+import { compareCodeUnits } from '../../../common/utils/compare.utils';
 import {
   BLOCK_CHILDREN_PATH,
   BLOCK_COMMAND,
   BLOCK_PAGE_COMMAND,
   BLOCK_ROOT_PAGES_PATH,
   BLOCK_SPACE_TABLE,
+  BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION,
 } from '../constants/block.transaction.constants';
 import {
   BLOCK_BAG_VALUES,
@@ -14,7 +16,11 @@ import {
   BLOCK_WRITABLE_FIELD_VALUES,
 } from '../domain/block.operation.constants';
 import type { BlockFieldPatch, BlockOperation } from '../domain/block.transaction.domain.types';
-import { BlockFieldNotWritableError, BlockOperationInvalidError } from '../domain/block.transaction.error';
+import {
+  BlockFieldNotWritableError,
+  BlockOperationInvalidError,
+  BlockOperationsTooManyError,
+} from '../domain/block.transaction.error';
 import {
   blockAddRelationArgsSchema,
   blockApplyTextArgsSchema,
@@ -398,7 +404,9 @@ export const parseBlockOperations = (raw: readonly unknown[]): Result<BlockOpera
   parseEach(raw, parseBlockOperation);
 
 export const parseTrustedBlockOperations = (raw: readonly unknown[]): Result<BlockOperation[], DomainError> =>
-  parseEach(raw, parseTrustedBlockOperation);
+  raw.length > BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION
+    ? Result.fail(new BlockOperationsTooManyError(BLOCK_TRUSTED_OPERATIONS_MAX_PER_TRANSACTION))
+    : parseEach(raw, parseTrustedBlockOperation);
 
 const listParentId = (parentId: string | null | undefined): string[] =>
   parentId === null || parentId === undefined ? [] : [parentId];
@@ -486,7 +494,7 @@ export const listRootSpaceIds = (operations: readonly BlockOperation[], spaceId:
   const named = operations.flatMap((operation) =>
     operation.command === 'insertRoot' || operation.command === 'removeRoot' ? [operation.spaceId] : [],
   );
-  return [...new Set([spaceId, ...named, ...listDestinationSpaceIds(operations, spaceId)])].toSorted();
+  return [...new Set([spaceId, ...named, ...listDestinationSpaceIds(operations, spaceId)])].toSorted(compareCodeUnits);
 };
 
 /**

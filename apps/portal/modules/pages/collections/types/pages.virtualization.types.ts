@@ -3,7 +3,7 @@ export interface PagesWindowVirtualizerInput {
   /** Pixels assumed for an item until it is drawn and its height is read. */
   readonly estimateSize: number;
   /** An index that must stay drawn even when it scrolls out of view, such as the card being dragged. */
-  readonly keepIndex?: null | number | undefined;
+  readonly keepIndex?: null | number;
 }
 
 /** Which items of a long list to draw, and how much room the ones left out take. */
@@ -46,6 +46,35 @@ export interface PagesVisibleWindowInput {
   readonly keepIndex: null | number;
   readonly overscan: number;
   readonly viewport: PagesWindowViewport;
+}
+
+/** Where each item starts, and how tall the whole list is. */
+export interface ItemOffsets {
+  readonly starts: readonly number[];
+  readonly total: number;
+}
+
+export interface PagesVisibleRange {
+  readonly from: number;
+  readonly to: number;
+}
+
+export interface PagesVisibleRangeInput {
+  readonly count: number;
+  readonly estimateSize: number;
+  readonly heights: ReadonlyMap<number, number>;
+  readonly offsets: ItemOffsets;
+  readonly overscan: number;
+  readonly viewport: PagesWindowViewport;
+}
+
+export interface PagesVisibleWindowOfRangeInput {
+  readonly count: number;
+  readonly estimateSize: number;
+  readonly heights: ReadonlyMap<number, number>;
+  readonly keepIndex: null | number;
+  readonly offsets: ItemOffsets;
+  readonly range: PagesVisibleRange;
 }
 
 export interface PagesVisibleWindow {

@@ -162,7 +162,7 @@ describe('filter nodes', () => {
     const state = apply(startState, { command: 'filterInsert', node: condition });
 
     const filter = state.configuration.filter;
-    if (filter === null || filter.kind !== 'GROUP') throw new Error('no filter group');
+    if (filter?.kind !== 'GROUP') throw new Error('no filter group');
     expect(filter.id).toBeTypeOf('string');
     expect(filter.operator).toBe('AND');
     expect(filter.conditions).toHaveLength(1);
@@ -197,7 +197,7 @@ describe('filter nodes', () => {
 
 const firstConditionId = (state: PageViewState): string => {
   const filter = state.configuration.filter;
-  if (filter === null || filter.kind !== 'GROUP') throw new Error('no filter group');
+  if (filter?.kind !== 'GROUP') throw new Error('no filter group');
   const id = filter.conditions.map((condition) => condition.id).find((candidate) => candidate !== undefined);
   if (id === undefined) throw new Error('no condition id');
   return id;

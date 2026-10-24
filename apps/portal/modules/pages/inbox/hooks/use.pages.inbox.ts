@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { env } from '@/config/env.config';
 import { callAction, hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import { openBrowserBlockLiveSocket } from '../../block-sync/lib/block-sync.socket.lib';
-import { getBlockLiveToken } from '../../block-sync/server/actions/block-sync.actions';
+import { requestBlockLiveToken } from '../../block-sync/lib/block-sync.token.lib';
 import { createPagesInboxFeed } from '../lib/pages.inbox.feed.lib';
 import { markEveryNotificationRead, markNotificationRead } from '../lib/pages.inbox.lib';
 import {
@@ -14,11 +14,6 @@ import {
   markNotificationReadAction,
 } from '../server/actions/pages.inbox.actions';
 import type { PagesInbox, PagesInboxStatus } from '../types/pages.inbox.types';
-
-const requestLiveToken = async (): Promise<string | null> => {
-  const result = await callAction(() => getBlockLiveToken({}));
-  return isActionSuccess<{ readonly token: string }>(result) ? result.data.token : null;
-};
 
 /**
  * The inbox of the person: the newest notifications and how many are unread. A live socket of its own tells when a
@@ -52,7 +47,7 @@ export const usePagesInbox = (): PagesInbox => {
       onConnected: () => void refresh(),
       onNotification: () => void refresh(),
       openSocket: openBrowserBlockLiveSocket,
-      requestToken: requestLiveToken,
+      requestToken: requestBlockLiveToken,
       url: env.NEXT_PUBLIC_LIVE_WS_URL,
     });
     const firstRead = setTimeout(() => void refresh(), 0);

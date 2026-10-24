@@ -26,7 +26,7 @@ describe('reference cycles', () => {
     const cycle = findPageReferenceCycle(edges);
 
     expect(cycle).not.toBeNull();
-    expect([...(cycle ?? [])].sort()).toEqual(['a', 'b', 'c']);
+    expect([...(cycle ?? [])].sort((first, second) => first.localeCompare(second))).toEqual(['a', 'b', 'c']);
   });
 
   test('finds a property that reads itself', () => {

@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from '@/i18n/navigation';
-import { isActionSuccess, isLockedActionFailure } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess, isLockedActionFailure } from '@/shared/lib/action-result';
 import { buildRowPropertyValues } from '../../collections/lib/pages.properties.lib';
 import type { PageSchemaProperty } from '../../collections/types/pages.schema.types';
 import { createEmptyPageContent } from '../../editor/lib/pages.editor.lib';
@@ -36,14 +36,16 @@ export const usePagesTemplateRow = ({
   return {
     createRow: (templateId) =>
       startCreating(async () => {
-        const created = await createPageAction({
-          content: createEmptyPageContent(),
-          defaultValues: buildRowPropertyValues(properties.filter((property) => !isTitlePageProperty(property.type))),
-          parentId: collectionId,
-          spaceId,
-          templateId,
-          title: readNewRowTitle(listing, templateId, tPages('untitled')),
-        });
+        const created = await callAction(() =>
+          createPageAction({
+            content: createEmptyPageContent(),
+            defaultValues: buildRowPropertyValues(properties.filter((property) => !isTitlePageProperty(property.type))),
+            parentId: collectionId,
+            spaceId,
+            templateId,
+            title: readNewRowTitle(listing, templateId, tPages('untitled')),
+          }),
+        );
         if (!isActionSuccess(created)) {
           toast.error(isLockedActionFailure(created) ? tErrors('reasons.locked') : tErrors('generic'));
           return;

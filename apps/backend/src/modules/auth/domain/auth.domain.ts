@@ -4,6 +4,15 @@ export const assertUserIsActive = (user: { isActive: boolean }): InactiveUserErr
   return user.isActive ? null : new InactiveUserError();
 };
 
-/** A token issued before versions existed carries none and counts as version 0. */
-export const isRefreshTokenCurrent = (tokenVersion: number | undefined, accountVersion: number): boolean =>
-  (tokenVersion ?? 0) === accountVersion;
+export const isRefreshTokenCurrent = (tokenVersion: number, accountVersion: number): boolean =>
+  tokenVersion === accountVersion;
+
+export const isReplayGraceOpen = (usedAt: Date, now: Date, graceMilliseconds: number): boolean =>
+  now.getTime() - usedAt.getTime() < graceMilliseconds;
+
+/** A successor that was already spent means the client moved on, so the old token coming back is not a double-send. */
+export const isReplaySuccessorUsable = <Successor extends { expiresAt: Date; usedAt: Date | null }>(
+  successor: Successor | null,
+  now: Date,
+): successor is Successor =>
+  successor !== null && successor.usedAt === null && successor.expiresAt.getTime() > now.getTime();

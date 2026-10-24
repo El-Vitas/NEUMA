@@ -32,7 +32,7 @@ export const usePagesRowOrdering = (pageId: string, spaceId: string, viewId: str
     drop: (targetRowId: string, scope: string, side: PageRowDropSide) => {
       const taken = carried;
       setCarried(null);
-      if (taken === null || taken.scope !== scope || taken.rowId === targetRowId) return;
+      if (taken?.scope !== scope || taken.rowId === targetRowId) return;
       move(taken.rowId, resolveRowDropAnchor(targetRowId, side));
     },
     forget: () => setCarried(null),

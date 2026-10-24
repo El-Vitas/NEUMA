@@ -75,10 +75,21 @@ describe('sendViewWrite', () => {
     expect(await sendViewWrite(cell)).toEqual({ kind: 'offline' });
   });
 
-  it('says why a write was refused, in the causes the person is shown', async () => {
-    answer = { serverError: 'forbidden' };
-    expect(await sendViewWrite(cell)).toMatchObject({ cause: 'forbidden', kind: 'rejected' });
+  it('asks to send again, with a cap, when the server failed or the session may have expired', async () => {
+    answer = { serverError: 'unexpected' };
+    expect(await sendViewWrite(cell)).toMatchObject({ cause: 'other', kind: 'retry' });
 
+    answer = { serverError: 'forbidden' };
+    expect(await sendViewWrite(cell)).toMatchObject({ cause: 'forbidden', kind: 'retry' });
+  });
+
+  it('says the row changed since the edit began when the server answers with a conflict', async () => {
+    answer = { serverError: 'conflict' };
+
+    expect(await sendViewWrite(cell)).toMatchObject({ cause: 'conflict', kind: 'rejected' });
+  });
+
+  it('says why a write was refused, in the causes the person is shown', async () => {
     answer = { serverError: 'missing' };
     expect(await sendViewWrite(cell)).toMatchObject({ cause: 'missing', kind: 'rejected' });
 

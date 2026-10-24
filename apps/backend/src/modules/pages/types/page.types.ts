@@ -17,13 +17,6 @@ import type { PageRowTemplate } from './page-template.types';
 
 export type PageDeleteForeverOutcome = (typeof PAGE_DELETE_FOREVER_OUTCOMES)[number];
 
-export interface PageHierarchyRow extends PageParentReference {
-  readonly lifecycle: PageLifecycle;
-  readonly title: string;
-  readonly trashedAt: Date | null;
-  readonly updatedById: string;
-}
-
 /** A page block as the database holds it, before its title, icon and values are read out of its JSON. */
 export interface StoredPageBlock {
   readonly children: readonly string[];
@@ -77,6 +70,8 @@ export interface NewPageInput extends Omit<CreatePageInput, 'content'> {
 }
 
 export interface UpdatePagePropertyValuesInput {
+  /** The write is refused inside the locked write when the page is not at this version. */
+  readonly expectedVersion?: number;
   /** Operations in the wire shape that land in the same transaction as the values, such as placing a card in a view. */
   readonly extraOperations?: readonly PageBlockOperation[];
   readonly pageId: string;
@@ -129,6 +124,8 @@ export interface PageContentWriter {
 export interface UpdatePagePropertiesInput {
   /** Operations in the wire shape that land in the same transaction as the values. */
   readonly extraOperations?: readonly PageBlockOperation[];
+  /** The version of the row the caller read; when it differs from the row's now, nothing is written. */
+  readonly expectedVersion?: number;
   /** Lists that change by what leaves and what enters, so two people never undo each other. */
   readonly listChanges?: PageValueListChanges;
   readonly pageId: string;
@@ -142,6 +139,8 @@ export interface UpdatePagePropertiesInput {
 }
 
 export interface PageSummary {
+  /** True when the viewer's role on the page is the one the write path asks for; lock and trash are shown apart. */
+  readonly canEdit: boolean;
   readonly content: JsonValue;
   readonly cover?: PageCoverValue | null;
   readonly createdAt: Date;
@@ -167,6 +166,20 @@ export interface PageSummary {
   readonly verifiedBy: null | { readonly id: string; readonly name: string };
   readonly version: number;
 }
+
+/** A null `targetSpaceId` keeps the page in the space it already lives in; a null `expectedVersion` skips the check. */
+export interface PageMoveRequest {
+  readonly expectedVersion: null | number;
+  readonly mutationId: string;
+  readonly pageId: string;
+  readonly parentId: null | string;
+  readonly role: UserRole;
+  readonly targetSpaceId: null | string;
+  readonly userId: string;
+  readonly workspaceId: string;
+}
+
+export type PageMoveInput = Omit<PageMoveRequest, 'targetSpaceId'> & { readonly targetSpaceId: string };
 
 export interface PageMoveContext {
   readonly pageId: string;
@@ -356,6 +369,13 @@ export interface PageRepositoryContract {
     userId: string,
     role: UserRole,
   ) => Promise<PageSummary | null>;
+  /** The page only when the viewer may change it, by the same role the block pipeline resolves for a write. */
+  readonly getEditable: (
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<PageSummary | null>;
   readonly findMoveContext: (
     pageId: string,
     targetSpaceId: null | string,
@@ -379,15 +399,7 @@ export interface PageRepositoryContract {
     search: null | string,
     window: PageOutlineWindow | null,
   ) => Promise<TrashedPageListing>;
-  readonly move: (
-    pageId: string,
-    parentId: null | string,
-    targetSpaceId: string,
-    userId: string,
-    workspaceId: string,
-    role: UserRole,
-    mutationId: string,
-  ) => Promise<PageSummary | null>;
+  readonly move: (input: PageMoveInput) => Promise<PageSummary | null>;
   /** A null `beforePageId` places the page last among its siblings. */
   readonly reorderAmongSiblings: (
     pageId: string,

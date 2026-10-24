@@ -157,6 +157,29 @@ describe('Live channel: changes to the page tree (Integration)', () => {
     await follower.waitFor(isTreeChangeAt(spaceId, destination));
   });
 
+  it('tells the followers of the space a page arrives in, not only the ones of the space it left', async () => {
+    const other = await request(testApp.getServer())
+      .post('/api/v1/spaces')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ name: 'tree-dest', slug: `tree-dest-${String(Date.now())}`, visibility: SpaceVisibility.PUBLIC_INTERNAL })
+      .expect(HTTP_CREATED);
+    const otherSpaceId = (other.body as { id: string }).id;
+    const travelling = await createPage('Viaja de espacio');
+    const leavingFollower = await openClient(worker);
+    await followTree(leavingFollower, spaceId);
+    const arrivingFollower = await openClient(worker);
+    await followTree(arrivingFollower, otherSpaceId);
+
+    await request(testApp.getServer())
+      .patch(`/api/v1/spaces/${spaceId}/pages/${travelling}/move`)
+      .set({ Authorization: `Bearer ${admin.token}`, 'x-mutation-id': crypto.randomUUID() })
+      .send({ targetSpaceId: otherSpaceId })
+      .expect(HTTP_OK);
+
+    await leavingFollower.waitFor(isTreeChangeAt(spaceId, null));
+    await arrivingFollower.waitFor(isTreeChangeAt(otherSpaceId, null));
+  });
+
   it('does not name a parent the follower cannot read', async () => {
     const closed = await createPage('Cerrada');
     const inside = await createPage('Dentro', closed);

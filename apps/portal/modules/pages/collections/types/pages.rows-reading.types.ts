@@ -4,12 +4,12 @@ import type { PageAttachedFile, PageRelatedRow, PageRow, PageViewReading } from 
 
 export interface ReadRowsInput {
   /** One column (or cell) of a grouped view; absent for the rows of the whole view. */
-  readonly group?: { readonly key: string; readonly subKey?: string | undefined } | undefined;
+  readonly group?: { readonly key: string; readonly subKey?: string };
   readonly pageId: string;
-  readonly quickFilter?: null | PageFilter | undefined;
+  readonly quickFilter?: null | PageFilter;
   readonly search: string;
   readonly spaceId: string;
-  readonly startCursor?: string | undefined;
+  readonly startCursor?: string;
   readonly viewId: string;
   readonly wanted: number;
 }

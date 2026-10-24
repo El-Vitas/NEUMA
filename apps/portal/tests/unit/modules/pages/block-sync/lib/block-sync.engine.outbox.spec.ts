@@ -48,6 +48,18 @@ describe('createBlockSyncEngine with a persistent outbox', () => {
     expect(await disk.outbox.listPending()).toEqual([]);
   });
 
+  it('keeps on disk what was typed in the instant before the page was left', async () => {
+    const server = new FakeBlockServer(original);
+    const disk = createDisk();
+    const client = createClient(server, original, 'user-1', false, disk.open('tab-1'));
+
+    client.edit(edited);
+    client.engine.destroy();
+    await flush();
+
+    expect(await disk.outbox.listPending()).toHaveLength(1);
+  });
+
   it('leaves nothing on disk once the server answered what was written online', async () => {
     const server = new FakeBlockServer(original);
     const disk = createDisk();

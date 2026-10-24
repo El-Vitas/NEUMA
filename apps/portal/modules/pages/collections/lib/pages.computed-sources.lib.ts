@@ -7,5 +7,5 @@ import type { PageSchemaProperty } from '../types/pages.schema.types';
  */
 export const listComputedSourceCollectionIds = (properties: readonly PageSchemaProperty[]): readonly string[] => {
   const ids = properties.flatMap((property) => property.computed?.rollup?.targetCollectionId ?? []);
-  return [...new Set(ids)].sort();
+  return [...new Set(ids)].sort((left, right) => left.localeCompare(right));
 };

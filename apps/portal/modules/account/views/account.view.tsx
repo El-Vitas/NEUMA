@@ -1,9 +1,10 @@
+import type { UserRole } from '@neuma/shared';
 import { getTranslations } from 'next-intl/server';
 import { ProfileForm } from '@/shared/components/profile/profile.form';
 import { PageHeader } from '@/shared/components/ui/page-header';
 
 interface IProps {
-  readonly user: { id: string; name: string; email: string; role: string } | null;
+  readonly user: { id: string; name: string; email: string; role: UserRole } | null;
 }
 
 export const AccountView = async ({ user }: IProps) => {

@@ -64,7 +64,7 @@ export interface CacheMeta {
 }
 
 /** Why a write was set aside instead of applied; the person decides what happens to it. */
-export type RejectedCause = 'forbidden' | 'invalid' | 'missing' | 'other';
+export type RejectedCause = 'conflict' | 'forbidden' | 'invalid' | 'missing' | 'other';
 
 export interface StoredTextPreview {
   readonly blockId: string;
@@ -105,6 +105,10 @@ export interface OutboxStorage {
   readonly listRejected: () => Promise<readonly RejectedTransaction[]>;
   readonly listTransactions: () => Promise<readonly StoredTransaction[]>;
   readonly putRejected: (transaction: RejectedTransaction) => Promise<void>;
+  /** Moves a pending write to the refused ones in one step, so a crash never leaves it in both. */
+  readonly rejectTransaction: (transaction: RejectedTransaction) => Promise<void>;
+  /** The way back: a refused write becomes pending again in one step. */
+  readonly restoreTransaction: (transaction: StoredTransaction) => Promise<void>;
   readonly updateTransaction: (transaction: StoredTransaction) => Promise<void>;
 }
 
@@ -158,6 +162,8 @@ export interface LocalCache<Body extends CacheableBody> {
   readonly purgeSpace: (spaceId: string) => Promise<void>;
   readonly readRecord: (id: string) => Body | null;
   readonly readResult: (key: string) => LocalCacheReading<Body> | null;
+  /** Rewrites the layout kept with each result; one that comes back unchanged is not written again. */
+  readonly rewriteLayouts: (rewrite: (layout: string) => string) => Promise<void>;
   readonly saveRecords: (bodies: readonly Body[]) => Promise<void>;
   readonly saveResult: (input: LocalCacheResultInput) => Promise<void>;
   readonly validateResult: (key: string, changesCursor: null | string) => Promise<void>;
@@ -176,11 +182,14 @@ export interface Outbox {
   readonly listRejected: () => Promise<readonly RejectedTransaction[]>;
   readonly markRejected: (id: string, cause: RejectedCause, message: string) => Promise<void>;
   readonly remove: (id: string) => Promise<void>;
+  /** A refused write goes back to the pending ones, unchanged, to be sent again. */
+  readonly retryRejected: (id: string) => Promise<void>;
 }
 
 export interface RejectedChanges {
   readonly discard: (id: string) => Promise<void>;
   readonly items: readonly RejectedTransaction[];
+  readonly retry: (id: string) => Promise<void>;
 }
 
 export interface BrowserLocalCache<Body extends CacheableBody> {

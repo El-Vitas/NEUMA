@@ -11,6 +11,7 @@ import type { McpActor } from '../types/mcp.collections.types';
 import type {
   McpCall,
   McpCallOutcome,
+  McpOutlineViewer,
   McpPrincipal,
   McpRefusalReason,
   McpServerDependencies,
@@ -25,7 +26,9 @@ export const readMcpActor = (call: McpCall): McpActor => ({
 });
 
 /** Resolved per call so revoking takes effect immediately. */
-export const requireMcpPrincipal = async (dependencies: McpServerDependencies): Promise<McpPrincipal> => {
+export const requireMcpPrincipal = async (
+  dependencies: Pick<McpServerDependencies, 'principalResolver'>,
+): Promise<McpPrincipal> => {
   const principal = await dependencies.principalResolver.resolve();
   if (principal === null) throw new McpToolError(MCP_UNAUTHENTICATED_MESSAGE);
   return principal;
@@ -58,7 +61,7 @@ export const readMcpPlace = async (
 
 /** A token only works in the workspace it was issued in. */
 export const resolveMcpWorkspace = async (
-  dependencies: McpServerDependencies,
+  dependencies: Pick<McpServerDependencies, 'workspacesService'>,
   principal: McpPrincipal,
 ): Promise<McpWorkspace> => {
   const workspace = await dependencies.workspacesService.resolveForUser(principal.userId, principal.role);
@@ -67,25 +70,25 @@ export const resolveMcpWorkspace = async (
 };
 
 /** Scope comes from the token's grants, never from the agent's request, which only adds narrowing filters. */
-export const openMcpCall = async (dependencies: McpServerDependencies): Promise<McpCall> => {
+export const openMcpCall = async (
+  dependencies: Pick<McpServerDependencies, 'placeReader' | 'principalResolver' | 'workspacesService'>,
+): Promise<McpCall> => {
   const principal = await requireMcpPrincipal(dependencies);
-  const [workspace, reach] = await Promise.all([
-    resolveMcpWorkspace(dependencies, principal),
-    dependencies.placeReader.resolvePageReach(
+  const workspace = await resolveMcpWorkspace(dependencies, principal);
+  const viewer = { role: principal.role, userId: principal.userId, workspaceId: workspace.id };
+  const buildOutlineViewer = async (): Promise<McpOutlineViewer> => {
+    const reach = await dependencies.placeReader.resolvePageReach(
       listMcpPageRuleProbes(principal, permitsPageReading),
       principal.workspaceId,
-    ),
-  ]);
-  return {
-    principal,
-    viewer: {
-      role: principal.role,
-      tokenScope: buildMcpSearchScope(principal, reach),
-      userId: principal.userId,
-      workspaceId: workspace.id,
-    },
-    workspace,
+    );
+    return { ...viewer, tokenScope: buildMcpSearchScope(principal, reach) };
   };
+  let outlineViewer: Promise<McpOutlineViewer> | null = null;
+  const readOutlineViewer = (): Promise<McpOutlineViewer> => {
+    outlineViewer ??= buildOutlineViewer();
+    return outlineViewer;
+  };
+  return { principal, readOutlineViewer, viewer, workspace };
 };
 
 /**

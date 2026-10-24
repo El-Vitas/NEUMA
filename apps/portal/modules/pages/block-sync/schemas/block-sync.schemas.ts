@@ -64,6 +64,7 @@ export const blockLiveServerMessageSchema = z.discriminatedUnion('type', [
   z.object({ blocks: z.array(blockVersionSchema), pageId: z.string(), type: z.literal('versions') }),
   z.object({ pageId: z.string(), type: z.literal('resync') }),
   z.object({ pageId: z.string(), type: z.literal('revoked') }),
+  z.object({ pageId: z.string(), type: z.literal('access-changed') }),
   z.object({ collectionId: z.string(), type: z.literal('subscribed-collection') }),
   z.object({
     collectionId: z.string(),

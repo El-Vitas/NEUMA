@@ -4,7 +4,7 @@ export const DOCS_FRONT_MATTER_LINE = /^([A-Za-z]+):(.*)$/;
 
 export const DOCS_LAST_ORDER = 999;
 
-export const DOCS_HEADING_LINE = /^(#{2,3})\s+(.+)$/;
+export const DOCS_HEADING_LINE = /^(#{2,3})\s+(\S.*)$/;
 
 export const DOCS_FENCED_CODE = /^(?:```|~~~)/;
 

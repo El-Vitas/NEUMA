@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { readPageMatchingRowsAction } from '../server/actions/pages.collections.actions';
 import type { PageMatchingRows } from '../types/pages.query.types';
 import type { PagesMatchingSelection } from '../types/pages.row-selection.types';
@@ -23,7 +23,9 @@ export const usePagesMatchingSelection = (pageId: string, spaceId: string, viewI
 
   const selectAllMatching = (): void => {
     startReading(async () => {
-      const matching = await readPageMatchingRowsAction({ pageId, quickFilter, search, spaceId, viewId });
+      const matching = await callAction(() =>
+        readPageMatchingRowsAction({ pageId, quickFilter, search, spaceId, viewId }),
+      );
       if (!isActionSuccess<PageMatchingRows>(matching)) {
         toast.error(tErrors('generic'));
         return;

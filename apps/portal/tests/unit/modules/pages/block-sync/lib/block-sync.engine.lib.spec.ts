@@ -86,6 +86,24 @@ describe('createBlockSyncEngine', () => {
     expect(JSON.stringify(client.content)).toContain('World!');
   });
 
+  it('goes on applying what others write after the editor refused one change', async () => {
+    const server = new FakeBlockServer(two);
+    const client = createClient(server, two);
+    client.session.connect();
+    await flush();
+
+    client.replaceFault.isActive = true;
+    client.session.handlers.onVersions([server.editTextAsSomeoneElse('p2', 'title', (insert) => insert(5, '!'))]);
+    await flush();
+    client.replaceFault.isActive = false;
+    client.session.handlers.onVersions([server.editTextAsSomeoneElse('p2', 'title', (insert) => insert(6, '?'))]);
+    await flush();
+    await settle();
+
+    expect(client.saveStates).toContain('failed');
+    expect(JSON.stringify(client.content)).toContain('World!?');
+  });
+
   it('does not ask for a block again after it sent the change itself', async () => {
     const server = new FakeBlockServer(two);
     const client = createClient(server, two);

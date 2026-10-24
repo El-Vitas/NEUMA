@@ -1,11 +1,11 @@
 import { Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
+import { BlockWriteThrottlerGuard } from '../../common/infrastructure/guards/block-write-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { PageAccessDeniedError } from './domain/page.error';
 import { ListPageVersionsDto } from './dto/page.version.list.dto';
-import { PageVersionRestoreThrottlerGuard } from './infrastructure/guards/page.version-restore-throttler.guard';
 import { PagesService } from './pages.service';
 import type { PageSummary, PageVersionListing, PageVersionSnapshot } from './types/page.types';
 
@@ -52,7 +52,7 @@ export class PageVersionsController {
   }
 
   @Post(':version/restore')
-  @UseGuards(PageVersionRestoreThrottlerGuard)
+  @UseGuards(BlockWriteThrottlerGuard)
   async restore(
     @Param('spaceId') spaceId: string,
     @Param('pageId') pageId: string,

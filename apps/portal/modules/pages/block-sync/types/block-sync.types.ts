@@ -111,6 +111,7 @@ export interface BlockStore {
   readonly mergeBlocks: (response: BlockSyncResponse) => readonly string[];
   readonly readRole: (blockId: string) => string | null;
   readonly readSnapshots: () => BlockSnapshotMap;
+  readonly readSnapshotsOf: (ids: Iterable<string>) => BlockSnapshotMap;
   readonly readVersion: (blockId: string) => number | undefined;
   readonly replacePage: (blocks: readonly SyncedBlock[]) => readonly string[];
   readonly textWriter: BlockTextWriter;
@@ -132,6 +133,32 @@ export interface BlockLiveSocketHandlers {
   readonly onClose: (code: number) => void;
   readonly onMessage: (text: string) => void;
   readonly onOpen: () => void;
+}
+
+export interface LiveSocketLoop {
+  readonly connect: () => Promise<void>;
+  readonly destroy: () => void;
+  /** Opens the socket again at once the first time, and after the usual growing pause when it keeps being asked. */
+  readonly reconnectForced: () => void;
+  readonly reconnectLater: (minimumDelayMs?: number) => void;
+  readonly send: (message: Record<string, unknown>) => void;
+  /** The server accepted the subscription: the pause starts over and the pings begin. */
+  readonly markReady: () => void;
+  readonly stopPing: () => void;
+}
+
+export interface LiveSocketLoopOptions {
+  /** Called before each connection starts, with the attempts made since the last one that worked. */
+  readonly onConnectStart?: (attempts: number) => void;
+  /** Called after the socket closed and its ping stopped; the session decides whether and when to open again. */
+  readonly onClosed: (code: number, loop: LiveSocketLoop) => void;
+  readonly onMessage: (text: string) => void;
+  readonly onReconnectScheduled?: () => void;
+  readonly onSocketOpened?: () => void;
+  readonly openSocket: (url: string) => BlockLiveSocket;
+  readonly pingIntervalMs: number;
+  readonly requestToken: () => Promise<string | null>;
+  readonly url: string;
 }
 
 export type BlockLiveRequestMessage =
@@ -160,6 +187,8 @@ export type BlockCollectionMessage = Extract<
 >;
 
 export interface BlockLiveSessionOptions {
+  /** Who may do what on the page changed, on it or above it; the page reads what the viewer may now do. */
+  readonly onAccessChanged?: () => void;
   /** The session follows this collection instead of the page: the rows and views that change, not the blocks. */
   readonly collectionId?: string;
   readonly handlers: BlockLiveSessionHandlers;
@@ -241,6 +270,8 @@ export interface BlockTransactionQueue {
   /** Puts transactions read back from disk in front of what was queued since; they are not kept again. */
   readonly restore: (transactions: readonly BlockTransaction[]) => void;
   readonly resume: () => void;
+  /** Empties the queue but keeps each waiting transaction on disk as refused, so nothing typed is lost silently. */
+  readonly setAsideAll: (error: BlockTransactionError) => void;
   readonly size: () => number;
 }
 

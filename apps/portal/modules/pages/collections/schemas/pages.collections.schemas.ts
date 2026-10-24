@@ -50,8 +50,16 @@ const pageCollectionViewSchema = z.object({
   type: z.enum(PAGE_VIEW_TYPE_VALUES),
 });
 
+/** What narrows the rows of a view besides its saved filter. */
+const pageRowRefinementShape = {
+  quickFilter: pageFilterSchema.nullable().default(null),
+  search: z.string().max(PAGE_QUERY_LIMITS.maximumSearchLength).default(''),
+};
+
 export const pageCollectionCreateSchema = z.object({
   content: pageContentSchema,
+  /** The id the page takes, so creating it again after a failure finds the same page. */
+  id: z.uuid().optional(),
   // Absent when created from the space root.
   parentId: z.string().min(1).optional(),
   properties: z.array(pageCollectionPropertySchema).min(1).max(50).readonly(),
@@ -67,6 +75,8 @@ export const pageCollectionReadSchema = z.object({
 
 /** Only the properties that changed are sent. A `null` value clears the property. */
 export const pageRowPropertiesSchema = z.object({
+  /** The version of the row when the edit began; the server refuses the write if the row has moved on. */
+  expectedVersion: z.number().int().min(0).optional(),
   pageId: z.string().min(1),
   propertyValues: z.record(z.string(), z.union([pagePropertyValueSchema, z.null()])),
   spaceId: z.string().min(1),
@@ -79,8 +89,7 @@ export const pageCollectionRefreshSchema = z.object({ spaceId: z.string().min(1)
 export const pageAggregatesRefreshSchema = z.object({
   configuration: z.record(z.string(), z.unknown()),
   pageId: z.string().min(1),
-  quickFilter: pageFilterSchema.nullable().default(null),
-  search: z.string().max(PAGE_QUERY_LIMITS.maximumSearchLength).default(''),
+  ...pageRowRefinementShape,
   spaceId: z.string().min(1),
   viewId: z.string().min(1),
   viewType: z.enum(PAGE_VIEW_TYPE_VALUES),
@@ -126,6 +135,8 @@ export const pageViewOperationsSchema = z.object({
 export const pageRowMoveSchema = z.object({
   after: z.string().min(1).optional(),
   before: z.string().min(1).optional(),
+  /** The version of the row when the move began; the server refuses the write if the row has moved on. */
+  expectedVersion: z.number().int().min(0).optional(),
   listChanges: z
     .record(z.string(), z.object({ add: z.array(z.string().min(1)), remove: z.array(z.string().min(1)) }))
     .default({}),
@@ -141,8 +152,7 @@ export const pageRowsContinuationSchema = z.object({
   cursor: z.string().min(1),
   group: z.object({ key: z.string().min(1), subKey: z.string().min(1).optional() }).optional(),
   pageId: z.string().min(1),
-  quickFilter: pageFilterSchema.nullable().default(null),
-  search: z.string().max(PAGE_QUERY_LIMITS.maximumSearchLength).default(''),
+  ...pageRowRefinementShape,
   spaceId: z.string().min(1),
   viewId: z.string().min(1),
 });
@@ -174,8 +184,7 @@ export const pageRevokedRowsSchema = z.object({
 export const pageUndatedCountSchema = z.object({
   dateProperty: z.string().min(1),
   pageId: z.string().min(1),
-  quickFilter: pageFilterSchema.nullable().default(null),
-  search: z.string().max(PAGE_QUERY_LIMITS.maximumSearchLength).default(''),
+  ...pageRowRefinementShape,
   spaceId: z.string().min(1),
   viewId: z.string().min(1),
 });
@@ -183,8 +192,7 @@ export const pageUndatedCountSchema = z.object({
 /** Every row the view lets through with the search applied, to act on all of them. */
 export const pageMatchingRowsSchema = z.object({
   pageId: z.string().min(1),
-  quickFilter: pageFilterSchema.nullable().default(null),
-  search: z.string().max(PAGE_QUERY_LIMITS.maximumSearchLength).default(''),
+  ...pageRowRefinementShape,
   spaceId: z.string().min(1),
   viewId: z.string().min(1),
 });

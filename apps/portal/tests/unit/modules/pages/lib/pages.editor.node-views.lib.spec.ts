@@ -27,15 +27,7 @@ const renderMentionLink = (
   const mentionNode = document.content.firstChild?.content.firstChild;
   if (mentionNode === undefined || mentionNode === null) throw new Error('mention node missing');
 
-  const nodeViews = createPageEditorNodeViews(
-    pageEditorTestLabels,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    readPageIcon,
-    readPageLifecycle,
-  );
+  const nodeViews = createPageEditorNodeViews(pageEditorTestLabels, { readPageIcon, readPageLifecycle });
   const view = nodeViews.mention?.(mentionNode, {} as never, () => undefined);
   if (view === undefined) throw new Error('mention node view missing');
 

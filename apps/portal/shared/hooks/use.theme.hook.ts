@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { DARK_THEME_MEDIA_QUERY } from '@/shared/constants/theme.constants';
+import { callAction } from '@/shared/lib/action-result';
 import { applyThemeReading, findThemeRoot, resolveThemeReading } from '@/shared/lib/theme.lib';
 import { rememberThemeAction } from '@/shared/server/actions/theme.actions';
 import type { ThemeChoice } from '@/shared/types/theme.types';
@@ -12,7 +13,7 @@ const prefersDarkNow = (): boolean => globalThis.matchMedia(DARK_THEME_MEDIA_QUE
 const rememberTheme = (choice: ThemeChoice, prefersDark: boolean): void => {
   const reading = resolveThemeReading(choice, prefersDark);
   applyThemeReading(findThemeRoot(document), reading);
-  void rememberThemeAction({ choice, reading });
+  void callAction(() => rememberThemeAction({ choice, reading }));
 };
 
 export const useTheme = (

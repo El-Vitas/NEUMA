@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { PageLifecycle } from '@neuma/db';
 import { Result, USER_ROLE } from '@neuma/shared';
 import { Logger } from 'nestjs-pino';
+import { BlockWriteThrottlerGuard } from '@/common/infrastructure/guards/block-write-throttler.guard';
 import { JwtAuthGuard } from '@/common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '@/common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '@/common/types/auth.types';
@@ -13,6 +14,7 @@ import { PagesService } from '@/modules/pages/pages.service';
 import type { PageSummary } from '@/modules/pages/types/page.types';
 
 const buildPage = (id: string, parentId: null | string): PageSummary => ({
+  canEdit: true,
   content: {},
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
@@ -35,11 +37,17 @@ const buildPage = (id: string, parentId: null | string): PageSummary => ({
   version: 1,
 });
 
-const payload: TokenPayload = { email: 'user-a@test.com', name: 'User A', role: USER_ROLE.WORKER, sub: 'user-a' };
+const payload: TokenPayload = {
+  email: 'user-a@test.com',
+  name: 'User A',
+  role: USER_ROLE.WORKER,
+  sid: 'family-a',
+  sub: 'user-a',
+};
 
 interface FakePagesService {
   readonly getAccessible: (pageId: string) => ReturnType<PagesService['getAccessible']>;
-  readonly move: (pageId: string) => ReturnType<PagesService['move']>;
+  readonly move: (request: Parameters<PagesService['move']>[0]) => ReturnType<PagesService['move']>;
   readonly trash: (pageId: string) => ReturnType<PagesService['trash']>;
 }
 
@@ -65,6 +73,8 @@ const buildTestingModule = async (
   })
     .overrideGuard(JwtAuthGuard)
     .useValue({ canActivate: () => true })
+    .overrideGuard(BlockWriteThrottlerGuard)
+    .useValue({ canActivate: () => true })
     .compile();
 
 describe('PagesBatchController', () => {
@@ -89,7 +99,7 @@ describe('PagesBatchController', () => {
         const page = pagesById.get(pageId);
         return Promise.resolve(page === undefined ? Result.fail(new PageAccessDeniedError()) : Result.ok(page));
       },
-      move: (pageId) => {
+      move: ({ pageId }) => {
         moveCalls.push(pageId);
         const page = pagesById.get(pageId);
         return Promise.resolve(page === undefined ? Result.fail(new PageAccessDeniedError()) : Result.ok(page));

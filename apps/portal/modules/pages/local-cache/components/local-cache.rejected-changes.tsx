@@ -6,13 +6,13 @@ import { LocalCacheRejectedChange } from './local-cache.rejected-change';
 
 interface IProps {
   readonly pageId: string;
-  readonly userId?: string | undefined;
+  readonly userId?: string;
 }
 
 /** The changes of this page that the server refused: what was written stays on view until the person decides. */
 export const LocalCacheRejectedChanges = ({ pageId, userId }: IProps) => {
   const t = useTranslations('pages.rejectedChanges');
-  const { discard, items } = useRejectedChanges(userId ?? null, pageId);
+  const { discard, items, retry } = useRejectedChanges(userId ?? null, pageId);
   if (items.length === 0) return null;
 
   return (
@@ -26,7 +26,12 @@ export const LocalCacheRejectedChanges = ({ pageId, userId }: IProps) => {
       <p className="text-muted-foreground text-xs">{t('help')}</p>
       <ul className="space-y-2">
         {items.map((item) => (
-          <LocalCacheRejectedChange item={item} key={item.id} onDiscard={() => void discard(item.id)} />
+          <LocalCacheRejectedChange
+            item={item}
+            key={item.id}
+            onDiscard={() => void discard(item.id)}
+            onRetry={() => void retry(item.id)}
+          />
         ))}
       </ul>
     </section>

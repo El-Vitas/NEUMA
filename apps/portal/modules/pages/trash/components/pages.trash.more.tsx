@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { ListRowGroup } from '@/shared/components/ui/list-row-group';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { readTrashedPagesWindowAction } from '../server/actions/pages.trash.actions';
 import type { TrashedPage, TrashedPagesListing } from '../types/pages.trash.types';
 import { PagesTrashItem } from './pages.trash.item';
@@ -27,10 +27,12 @@ export const PagesTrashMore = ({ canDeleteForever, loadedCount, locale, search, 
 
   const loadNext = (): void => {
     startTransition(async () => {
-      const result = await readTrashedPagesWindowAction({
-        search: search.length > 0 ? search : undefined,
-        skip: shown,
-      });
+      const result = await callAction(() =>
+        readTrashedPagesWindowAction({
+          search: search.length > 0 ? search : undefined,
+          skip: shown,
+        }),
+      );
       if (isActionSuccess<TrashedPagesListing>(result)) setMore((current) => [...current, ...result.data.items]);
     });
   };

@@ -156,7 +156,16 @@ export class McpServerDependenciesAdapter {
       listTrashed: async ({ role, search, spaceId, userId, workspaceId }) =>
         (await pagesService.listTrashed(workspaceId, userId, role, spaceId, search, null)).items,
       move: ({ pageId, parentId, role, spaceId, userId, workspaceId }) =>
-        pagesService.move(pageId, parentId, spaceId, userId, workspaceId, randomUUID(), role),
+        pagesService.move({
+          expectedVersion: null,
+          mutationId: randomUUID(),
+          pageId,
+          parentId,
+          role,
+          targetSpaceId: spaceId,
+          userId,
+          workspaceId,
+        }),
       previewTrashCascade: ({ pageId, role, userId, workspaceId }) =>
         pagesService.previewTrashCascade(pageId, workspaceId, userId, role),
       rename: ({ pageId, role, title, userId, workspaceId }) =>
@@ -186,6 +195,7 @@ export class McpServerDependenciesAdapter {
         toMcpResult(await commentsService.getDiscussion(viewer, discussionId)),
       listPageDiscussions: async (viewer, pageId, request) =>
         toMcpResult(await commentsService.listPageDiscussions(viewer, pageId, request)),
+      locateComment: async (viewer, commentId) => toMcpResult(await commentsService.locateComment(viewer, commentId)),
       openDiscussion: async (viewer, blockId, input) =>
         toMcpResult(await commentsService.openDiscussion(viewer, blockId, input)),
       removeComment: async (viewer, commentId) => toMcpResult(await commentsService.remove(viewer, commentId)),

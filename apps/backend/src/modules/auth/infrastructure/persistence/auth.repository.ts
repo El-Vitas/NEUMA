@@ -12,13 +12,4 @@ export class AuthRepository {
       .where({ email })
       .first();
   }
-
-  /** One atomic increment, so two logouts at once both count and neither token survives. */
-  async revokeSessions(userId: string): Promise<void> {
-    await this._prisma.runner.execute(
-      this._prisma.sql`UPDATE "User" SET "tokenVersion" = "tokenVersion" + 1 WHERE "id" = ${userId}`
-        .affectedCount()
-        .build(),
-    );
-  }
 }

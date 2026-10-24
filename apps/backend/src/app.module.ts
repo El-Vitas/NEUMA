@@ -9,7 +9,11 @@ import {
   CREDENTIAL_RATE_LIMIT,
   EXPORT_RATE_LIMIT,
   MCP_RATE_LIMIT,
+  PAGE_READ_RATE_LIMIT,
+  PASSWORD_CHANGE_RATE_LIMIT,
+  SEARCH_RATE_LIMIT,
   THROTTLER_NAMES,
+  UPLOAD_RATE_LIMIT,
 } from './common/constants/throttler.constants';
 import { LoggerModule } from './common/infrastructure/logger.module';
 import { AccessTokenPlaceRepository } from './common/infrastructure/persistence/access-token-place.repository';
@@ -83,9 +87,29 @@ import { PrismaModule } from './prisma/prisma.module';
           limit: BLOCK_WRITE_RATE_LIMIT.perUserLimit,
         },
         {
+          name: THROTTLER_NAMES.pageReads,
+          ttl: seconds(PAGE_READ_RATE_LIMIT.windowSeconds),
+          limit: PAGE_READ_RATE_LIMIT.perUserLimit,
+        },
+        {
           name: THROTTLER_NAMES.mcpPerIp,
           ttl: seconds(MCP_RATE_LIMIT.windowSeconds),
           limit: MCP_RATE_LIMIT.perIpLimit,
+        },
+        {
+          name: THROTTLER_NAMES.passwordChange,
+          ttl: seconds(PASSWORD_CHANGE_RATE_LIMIT.windowSeconds),
+          limit: PASSWORD_CHANGE_RATE_LIMIT.perUserLimit,
+        },
+        {
+          name: THROTTLER_NAMES.search,
+          ttl: seconds(SEARCH_RATE_LIMIT.windowSeconds),
+          limit: SEARCH_RATE_LIMIT.perUserLimit,
+        },
+        {
+          name: THROTTLER_NAMES.uploads,
+          ttl: seconds(UPLOAD_RATE_LIMIT.windowSeconds),
+          limit: UPLOAD_RATE_LIMIT.perUserLimit,
         },
       ],
       generateKey: (_context, tracker, throttlerName) =>

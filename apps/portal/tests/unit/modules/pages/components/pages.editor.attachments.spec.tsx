@@ -92,6 +92,7 @@ const SPACE_ID = '33333333-3333-4333-8333-333333333333';
 const PAGE_ID = '22222222-2222-4222-8222-222222222222';
 
 const buildPage = (): PageSummary => ({
+  canEdit: true,
   content: createEmptyPageContent(),
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,

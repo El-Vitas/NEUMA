@@ -3,6 +3,7 @@ import { DatabasePropertyType, DatabaseViewType } from '@neuma/db';
 import { DEFAULT_PAGE_PROPERTY_CONFIG, PAGE_STATUS_GROUP } from '@neuma/shared';
 import {
   checkValuesAreWritableHere,
+  keepFilesTheViewerMayName,
   listFileIds,
   pageCarriesSchema,
   resolveSchemaDrafts,
@@ -297,5 +298,18 @@ describe('validatePageProperties — parent carries no schema', () => {
 
     expect(result.isOk()).toBe(true);
     expect(result.getValue()).toBeNull();
+  });
+});
+
+describe('keepFilesTheViewerMayName', () => {
+  const files = [
+    { id: 'own', ownerId: 'viewer', pageId: null },
+    { id: 'row-file', ownerId: 'someone', pageId: 'row-1' },
+    { id: 'other-row-file', ownerId: 'someone', pageId: 'row-9' },
+    { id: 'orphan', ownerId: 'someone', pageId: null },
+  ];
+
+  it('keeps the files the viewer owns and the ones that belong to the rows being read, and no other', () => {
+    expect(keepFilesTheViewerMayName(files, ['row-1'], 'viewer').map((file) => file.id)).toEqual(['own', 'row-file']);
   });
 });

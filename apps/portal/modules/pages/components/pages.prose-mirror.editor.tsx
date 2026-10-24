@@ -469,16 +469,16 @@ export const PagesProseMirrorEditor = forwardRef(
         },
         handleKeyDown: answerKeyPress,
         handlePaste: uploadPastedFile,
-        nodeViews: createPageEditorNodeViews(
-          labels.nodeViews,
-          (childId) => readPageTitleRef.current(childId),
-          (borrowedPageId, blockId) => readBorrowedBlock(syncedSourcesRef.current, borrowedPageId, blockId),
-          (at) => pressTheButtonRef.current(at),
-          (userId) => findPersonForHoverRef.current(userId),
-          (mentionedPageId) => readPageIconRef.current(mentionedPageId),
-          (mentionedPageId) => readPageLifecycleRef.current(mentionedPageId),
+        nodeViews: createPageEditorNodeViews(labels.nodeViews, {
+          pressTheButton: (at) => pressTheButtonRef.current(at),
+          readBorrowed: (borrowedPageId, blockId) =>
+            readBorrowedBlock(syncedSourcesRef.current, borrowedPageId, blockId),
           readButtonTemplates,
-        ),
+          readPageIcon: (mentionedPageId) => readPageIconRef.current(mentionedPageId),
+          readPageLifecycle: (mentionedPageId) => readPageLifecycleRef.current(mentionedPageId),
+          readPageTitle: (childId) => readPageTitleRef.current(childId),
+          readPersonForHover: (userId) => findPersonForHoverRef.current(userId),
+        }),
         state: editorState,
       });
       editorViewRef.current = editorView;
@@ -491,6 +491,9 @@ export const PagesProseMirrorEditor = forwardRef(
       followHeadingsRef.current(editorView.state);
 
       return () => {
+        // A rebuild (read-only flip, new handler) must start from what is on screen, not from the mount-time page.
+        const onScreen = readWhatThePageCanKeep(editorView.state);
+        if (onScreen !== null) initialContentRef.current = onScreen;
         editorView.destroy();
         editorViewRef.current = null;
       };
