@@ -16,6 +16,7 @@ import { GlobalExceptionFilter } from './common/infrastructure/filters/global.ex
 import { readBearerToken } from './common/utils/auth.utils';
 import { looksLikeAccessTokenSecret } from './modules/access-tokens/utils/access-token.utils';
 import { RefreshSessionRetentionScheduler } from './modules/auth/infrastructure/schedulers/refresh-session.retention.scheduler';
+import { BlockLiveGateway } from './modules/blocks/block.live.gateway';
 import { MCP_ROUTE } from './modules/mcp/constants/mcp.constants';
 import { MCP_REQUEST_BODY_LIMIT_BYTES } from './modules/mcp/constants/mcp.limits.constants';
 import { isBodyTooLargeForCaller } from './modules/mcp/utils/mcp.request-size.utils';
@@ -69,6 +70,8 @@ const bootstrap = async (): Promise<void> => {
   );
   app.useGlobalFilters(new GlobalExceptionFilter(logger));
 
+  await app.init();
+  await app.get(BlockLiveGateway).start();
   await app.listen(configService.getOrThrow<number>(PORT_KEY), '0.0.0.0');
   app.get(PageRetentionScheduler).start();
   app.get(NotificationRetentionScheduler).start();
