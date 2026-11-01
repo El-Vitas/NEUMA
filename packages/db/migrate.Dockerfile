@@ -5,7 +5,7 @@
 # monorepo to the @neuma/db subgraph so the image carries only the contract,
 # the migrations and the Prisma CLI.
 
-FROM docker.io/oven/bun:1.4.2-alpine AS base
+FROM docker.io/oven/bun:1.4.4-alpine AS base
 WORKDIR /app
 
 # Extract the db subgraph: pruned manifests + lockfile land in out/json,
