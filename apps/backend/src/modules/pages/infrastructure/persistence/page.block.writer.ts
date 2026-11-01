@@ -21,7 +21,7 @@ import type { PageBlockOperation, PageContentBlock, PageContentSnapshot } from '
 import { buildPageDocument, buildPageTree } from '../../domain/page.document.domain';
 import { listDocumentBlockIds, rewriteDocumentIds } from '../../domain/page.document.ids.domain';
 import { collectDescendantIds } from '../../domain/page.domain';
-import { PageLifecycleError } from '../../domain/page.error';
+import { PageLifecycleError, PageVersionConflictError } from '../../domain/page.error';
 import {
   buildCoverOperation,
   buildCreatePageOperations,
@@ -58,6 +58,9 @@ import { readWriteFailure } from './page.block-write.lib';
 import { PagePurgeRepository } from './page.purge.repository';
 import { PageSummaryReader } from './page.summary.reader';
 import { PageVersionRepository } from './page.version.repository';
+
+const isVersionStale = (page: AccessiblePage, expectedVersion: number | undefined): boolean =>
+  expectedVersion !== undefined && expectedVersion !== page.block.version;
 
 const toViewer = (workspaceId: string, userId: string, role: PageViewer['role']): PageViewer => ({
   role,
@@ -210,6 +213,8 @@ export class PageBlockWriter {
       ...buildValueChangeOperations(input.pageId, diffPageValues(current, merged.getValue())),
       ...(input.extraOperations ?? []),
     ];
+    // Nothing to write still answers to the version the caller saw: a concurrent write may have set these values.
+    if (operations.length === 0 && isVersionStale(page, input.expectedVersion)) throw new PageVersionConflictError();
     const expected =
       input.expectedVersion === undefined ? undefined : { blockId: input.pageId, version: input.expectedVersion };
     const hasApplied =
