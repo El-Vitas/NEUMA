@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Format, lint and types
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+
+  test-backend:
+    name: Backend tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: docker.io/library/postgres:18.4-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+        env:
+          POSTGRES_USER: neuma
+          POSTGRES_PASSWORD: neuma-ci
+          POSTGRES_DB: neuma
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U neuma"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql://neuma:neuma-ci@localhost:5432/neuma
+      TEST_DATABASE_ADMIN_URL: postgresql://neuma:neuma-ci@localhost:5432/postgres
+      JWT_SECRET: ci-only-secret-that-is-at-least-32-characters
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bunx turbo run build --filter=@neuma/db --filter=@neuma/shared
+      # Timing budgets depend on the runner's speed, so they run in their own job and never block a merge.
+      - run: bun test tests/unit tests/integration --timeout 30000 --path-ignore-patterns='**/*.performance.integration.spec.ts'
+        working-directory: apps/backend
+
+  performance-backend:
+    name: Backend performance budgets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    continue-on-error: true
+    services:
+      postgres:
+        image: docker.io/library/postgres:18.4-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+        env:
+          POSTGRES_USER: neuma
+          POSTGRES_PASSWORD: neuma-ci
+          POSTGRES_DB: neuma
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U neuma"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql://neuma:neuma-ci@localhost:5432/neuma
+      TEST_DATABASE_ADMIN_URL: postgresql://neuma:neuma-ci@localhost:5432/postgres
+      JWT_SECRET: ci-only-secret-that-is-at-least-32-characters
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bunx turbo run build --filter=@neuma/db --filter=@neuma/shared
+      - run: bun test tests/integration/*.performance.integration.spec.ts --timeout 60000
+        working-directory: apps/backend
+
+  test-portal:
+    name: Portal tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bunx turbo run build --filter=@neuma/db --filter=@neuma/shared
+      - run: bun run test
+        working-directory: apps/portal
+
+  test-shared:
+    name: Shared package tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun test
+        working-directory: packages/shared
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: gitleaks over the whole history
+        run: >-
+          docker run --rm -v "${GITHUB_WORKSPACE}:/repo"
+          ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          git /repo --redact --no-banner
