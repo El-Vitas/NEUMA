@@ -4,7 +4,7 @@
 # monorepo to the backend's workspace subgraph so the image installs and ships
 # only what this service needs.
 
-FROM docker.io/oven/bun:1.4.2-alpine AS base
+FROM docker.io/oven/bun:1.4.4-alpine AS base
 WORKDIR /app
 
 # Extract the backend subgraph: pruned manifests + lockfile land in out/json,
