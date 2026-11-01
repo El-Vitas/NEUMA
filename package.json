@@ -30,14 +30,14 @@
     "rules:clean": "bun packages/rules-cli/clean-history.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.15",
-    "@next/bundle-analyzer": "16.4.0",
+    "@biomejs/biome": "^2.6.4",
+    "@next/bundle-analyzer": "16.4.3",
     "concurrently": "^10.0.6",
-    "dependency-cruiser": "^18.5.0",
-    "jscpd": "^5.4.1",
+    "dependency-cruiser": "^18.7.0",
+    "jscpd": "^5.4.2",
     "react-scan": "^0.5.7",
     "sherif": "^1.13.0",
-    "turbo": "^2.11.7",
+    "turbo": "^2.11.10",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-7": "npm:typescript@^7.0.2"
   },
