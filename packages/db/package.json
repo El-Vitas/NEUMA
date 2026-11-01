@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@types/pg": "^8.23.1",
-    "prisma": "8.0.0-rc.22",
+    "prisma": "8.0.0-rc.28",
     "tsx": "^4.23.15",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "yjs": "^13.6.33"
