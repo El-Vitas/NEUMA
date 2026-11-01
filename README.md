@@ -58,7 +58,7 @@ bun run test:ramless  # pruebas de todos los workspaces
 bun run rules:query  # consultar las reglas de negocio
 ```
 
-## Despliegue
+## Con Docker
 
 `docker-compose.yml` levanta PostgreSQL, las migraciones (una vez), el backend y el portal.
 
@@ -66,7 +66,7 @@ No hay registro abierto. En una instalación nueva, el primer administrador se c
 
 ```bash
 read -rs CLAVE && printf '%s' "$CLAVE" | docker compose exec -T backend \
-  bun run admin:create --email tu@empresa.cl --name "Tu Nombre"; unset CLAVE
+  bun run admin:create --email tu@example.com --name "Tu Nombre"; unset CLAVE
 ```
 
 ## Documentación

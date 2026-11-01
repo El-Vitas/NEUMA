@@ -3,7 +3,7 @@
 Que sea potente sin exigir una máquina grande. Todo lo de aquí se comprueba usando el producto, no leyendo métricas.
 
 > Leer `README.md` de esta carpeta antes de usar este documento.
->
+
 ## Cómo está construido hoy
 
 Este documento no se poda: se corre. No hay nada aquí que dependa de construir

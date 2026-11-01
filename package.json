@@ -27,8 +27,7 @@
     "rules:add": "bun packages/rules-cli/rules-cli.mjs add",
     "rules:dump": "bun packages/rules-cli/rules-cli.mjs dump",
     "rules:delete": "bun packages/rules-cli/rules-cli.mjs delete",
-    "rules:clean": "bun packages/rules-cli/clean-history.mjs",
-    "diagramas": "xdg-open docs/architecture/diagramas/index.html 2>/dev/null || open docs/architecture/diagramas/index.html"
+    "rules:clean": "bun packages/rules-cli/clean-history.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

@@ -8,7 +8,7 @@
 
 Varias personas editan la misma página a la vez, y ninguna puede perder lo que escribió. Una página es un documento ProseMirror guardado en `Page.content` (ADR 008), con permisos por página y un rol CLIENT que solo lee. Todo tiene que correr en la infraestructura gratuita, sin servicios pagados.
 
-La colaboración se implementó el 3 de agosto de 2026 (commit `0637519`) sin un ADR. Este documento la registra después, con lo que muestra el código y el diseño de Neuma (`docs/superpowers/specs/2026-08-01-neuma-design.md`, sección Collaboration).
+La colaboración se implementó el 3 de agosto de 2026 (commit `54991a0`) sin un ADR. Este documento la registra después, con lo que muestra el código y el diseño de Neuma (`docs/superpowers/specs/2026-08-01-neuma-design.md`, sección Collaboration).
 
 ## Alternatives Considered
 
@@ -56,5 +56,4 @@ Los ganchos de `collaboration.gateway.ts` son el único lugar donde la colaborac
 - Author: El-Vitas, con Claude
 - Created: 2026-10-19, registrado después de implementar
 - Approved by: TBD
-- Implementado: 2026-08-03 (`0637519`)
-- Diagrama: `docs/architecture/diagramas/2-edicion-en-vivo.html`
+- Implementado: 2026-08-03

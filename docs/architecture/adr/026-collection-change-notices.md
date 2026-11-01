@@ -9,7 +9,7 @@
 
 El canal en vivo (`block_versions`, `NOTIFY` tras cada transacción) avisa por página: cada socket se suscribe a una página y recibe `{ id, version }` de los bloques de esa página que puede leer. Una vista de colección abierta no se entera de que cambió una fila, salvo que la fila sea la página abierta. Hoy una persona ve una tarjeta moverse solo si recarga, y un agente que vigila una colección no tiene otra forma que repetir `query_collection` y comparar.
 
-El modelo que se busca es este. Cada colección tiene un canal con `{ idDeFila: versión }`. Al mover una tarjeta, la otra pestaña recibió cuatro avisos, pidió en una sola petición los tres registros nuevos y no repitió la consulta. Antes de consultar, el cliente espera a que se envíen sus propias escrituras pendientes de esa colección. ADR 025 dejó este punto abierto en dos lugares: el cliente deduplica y «repite la consulta cuando le avisen (etapa 5)», y el modo cliente queda fuera hasta que exista este canal.
+El modelo que se busca es este. Cada colección tiene un canal con `{ idDeFila: versión }`. Al mover una tarjeta, la otra pestaña recibe un aviso por registro cambiado, pide en una sola petición los registros nuevos y no repite la consulta. Antes de consultar, el cliente espera a que se envíen sus propias escrituras pendientes de esa colección. ADR 025 dejó este punto abierto en dos lugares: el cliente deduplica y «repite la consulta cuando le avisen (etapa 5)», y el modo cliente queda fuera hasta que exista este canal.
 
 Lo que ya tenemos y se reutiliza:
 
