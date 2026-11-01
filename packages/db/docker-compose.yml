@@ -1,5 +1,4 @@
-# Development only: a local Postgres for the db package. Its names never match the production units
-# (neuma-postgres, /srv/neuma/postgres), so starting it on the VM cannot open the production data twice.
+# Development only: a local Postgres for the db package, with names that never clash with another instance.
 services:
   postgres:
     image: postgres:18.4-alpine

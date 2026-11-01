@@ -2,7 +2,7 @@
 
 Sale de dos estudios del 20 de octubre de 2026:
 - el inventario de lo que Neuma tiene hoy, leído en el código;
-- `docs/architecture/references/notion-views-and-databases.md`, que describe cómo Notion resuelve vistas, consultas y tableros por dentro.
+- un estudio de cómo se usan en Notion las vistas, las consultas y los tableros.
 
 Se hace sobre el modelo de bloques del ADR 021, en una rama nueva desde `develop` cuando `refactor/bloques-planos` esté integrada.
 

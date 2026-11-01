@@ -28,14 +28,14 @@ Ya nadie consume los eventos del outbox. Dejarlo escribiendo sería acumular fil
 ## Decision
 
 - Se borran `OutboxEvent`, `OutboxDelivery` y el enum `OutboxConsumer`, junto con su repositorio, el arranque y la proyección de workers, y toda escritura de eventos en páginas y espacios.
-- Se borran los servicios `search-worker` y `links-worker` de `docker-compose.yml`, sus `.container` de `deploy/podman/` y sus referencias en `deploy/scripts/`.
+- Se borran los servicios `search-worker` y `links-worker` de `docker-compose.yml`.
 - Las tres imágenes del ADR 013 (`neuma-backend`, `neuma-migrate`, `neuma-portal`) se mantienen. El backend ya no tiene un segundo comando de arranque.
 - Si en el futuro hace falta avisar a un sistema externo, se decide en un ADR nuevo, a partir de `BlockTransaction` (que ya guarda cada transacción aplicada) o de `NOTIFY`.
 
 ## Consequences
 
 - Positivas:
-  - dos procesos menos en cada despliegue y en la VM;
+  - dos procesos menos en cada despliegue;
   - ninguna tabla crece sin lector;
   - lo escrito se encuentra y aparece en «Vinculado desde» en la misma transacción.
 - Negativas:

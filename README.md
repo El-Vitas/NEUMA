@@ -58,15 +58,15 @@ bun run test:ramless  # pruebas de todos los workspaces
 bun run rules:query  # consultar las reglas de negocio
 ```
 
-## Despliegue
+## Con Docker
 
-`docker-compose.yml` levanta PostgreSQL, las migraciones (una vez), el backend y el portal. `deploy/podman/` trae las mismas piezas como unidades Quadlet de systemd, y su README explica el despliegue en una VM.
+`docker-compose.yml` levanta PostgreSQL, las migraciones (una vez), el backend y el portal.
 
 No hay registro abierto. En una instalación nueva, el primer administrador se crea una sola vez desde el servidor, y después los administradores crean las cuentas desde «Usuarios»:
 
 ```bash
 read -rs CLAVE && printf '%s' "$CLAVE" | docker compose exec -T backend \
-  bun run admin:create --email tu@empresa.cl --name "Tu Nombre"; unset CLAVE
+  bun run admin:create --email tu@example.com --name "Tu Nombre"; unset CLAVE
 ```
 
 ## Documentación
@@ -75,3 +75,7 @@ read -rs CLAVE && printf '%s' "$CLAVE" | docker compose exec -T backend \
 - `docs/architecture/adr/`: las decisiones de arquitectura y por qué se tomaron.
 - `docs/business-rules/`: las reglas de negocio, versionadas y consultables con `bun run rules:query`.
 - `docs/scope/`: el alcance actual y lo que queda fuera.
+
+## Inspiración
+
+La experiencia de uso toma como referencia a Outline y Notion. El código es propio: una arquitectura distinta, escrita desde cero.

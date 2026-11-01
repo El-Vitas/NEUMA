@@ -13,7 +13,7 @@ Hoy un comentario es un objeto `{ id, author, body, createdAt }` dentro de `form
 - `body` es texto plano, sin menciones, y nadie se entera de que lo nombraron;
 - los comentarios viajan con el bloque. Editar el bloque reescribe todos sus comentarios, y dos personas que comentan a la vez compiten por el mismo campo.
 
-Notion guarda cada discusión y cada comentario como registros propios (`docs/architecture/references/notion-block-sync.md`). El plan `2026-10-20-paridad-con-notion.md` pide lo mismo en la etapa 2, junto con una bandeja de notificaciones que llegue por el canal en vivo.
+Notion guarda cada discusión y cada comentario como registros propios. El plan `2026-10-20-paridad-con-notion.md` pide lo mismo en la etapa 2, junto con una bandeja de notificaciones que llegue por el canal en vivo.
 
 ## Alternatives Considered
 
@@ -143,4 +143,4 @@ Las reglas de negocio de comentarios (`FEA-BLQ`) que suponen la lista dentro del
 - Author: El-Vitas, con Claude
 - Created: 2026-10-20
 - Approved by: El-Vitas, 2026-10-20
-- Referencia: `docs/superpowers/plans/2026-10-20-paridad-con-notion.md` (etapa 2); `docs/architecture/references/notion-block-sync.md`
+- Referencia: `docs/superpowers/plans/2026-10-20-paridad-con-notion.md` (etapa 2)
