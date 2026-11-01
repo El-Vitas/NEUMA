@@ -414,6 +414,24 @@ describe('Page Schema (Integration)', () => {
       expect(statuses).toEqual([200, 409, 409, 409]);
     });
 
+    it('refuses a stale version even when the values asked for are already there', async () => {
+      const { collection, done, todo } = await defineBoard('Board stale no-op');
+      const row = await createPage(testApp, adminToken, sharedSpaceId, 'Row stale no-op', collection.id, {
+        status: todo,
+      });
+      const seen = await readBlockVersion(row.id);
+      const write = () =>
+        request(testApp.getServer())
+          .patch(`/api/v1/spaces/${sharedSpaceId}/pages/${row.id}/properties`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ expectedVersion: seen, propertyValues: { status: done } });
+
+      await write().expect(200);
+      const stale = await write().expect(409);
+
+      expect((stale.body as { error: { code: string } }).error.code).toBe('PAGE_VERSION_CONFLICT');
+    });
+
     it('changes one property of a row without touching what the page says', async () => {
       const { collection, done, todo } = await defineBoard('Board dragged');
       const row = await createPage(testApp, adminToken, sharedSpaceId, 'Row dragged', collection.id, {
