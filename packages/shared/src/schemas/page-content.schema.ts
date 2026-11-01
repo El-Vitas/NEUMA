@@ -3,12 +3,15 @@ import { isOneOf } from '../value-list.lib.js';
 
 export const PAGE_CONTENT_SCHEMA_VERSION = 1;
 const maximumPageContentDepth = 10;
-const maximumPageContentNodes = 500;
+export const maximumPageContentNodes = 500;
+export const minimumHeadingLevel = 1;
+export const maximumHeadingLevel = 3;
+export const maximumOrderedListOrder = 1000;
 /** Limits that writers outside the editor must respect before sending. */
 export const maximumPageTextLength = 20_000;
 export const maximumTableRows = 50;
 export const maximumTableColumns = 10;
-const maximumTableColumnWidth = 2_000;
+export const maximumTableColumnWidth = 2_000;
 export const maximumToggleSummaryLength = 500;
 const maximumAssetIdLength = 200;
 const maximumAssetMetadataLength = 500;
@@ -124,7 +127,7 @@ export const isAllowedPageEmbedUrl = (provider: PageEmbedProvider, value: string
   return url.protocol === 'https:' && pageEmbedHosts[provider].includes(url.hostname);
 };
 
-const pageBlockIdSchema = z.string().min(1).max(maximumBlockIdLength);
+export const pageBlockIdSchema = z.string().min(1).max(maximumBlockIdLength);
 
 const pageMarkSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('strong') }).strict(),
@@ -170,7 +173,7 @@ const pageCodeTextSchema = z
   })
   .strict();
 
-const pageBlockCommentSchema = z
+export const pageBlockCommentSchema = z
   .object({
     author: z.string().min(1).max(maximumCommentAuthorLength),
     body: z.string().min(1).max(PAGE_BLOCK_COMMENT_BODY_MOST),
@@ -271,6 +274,8 @@ export const pageButtonAttrsSchema = z
     pageId: z.string().min(1).max(maximumMentionPageIdLength).optional(),
     place: z.enum(PAGE_BUTTON_PLACES).optional(),
     spaceId: z.string().min(1).max(maximumMentionSpaceIdLength).optional(),
+    /** The template of the collection a row is made from; left out, the default one (ADR 027). */
+    templateId: z.string().min(1).max(maximumMentionPageIdLength).optional(),
   })
   .strict();
 
@@ -638,7 +643,7 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
           .object({
             ...pageBlockAttrsShape,
             collapsed: z.boolean().optional(),
-            level: z.number().int().min(1).max(3),
+            level: z.number().int().min(minimumHeadingLevel).max(maximumHeadingLevel),
           })
           .strict(),
         content: z.array(pageInlineNodeSchema),
@@ -655,7 +660,7 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
     z
       .object({
         attrs: z
-          .object({ ...pageBlockAttrsShape, order: z.number().int().min(1).max(1000) })
+          .object({ ...pageBlockAttrsShape, order: z.number().int().min(1).max(maximumOrderedListOrder) })
           .strict()
           .optional(),
         content: pageNodeListSchema,

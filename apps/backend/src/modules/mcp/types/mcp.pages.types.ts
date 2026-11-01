@@ -10,8 +10,13 @@ import type {
   deleteBlocksInputSchema,
   deleteCommentInputSchema,
   diagramCheckAnswerSchema,
+  discussionSchema,
   insertBlocksInputSchema,
+  listDiscussionsInputSchema,
+  listDiscussionsOutputSchema,
   moveBlocksInputSchema,
+  repliedDiscussionOutputSchema,
+  replyToDiscussionInputSchema,
   searchDiagramIconsOutputSchema,
   updateBlockInputSchema,
   updateTableInputSchema,
@@ -31,6 +36,11 @@ export type McpCommentOnBlockInput = z.infer<typeof commentOnBlockInputSchema>;
 export type McpUpdateTableInput = z.infer<typeof updateTableInputSchema>;
 export type McpDeleteCommentInput = z.infer<typeof deleteCommentInputSchema>;
 export type McpCommentedBlockOutput = z.infer<typeof commentedBlockOutputSchema>;
+export type McpListDiscussionsInput = z.infer<typeof listDiscussionsInputSchema>;
+export type McpListDiscussionsOutput = z.infer<typeof listDiscussionsOutputSchema>;
+export type McpReplyToDiscussionInput = z.infer<typeof replyToDiscussionInputSchema>;
+export type McpRepliedDiscussionOutput = z.infer<typeof repliedDiscussionOutputSchema>;
+export type McpDiscussionOutput = z.infer<typeof discussionSchema>;
 
 export interface McpIconPack {
   readonly aliases?: Readonly<Record<string, unknown>>;
@@ -148,7 +158,7 @@ export interface McpContentWriter {
 
 export type McpContentEdit = (current: PageContent) => Result<PageContent, string>;
 
-/** Goes through the portal's live document so open viewers see the change at once. */
+/** Writes through the block transactions, so only the blocks the edit changes are touched and open editors see it. */
 export interface McpContentEditor {
   readonly edit: (writer: McpContentWriter, edit: McpContentEdit) => Promise<Result<PageContent, McpRefusal>>;
 }

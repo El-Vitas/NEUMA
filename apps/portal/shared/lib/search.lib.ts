@@ -64,7 +64,6 @@ const buildSearchQueryString = (params: SearchQuery, includeDefaultLimit: boolea
   if (params.query !== '') query.set('query', params.query);
   if (params.sourceType !== undefined) query.set('sourceType', params.sourceType);
   if (params.spaceId !== undefined) query.set('spaceId', params.spaceId);
-  if (params.tags !== undefined) query.set('tags', params.tags.join(','));
   return query.toString();
 };
 

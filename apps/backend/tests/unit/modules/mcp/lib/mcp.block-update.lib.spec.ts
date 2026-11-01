@@ -12,8 +12,6 @@ const said = (...paragraphs: readonly string[]) => ({
   text: paragraphs.join('\n\n'),
 });
 
-const comment = { author: 'user-b', body: 'Revisar esto', createdAt: '2026-09-01T00:00:00.000Z', id: 'comment-1' };
-
 const task = {
   attrs: { checked: false, id: 'task' },
   content: [{ attrs: { id: 'task-line' }, content: words('Revisar'), type: 'paragraph' }],
@@ -39,7 +37,7 @@ const content = page(
   { attrs: { id: 'code' }, content: [{ text: 'ls', type: 'text' }], type: 'code_block' },
   { attrs: { id: 'rule' }, type: 'divider' },
   {
-    attrs: { backgroundColor: 'yellow', comments: [comment], id: 'note' },
+    attrs: { backgroundColor: 'yellow', id: 'note' },
     content: [{ attrs: { id: 'note-line' }, content: words('Ojo'), type: 'paragraph' }],
     type: 'callout',
   },
@@ -117,13 +115,13 @@ describe('buildMcpBlockUpdate', () => {
     });
   });
 
-  it('keeps the comments and colours of a replaced block, unless the new one brings its own colour', () => {
+  it('keeps the id and the colours of a replaced block, unless the new one brings its own colour', () => {
     const edited = buildMcpBlockUpdate('note', {
       replacement: { attrs: { backgroundColor: 'blue' }, content: words('Ahora es un párrafo'), type: 'paragraph' },
     })(content);
 
     expect(nodeOf(edited.getValue(), 4)).toEqual({
-      attrs: { backgroundColor: 'blue', comments: [comment], id: 'note' },
+      attrs: { backgroundColor: 'blue', id: 'note' },
       content: words('Ahora es un párrafo'),
       type: 'paragraph',
     });
@@ -133,7 +131,7 @@ describe('buildMcpBlockUpdate', () => {
     const edited = buildMcpBlockUpdate('note', { words: said('Primero', 'Después') })(content);
 
     expect(nodeOf(edited.getValue(), 4)).toEqual({
-      attrs: { backgroundColor: 'yellow', comments: [comment], id: 'note' },
+      attrs: { backgroundColor: 'yellow', id: 'note' },
       content: [
         { content: words('Primero'), type: 'paragraph' },
         { content: words('Después'), type: 'paragraph' },

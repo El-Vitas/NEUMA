@@ -1,0 +1,241 @@
+id: FEA-CCL
+name: Caché local en el navegador
+purpose: Que lo ya leído y lo recién escrito no se pierda ni se filtre, y que el tablero siga a los demás sin recargarse.
+scope: collections
+rules:
+  - id: BR-0322339
+    status: active
+    title: La copia local es de una sola persona y se borra al salir
+    rule: >-
+      El navegador guarda una copia local de lo que una persona leyó y escribió, y esa copia es solo de ella. Cerrar
+      sesión la borra. Si otra persona inicia sesión en el mismo navegador, la copia de la anterior se borra antes de
+      mostrar nada.
+    why: >-
+      Un navegador compartido no debe mostrar a una persona lo que leyó otra, aunque la sesión anterior haya terminado
+      sin salir.
+    context: >-
+      La copia no está cifrada, igual que las cookies de sesión del mismo navegador. Sin almacenamiento disponible, la
+      copia vive solo en la pestaña y la interfaz lo dice cuando hay cambios sin enviar.
+    scenarios:
+      - title: Otra persona entra al mismo navegador
+        given: Ana cerró la pestaña sin salir y su copia local sigue en el navegador
+        when: Beto inicia sesión y abre una página
+        then: La copia de Ana se borra y Beto solo ve la suya
+      - title: Salir borra la copia
+        given: Ana tiene una copia local
+        when: Ana cierra sesión
+        then: El navegador ya no guarda nada de Ana
+  - id: BR-141db89
+    status: active
+    title: Una colección de hasta 10.000 filas la filtra, ordena, agrupa y cuenta el navegador
+    rule: >-
+      Una colección con hasta 10.000 filas visibles para quien la abre, cuyo filtro, orden y agrupación no usan
+      fórmulas, rollups ni relaciones y sin búsqueda de texto activa, se trae completa una sola vez, ordenada por su
+      orden manual. A partir de ahí el navegador filtra, ordena, agrupa, cuenta y calcula los pies de tabla sin pedir
+      nada al servidor, con el mismo resultado que el servidor. Por encima del umbral, con una búsqueda de texto, o con
+      un filtro, orden o agrupación que solo el servidor sabe resolver, la vista sigue pidiendo al servidor.
+    why: >-
+      Con filas ya en el navegador, cambiar un filtro rápido o pedir más filas no tiene por qué costar una ida y vuelta,
+      y una colección de 100.000 filas no cabe en la pestaña.
+    context: >-
+      La primera carga sigue dibujándose en el servidor y, desde ahí, el navegador pasa a su propio cálculo sin
+      parpadeo. Cambiar el filtro guardado de la vista, un reinicio de los cambios, una pérdida de acceso o un cambio
+      del orden manual por otra persona vuelven a traer las filas.
+    scenarios:
+      - title: Colección de 2.000 filas
+        given: Un tablero de 2.000 tarjetas sin búsqueda
+        when: La persona cambia el filtro rápido
+        then: Las tarjetas se filtran y los conteos de columna cambian sin ninguna petición
+      - title: Colección grande
+        given: Una tabla de 10.001 filas
+        when: La persona la abre
+        then: La vista pide al servidor las filas por páginas, como antes
+      - title: Búsqueda de texto
+        given: Una colección pequeña con una búsqueda de texto activa
+        when: La persona busca una palabra con acentos
+        then: El servidor responde, porque solo él normaliza acentos y mayúsculas
+  - id: BR-44999db
+    status: active
+    title: Los cambios de una vista esperan la conexión salvo los de listas
+    rule: >-
+      Cambiar el valor único de una celda, mover una tarjeta o una fila sin tocar listas y crear una fila se muestran al
+      instante, se guardan en el navegador antes de enviarse y se envían en orden cuando hay conexión, cada uno con el
+      mismo identificador en cada intento. Un cambio que depende de lo que entra y sale de una lista (varias opciones,
+      personas, relaciones o archivos) necesita conexión; sin ella se deshace en pantalla y se avisa que no se guardó.
+      Un cambio que el servidor rechaza se aparta con su texto para que la persona decida.
+    why: >-
+      Una persona que edita una tabla sin conexión no debe perder lo que escribió ni quedar con una pantalla que miente,
+      y una lista solo se puede cambiar sin pisar a otra persona si la aplica el servidor.
+    context: >-
+      Un rechazo no retiene los cambios siguientes, porque cada celda o lugar es independiente de los demás, a
+      diferencia del texto de un documento. Tras un rechazo la vista vuelve a leer las filas del servidor.
+    scenarios:
+      - title: Editar una celda sin conexión
+        given: Una persona edita el estado de una fila y no hay conexión
+        when: Vuelve la conexión
+        then: El cambio se envía una vez y la fila muestra el estado nuevo
+      - title: Cambiar una selección múltiple sin conexión
+        given: Una persona agrega una opción a una celda de selección múltiple y no hay conexión
+        when: Confirma la opción
+        then: La celda vuelve a su valor anterior y la persona ve que el cambio necesita conexión
+  - id: BR-59740bf
+    status: active
+    title: Lo escrito y no respondido sobrevive a cerrar la pestaña
+    rule: >-
+      Todo cambio que una persona escribe se guarda en el navegador antes de enviarse y se borra solo cuando el servidor
+      responde. Si la conexión falla o la pestaña se cierra, al abrir la página otra vez con conexión el cambio se envía
+      tal como estaba. Al cerrar sesión con cambios sin enviar, la persona ve cuántos son y decide si los pierde.
+    why: Escribir sin conexión no puede costar texto, y perderlo debe ser siempre una decisión de la persona.
+    context: Se envía con el mismo identificador que ya tenía, así que enviarlo dos veces no lo aplica dos veces.
+    scenarios:
+      - title: Edición sin conexión
+        given: La conexión se cayó mientras Ana editaba una página
+        when: Ana cierra la pestaña y vuelve a abrir la página con conexión
+        then: El texto que escribió aparece en la página y no queda nada pendiente en el navegador
+      - title: Salir con cambios sin enviar
+        given: Ana tiene 3 cambios sin enviar
+        when: Ana elige cerrar sesión
+        then: Se le dice que son 3 y que se pierden, y no sale hasta que lo confirme
+  - id: BR-6429f99
+    status: active
+    title: La fila que otra persona cambia se coloca sin recargar la vista
+    rule: >-
+      Cuando otra persona cambia una fila, la vista de quien mira (tabla, lista, galería, tablero, calendario o línea de
+      tiempo) coloca esa fila en su grupo, su lugar o sus días sin dibujarse de nuevo, con las mismas reglas de filtro y
+      de orden que usa el servidor. Si el navegador no puede saber dónde va la fila (hay una búsqueda, el filtro o el
+      orden dependen de otras filas, el grupo no está dibujado, la ventana de días solo muestra las primeras filas o el
+      orden es manual), pide al servidor la vista otra vez, y solo las columnas afectadas cuando el orden es manual.
+    why: >-
+      Ver cambiar una fila no debe costar una consulta de toda la vista por cada persona que mira, ni hacer saltar lo
+      que la otra persona tiene en pantalla.
+    context: >-
+      Los conteos de los grupos y el número de filas sin fecha se vuelven a pedir al servidor cuando cambia el contenido
+      de algún grupo. El gráfico solo muestra conteos, así que se dibuja otra vez desde el servidor.
+    supersedes: BR-4950377
+    scenarios:
+      - title: Fila cambiada de fecha en un calendario
+        given: Un calendario muestra septiembre y otra persona mueve una fila a octubre
+        when: Llega el aviso del cambio
+        then: La fila sale de septiembre sin recargar el calendario y el conteo de filas sin fecha se actualiza
+      - title: Ventana truncada
+        given: Una línea de tiempo muestra solo las primeras filas de su ventana
+        when: Otra persona crea una fila dentro de la ventana
+        then: El navegador pide al servidor la vista otra vez
+  - id: BR-6beb537
+    status: active
+    title: Una colección ya vista se pinta desde la copia local y se pone al día después
+    rule: >-
+      Al abrir una colección que la persona ya vio, la vista se dibuja de inmediato con lo último que vio, marcada como
+      en actualización, mientras el servidor responde. Después se piden solo los cambios desde la última lectura y se
+      colocan en la copia con las mismas reglas que usa el servidor. Si el servidor no puede describir los cambios, o un
+      lugar depende de un orden que solo el servidor conoce, la respuesta del servidor reemplaza la copia.
+    why: Volver a una colección no debe mostrar una página vacía ni repetir la lectura completa de lo que no cambió.
+    context: >-
+      Una copia que lleva 30 días sin confirmarse con el servidor no se muestra. La primera visita sin copia se dibuja
+      con lo que lee el servidor, sin página en blanco.
+    scenarios:
+      - title: Volver a un tablero visto
+        given: Una persona vio el tablero ayer y otra movió una tarjeta desde entonces
+        when: La primera vuelve a abrirlo
+        then: Ve el tablero de ayer al instante con la tarjeta ya movida, sin esperar la lectura completa
+      - title: Orden manual
+        given: Una tarjeta nueva llegó a una columna con orden manual
+        when: La persona abre el tablero desde la copia
+        then: La copia no coloca esa tarjeta y espera la respuesta del servidor
+  - id: BR-8f1fc0c
+    status: active
+    title: Los valores calculados no se confían de la copia local
+    rule: >-
+      Las fórmulas y los rollups se calculan cada vez que se leen y la copia local no los guarda. Una vista pintada
+      desde la copia muestra esas celdas vacías hasta que llega la lectura del servidor. Cuando cambia una colección que
+      alimenta un rollup, la vista vuelve a leer las filas completas.
+    why: >-
+      Un valor calculado depende de otras filas que la copia no ve, así que mostrarlo guardado podría enseñar un
+      resultado que ya no es cierto.
+    context: >-
+      Ninguna fórmula ni rollup participa en el filtro, el orden o la agrupación de una vista que el navegador resuelve
+      solo.
+    scenarios:
+      - title: Fórmula en una vista pintada desde la copia
+        given: Una colección con una columna de fórmula ya vista
+        when: La persona vuelve a abrirla
+        then: La columna aparece vacía al principio y se llena con el valor que calcula el servidor
+  - id: BR-97a194c
+    status: active
+    title: Una fila que una lectura nueva deja de citar se confirma con el servidor
+    rule: >-
+      Cuando el servidor dibuja de nuevo una vista y ya no incluye filas que la copia local guardaba para esa misma
+      pregunta, el navegador pregunta al servidor, con la versión que guarda de cada una, cuáles de esas filas la
+      persona ya no puede abrir y borra de inmediato las que el servidor señala. Las filas que solo salieron de la
+      vista, pero siguen siendo legibles, se conservan. Cada fila guardada lleva la versión que el servidor le dio y
+      nunca una versión inventada por el navegador.
+    why: >-
+      Quitar un permiso no avisa a quien ya leyó la fila, y una copia local no puede seguir enseñando lo que dejó de
+      estar permitido.
+    context: >-
+      Si el servidor no responde no se borra nada, porque no se sabe; la próxima lectura vuelve a preguntar. Un
+      calendario o una línea de tiempo pintados desde la copia se ponen al día igual que el resto de vistas.
+    scenarios:
+      - title: Fila cerrada a una persona
+        given: Una persona tiene en su copia una tabla con una fila que otra deja de compartir con ella
+        when: La persona vuelve a abrir la tabla y el servidor la dibuja sin esa fila
+        then: La fila desaparece de la vista y de la copia, y las demás filas siguen guardadas
+      - title: Fila que solo salió del filtro
+        given: Una fila dejó de cumplir el filtro de la vista pero la persona aún puede abrirla
+        when: El servidor dibuja la vista sin ella
+        then: La fila sigue guardada en la copia
+  - id: BR-c60e45e
+    status: active
+    title: Lo que ya no se puede leer se borra de la copia local
+    rule: >-
+      Si el servidor dice que la persona perdió el acceso a una colección o a una fila, o no puede describir qué filas
+      cambiaron, el navegador borra de inmediato lo que guardaba de esa colección y deja de mostrarlo. Las filas que
+      siguen siendo legibles se vuelven a guardar con la siguiente lectura. Sin conexión no se puede saber, así que se
+      muestra lo último que se vio hasta que vuelva la conexión o pasen 30 días.
+    why: Una copia no puede seguir enseñando lo que ya no está permitido ver, aunque haya sido legítimo verlo antes.
+    context: >-
+      Sin conexión es una limitación conocida y aceptada, no un caso resuelto. El conteo de filas legibles que informa
+      el servidor no revela filas que la persona no puede abrir.
+    scenarios:
+      - title: Fila que se vuelve ilegible
+        given: Una persona tiene en la copia una colección con una fila que otra deja de compartir
+        when: El servidor avisa que debe reconstruir lo que sabe de la colección
+        then: La fila desaparece de la vista y de la copia
+  - id: BR-cf0c9df
+    status: active
+    title: Un cambio que el servidor rechaza no se descarta
+    rule: >-
+      Un cambio que el servidor rechaza (por permisos, por validación o porque lo que tocaba ya no existe) se guarda
+      aparte con el motivo y no se reenvía. Sigue ahí hasta que la persona decida qué hacer con él.
+    why: Que el servidor rechace un cambio no autoriza a tirar lo que la persona escribió.
+    context: Un cambio guardado que el navegador ya no puede leer tampoco se descarta; se aparta con el motivo y se avisa.
+    scenarios:
+      - title: Permiso quitado mientras no había conexión
+        given: Ana escribió sin conexión y mientras tanto perdió el permiso de editar la página
+        when: Su navegador vuelve a conectarse y envía el cambio
+        then: El servidor lo rechaza, el cambio queda apartado con el motivo y no se reenvía
+  - id: BR-4950377
+    status: superseded
+    title: La tarjeta que otra persona mueve se coloca sin recargar el tablero
+    rule: >-
+      Cuando otra persona cambia una tarjeta del tablero, el tablero de quien lo mira coloca esa tarjeta en su columna y
+      su lugar sin dibujarse de nuevo, con las mismas reglas de filtro y de orden que usa el servidor. Si el navegador
+      no puede saber dónde va la tarjeta (hay una búsqueda, el filtro o el orden dependen de otras filas, o la columna
+      no está dibujada), pide al servidor la vista otra vez. Cuando el orden es manual, solo se vuelven a leer las
+      columnas afectadas.
+    why: >-
+      Ver moverse una tarjeta no debe costar una consulta de toda la vista por cada persona que mira, ni hacer saltar lo
+      que la otra persona tiene en pantalla.
+    context: Los conteos de las columnas se vuelven a pedir al servidor cuando cambia el contenido de alguna columna.
+    superseded_by: BR-6429f99
+    scenarios:
+      - title: Mover una tarjeta de columna
+        given: Ana y Beto miran el mismo tablero ordenado por prioridad
+        when: Beto mueve una tarjeta de Pendiente a Hecho
+        then: >-
+          Ana ve la tarjeta en Hecho, en el lugar que le corresponde por prioridad, sin que el tablero se redibuje
+          entero
+      - title: Búsqueda activa
+        given: Ana busca una palabra en el tablero
+        when: Beto mueve una tarjeta
+        then: El tablero de Ana pide la vista al servidor otra vez

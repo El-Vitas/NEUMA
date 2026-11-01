@@ -1,29 +1,58 @@
-import type { PageChartMeasure } from '@neuma/shared';
-import { PAGE_CHART_MEASURE, readPageChartValue } from '@neuma/shared';
+import {
+  PAGE_CHART_MEASURE,
+  PAGE_PROPERTY_TYPE,
+  PAGE_STATUS_GROUP_VALUES,
+  PAGE_VIEW_CALCULATION,
+  sortPageOptionsByGroup,
+  UNASSIGNED_GROUP_KEY,
+} from '@neuma/shared';
 import { FULL_TURN, HALF_TURN, QUARTER_TURN } from '../constants/pages.chart.constants';
-import type { PageChartPoint, PageChartSlice } from '../types/pages.chart.types';
-import type { PageSchemaProperty, PageViewGroup } from '../types/pages.schema.types';
+import type { ChartSeriesInput, PageChartPoint, PageChartSlice } from '../types/pages.chart.types';
+import type { PageSchemaProperty } from '../types/pages.schema.types';
+import { toCalculationItemId } from './pages.query-aggregates.lib';
+import { describeGroupKey } from './pages.query-outcome.lib';
 
-/** Falls back to counting rows when the measured property no longer exists, instead of drawing a flat chart. */
-export const readChartSeries = (
-  groups: readonly PageViewGroup[],
-  measure: PageChartMeasure,
-  valueProperty: null | string,
-  properties: readonly PageSchemaProperty[],
-): readonly PageChartPoint[] => {
-  const measured = properties.find((property) => property.key === valueProperty);
-  const usable = measured === undefined ? PAGE_CHART_MEASURE.COUNT : measure;
-  return groups.map((group) => ({
-    color: group.color,
-    key: group.key,
-    label: group.label,
-    value: readPageChartValue(
-      usable,
-      measured?.type ?? 'NUMBER',
-      group.rows.map((row) => (measured === undefined ? undefined : row.propertyValues?.[measured.key])),
-    ),
-  }));
+/** The groups the database counted, in the order their property declares them and the one without a value last. */
+const listDeclaredOptionIds = (property: PageSchemaProperty | undefined): readonly string[] => {
+  if (property?.options === null || property === undefined) return [];
+  const options =
+    property.type === PAGE_PROPERTY_TYPE.STATUS ? sortPageOptionsByGroup(property.options) : property.options;
+  return options.map((option) => option.id);
 };
+
+const sortGroupKeys = (keys: readonly string[], property: PageSchemaProperty | undefined): readonly string[] => {
+  const declared = [...PAGE_STATUS_GROUP_VALUES, ...listDeclaredOptionIds(property)];
+  const positionOf = (key: string): number => {
+    if (key === UNASSIGNED_GROUP_KEY) return Number.MAX_SAFE_INTEGER;
+    const position = declared.indexOf(key);
+    return position === -1 ? Number.MAX_SAFE_INTEGER - 1 : position;
+  };
+  return [...keys].sort((left, right) => positionOf(left) - positionOf(right) || left.localeCompare(right));
+};
+
+/** Falls back to counting rows when nothing was calculated for the measured property: a flat chart says nothing. */
+export const readChartSeries = ({
+  aggregates,
+  groupBy,
+  measure,
+  mode,
+  statusGroupLabel,
+  valueProperty,
+}: ChartSeriesInput): readonly PageChartPoint[] =>
+  sortGroupKeys(Object.keys(aggregates.groupCounts), groupBy).map((key) => {
+    const described = describeGroupKey(groupBy, mode, key, statusGroupLabel);
+    const usesCount = measure === PAGE_CHART_MEASURE.COUNT || valueProperty === null;
+    const calculation = measure === PAGE_CHART_MEASURE.SUM ? PAGE_VIEW_CALCULATION.SUM : PAGE_VIEW_CALCULATION.AVERAGE;
+    const calculated = usesCount
+      ? null
+      : aggregates.groupCalculations[key]?.[toCalculationItemId(valueProperty, calculation)];
+    return {
+      color: described.color,
+      key,
+      label: described.label,
+      value: usesCount ? (aggregates.groupCounts[key] ?? 0) : (calculated ?? 0),
+    };
+  });
 
 /** Never zero: dividing by it would produce NaN heights. */
 export const readChartTopValue = (values: readonly number[]): number => Math.max(1, ...values);

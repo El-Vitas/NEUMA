@@ -2,6 +2,7 @@ import { formatChileanTime } from '@neuma/shared';
 import pino from 'pino';
 import 'pino-pretty';
 import { env } from '@/config/env.config';
+import { LOGGER_REDACT_PATHS } from '@/shared/constants/logger.constants';
 
 /** Pretty output spawns a worker thread that crashes under the test runner, so only development uses it. */
 const wantsReadableOutput = env.NODE_ENV === 'development';
@@ -13,7 +14,7 @@ export const logger = pino({
   },
   timestamp: formatChileanTime,
   redact: {
-    paths: ['password', 'token', 'secret', 'email', 'authorization'],
+    paths: LOGGER_REDACT_PATHS,
     censor: '[REDACTED]',
   },
   ...(wantsReadableOutput

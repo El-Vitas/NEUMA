@@ -6,12 +6,13 @@ import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
 import { PAGE_TRASH_API_ROUTES, PAGE_TRASH_CACHE_TAG } from '../../constants/pages.trash.constants';
 import { trashedPagesListSchema } from '../../schemas/pages.trash.schemas';
-import type { TrashedPage } from '../../types/pages.trash.types';
+import type { TrashedPagesListing } from '../../types/pages.trash.types';
 
-export const getTrashedPages = async (search?: string): Promise<Result<readonly TrashedPage[], Error>> =>
+/** The first window of the trash; the rest is asked for as the person reaches it. */
+export const getTrashedPages = async (search?: string): Promise<Result<TrashedPagesListing, Error>> =>
   withQuery({ op: 'getTrashedPages', params: { search } }, (accessToken) => getTrashedPagesCached(accessToken, search));
 
-const getTrashedPagesCached = async (accessToken: string, search?: string): Promise<readonly TrashedPage[]> => {
+const getTrashedPagesCached = async (accessToken: string, search?: string): Promise<TrashedPagesListing> => {
   'use cache';
   cacheLife('seconds');
   cacheTag(PAGE_TRASH_CACHE_TAG);

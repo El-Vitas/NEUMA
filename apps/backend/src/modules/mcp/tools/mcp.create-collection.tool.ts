@@ -1,5 +1,6 @@
 import {
   ACCESS_TOKEN_PERMISSIONS,
+  DEFAULT_PAGE_PROPERTY_CONFIG,
   PAGE_COLLECTION_TITLE_PROPERTY_KEY,
   PAGE_PROPERTY_TYPE,
   PAGE_VIEW_TYPE,
@@ -17,10 +18,10 @@ import { readMcpActor } from '../lib/mcp.tool.lib';
 import { collectionOutputSchema, createCollectionInputSchema } from '../schemas/mcp.collections.schemas';
 import type {
   McpCollectionOutput,
-  McpCollectionShape,
-  McpColumn,
+  McpColumnDraft,
   McpCreateCollectionInput,
   McpOpenCollection,
+  McpShapeDraft,
   McpWrittenRow,
 } from '../types/mcp.collections.types';
 import type {
@@ -31,7 +32,8 @@ import type {
   McpWriteSession,
 } from '../types/mcp.types';
 
-const writeTitleColumn = (name: string): McpColumn => ({
+const writeTitleColumn = (name: string): McpColumnDraft => ({
+  config: DEFAULT_PAGE_PROPERTY_CONFIG,
   key: PAGE_COLLECTION_TITLE_PROPERTY_KEY,
   label: name,
   options: null,
@@ -39,7 +41,7 @@ const writeTitleColumn = (name: string): McpColumn => ({
   type: PAGE_PROPERTY_TYPE.TITLE,
 });
 
-const planShape = (input: McpCreateCollectionInput): McpCollectionShape => {
+const planShape = (input: McpCreateCollectionInput): McpShapeDraft => {
   const plan = requireMcpInput(
     applyMcpColumnChanges(
       { columns: [writeTitleColumn(input.titleColumn)], listNames: listMcpNames },
@@ -79,7 +81,7 @@ const saveShape = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   created: { readonly page: McpWrittenRow; readonly where: McpCreationPlace },
-  shape: McpCollectionShape,
+  shape: McpShapeDraft,
 ): Promise<McpOpenCollection> => {
   const { principal, workspace } = call;
   const { page, where } = created;
@@ -124,7 +126,7 @@ const giveItsShape = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   created: { readonly page: McpWrittenRow; readonly where: McpCreationPlace },
-  shape: McpCollectionShape,
+  shape: McpShapeDraft,
 ): Promise<McpOpenCollection> => {
   try {
     return await saveShape(dependencies, call, created, shape);

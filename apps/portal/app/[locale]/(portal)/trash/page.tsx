@@ -1,5 +1,7 @@
+import { canManageWorkspace, USER_ROLE } from '@neuma/shared';
 import { getTrashedPages } from '@/modules/pages/trash/server/queries/pages.trash.queries';
 import { PagesTrashView } from '@/modules/pages/trash/views/pages.trash.view';
+import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 import type { RouteSearchParams } from '@/shared/types/route-search-params.types';
 
 interface IProps {
@@ -13,7 +15,13 @@ export default async function Page({ searchParams }: IProps) {
   const params = await searchParams;
   const rawSearch = params.search;
   const search = typeof rawSearch === 'string' ? rawSearch : '';
-  const result = await getTrashedPages(search.length > 0 ? search : undefined);
+  const [result, user] = await Promise.all([getTrashedPages(search.length > 0 ? search : undefined), getCurrentUser()]);
 
-  return <PagesTrashView items={result.isOk() ? result.getValue() : null} search={search} />;
+  return (
+    <PagesTrashView
+      canDeleteForever={canManageWorkspace(user?.role ?? USER_ROLE.CLIENT)}
+      listing={result.isOk() ? result.getValue() : null}
+      search={search}
+    />
+  );
 }

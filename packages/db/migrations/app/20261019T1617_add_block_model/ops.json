@@ -1,0 +1,482 @@
+[
+  {
+    "id": "table.Block",
+    "label": "Create table \"Block\"",
+    "summary": "Creates table \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Block\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Block\"",
+        "sql": "CREATE TABLE \"public\".\"Block\" (\n  \"alive\" bool DEFAULT true NOT NULL,\n  \"children\" text[] DEFAULT '{}' NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"createdById\" text NOT NULL,\n  \"editedAt\" timestamptz NOT NULL,\n  \"editedById\" text NOT NULL,\n  \"format\" jsonb,\n  \"id\" text NOT NULL,\n  \"lifecycle\" \"PageLifecycle\" DEFAULT 'ACTIVE'::\"PageLifecycle\" NOT NULL,\n  \"lockedAt\" timestamptz,\n  \"lockedById\" text,\n  \"ownerId\" text,\n  \"parentId\" text,\n  \"permissions\" jsonb,\n  \"properties\" jsonb DEFAULT '{}'::jsonb NOT NULL,\n  \"purgeAfter\" timestamptz,\n  \"spaceId\" text NOT NULL,\n  \"text\" text DEFAULT '' NOT NULL,\n  \"textState\" bytea,\n  \"trashedAt\" timestamptz,\n  \"type\" text NOT NULL,\n  \"verificationExpiresAt\" timestamptz,\n  \"verifiedAt\" timestamptz,\n  \"verifiedById\" text,\n  \"version\" int4 DEFAULT 0 NOT NULL,\n  CONSTRAINT \"Block_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Block\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Block.Block_ownerId_idx",
+    "label": "Create index \"Block_ownerId_idx\" on \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Block_ownerId_idx",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Block_ownerId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_ownerId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Block_ownerId_idx\"",
+        "sql": "CREATE INDEX \"Block_ownerId_idx\" ON \"public\".\"Block\" (\"ownerId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Block_ownerId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_ownerId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Block.Block_parentId_idx",
+    "label": "Create index \"Block_parentId_idx\" on \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Block_parentId_idx",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Block_parentId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_parentId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Block_parentId_idx\"",
+        "sql": "CREATE INDEX \"Block_parentId_idx\" ON \"public\".\"Block\" (\"parentId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Block_parentId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_parentId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Block.Block_purgeAfter_idx",
+    "label": "Create index \"Block_purgeAfter_idx\" on \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Block_purgeAfter_idx",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Block_purgeAfter_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_purgeAfter_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Block_purgeAfter_idx\"",
+        "sql": "CREATE INDEX \"Block_purgeAfter_idx\" ON \"public\".\"Block\" (\"purgeAfter\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Block_purgeAfter_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_purgeAfter_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Block.Block_spaceId_lifecycle_idx",
+    "label": "Create index \"Block_spaceId_lifecycle_idx\" on \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Block_spaceId_lifecycle_idx",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Block_spaceId_lifecycle_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_spaceId_lifecycle_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Block_spaceId_lifecycle_idx\"",
+        "sql": "CREATE INDEX \"Block_spaceId_lifecycle_idx\" ON \"public\".\"Block\" (\"spaceId\", \"lifecycle\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Block_spaceId_lifecycle_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_spaceId_lifecycle_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Block.Block_verificationExpiresAt_idx",
+    "label": "Create index \"Block_verificationExpiresAt_idx\" on \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Block_verificationExpiresAt_idx",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Block_verificationExpiresAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_verificationExpiresAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Block_verificationExpiresAt_idx\"",
+        "sql": "CREATE INDEX \"Block_verificationExpiresAt_idx\" ON \"public\".\"Block\" (\"verificationExpiresAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Block_verificationExpiresAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_verificationExpiresAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Block.Block_spaceId_fkey",
+    "label": "Add foreign key \"Block_spaceId_fkey\" on \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Block_spaceId_fkey",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Block_spaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Block_spaceId_fkey",
+          "public",
+          "\"public\".\"Block\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Block_spaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Block\"\nADD CONSTRAINT \"Block_spaceId_fkey\"\nFOREIGN KEY (\"spaceId\")\nREFERENCES \"public\".\"Space\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Block_spaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Block_spaceId_fkey",
+          "public",
+          "\"public\".\"Block\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Block.Block_parentId_fkey",
+    "label": "Add foreign key \"Block_parentId_fkey\" on \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Block_parentId_fkey",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Block_parentId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Block_parentId_fkey",
+          "public",
+          "\"public\".\"Block\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Block_parentId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Block\"\nADD CONSTRAINT \"Block_parentId_fkey\"\nFOREIGN KEY (\"parentId\")\nREFERENCES \"public\".\"Block\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Block_parentId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Block_parentId_fkey",
+          "public",
+          "\"public\".\"Block\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Block.Block_verifiedById_fkey",
+    "label": "Add foreign key \"Block_verifiedById_fkey\" on \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Block_verifiedById_fkey",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Block_verifiedById_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Block_verifiedById_fkey",
+          "public",
+          "\"public\".\"Block\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Block_verifiedById_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Block\"\nADD CONSTRAINT \"Block_verifiedById_fkey\"\nFOREIGN KEY (\"verifiedById\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE SET NULL\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Block_verifiedById_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Block_verifiedById_fkey",
+          "public",
+          "\"public\".\"Block\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Block.Block_ownerId_fkey",
+    "label": "Add foreign key \"Block_ownerId_fkey\" on \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Block_ownerId_fkey",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Block_ownerId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Block_ownerId_fkey",
+          "public",
+          "\"public\".\"Block\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Block_ownerId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Block\"\nADD CONSTRAINT \"Block_ownerId_fkey\"\nFOREIGN KEY (\"ownerId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE SET NULL\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Block_ownerId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Block_ownerId_fkey",
+          "public",
+          "\"public\".\"Block\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.Block.searchVector",
+    "label": "Add generated column \"searchVector\" to \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Block' AND column_name = 'searchVector'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Add generated column \"searchVector\" to \"Block\"",
+        "sql": "ALTER TABLE \"public\".\"Block\"\n  ADD COLUMN \"searchVector\" tsvector GENERATED ALWAYS AS (\n    to_tsvector('simple'::regconfig, public.immutable_unaccent(coalesce(\"text\", '')))\n  ) STORED"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Block' AND column_name = 'searchVector')"
+      }
+    ]
+  },
+  {
+    "id": "index.Block_searchVector_gin_idx",
+    "label": "Create index \"Block_searchVector_gin_idx\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'Block_searchVector_gin_idx'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Create index \"Block_searchVector_gin_idx\"",
+        "sql": "CREATE INDEX \"Block_searchVector_gin_idx\" ON \"public\".\"Block\" USING GIN (\"searchVector\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'Block_searchVector_gin_idx')"
+      }
+    ]
+  },
+  {
+    "id": "index.Block_text_unaccent_trgm_idx",
+    "label": "Create index \"Block_text_unaccent_trgm_idx\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'Block_text_unaccent_trgm_idx'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Create index \"Block_text_unaccent_trgm_idx\"",
+        "sql": "CREATE INDEX \"Block_text_unaccent_trgm_idx\" ON \"public\".\"Block\" USING GIN (public.immutable_unaccent(\"text\") gin_trgm_ops)"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'Block_text_unaccent_trgm_idx')"
+      }
+    ]
+  }
+]

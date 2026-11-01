@@ -126,22 +126,30 @@ export class PageCoverValidationError extends DomainError {
   }
 }
 
-export class PageMaintenanceAdminOnlyError extends DomainError {
-  public readonly code = 'PAGE_MAINTENANCE_ADMIN_ONLY';
-  public readonly httpStatus = 403;
+export class PageVersionNotFoundError extends DomainError {
+  public readonly code = 'PAGE_VERSION_NOT_FOUND';
+  public readonly httpStatus = 404;
 
   constructor() {
-    super('Only a workspace admin can run page maintenance.');
+    super('Page version not found');
   }
 }
 
-/** Two runs at once would overwrite each other's ids. */
-export class PageMaintenanceAlreadyRunningError extends DomainError {
-  public readonly code = 'PAGE_MAINTENANCE_ALREADY_RUNNING';
+export class PageExportTooLargeError extends DomainError {
+  public readonly code = 'PAGE_EXPORT_TOO_LARGE';
+  public readonly httpStatus = 413;
+
+  constructor(limitMegabytes: number) {
+    super(`The export carries more than ${String(limitMegabytes)} MB of attachments. Export fewer pages at a time.`);
+  }
+}
+
+export class PageVersionConflictError extends DomainError {
+  public readonly code = 'PAGE_VERSION_CONFLICT';
   public readonly httpStatus = 409;
 
   constructor() {
-    super('Page maintenance is already running in this workspace. Try again when it finishes.');
+    super('The page changed since it was read. Read it again before changing it.');
   }
 }
 
@@ -151,6 +159,33 @@ export class PageLockedError extends DomainError {
 
   constructor() {
     super('This page is locked against edits.');
+  }
+}
+
+export class PageTemplateNotFoundError extends DomainError {
+  public readonly code = 'PAGE_TEMPLATE_NOT_FOUND';
+  public readonly httpStatus = 404;
+
+  constructor() {
+    super('The collection has no template with that id');
+  }
+}
+
+export class PageTemplateInvalidError extends DomainError {
+  public readonly code = 'PAGE_TEMPLATE_INVALID';
+  public readonly httpStatus = 400;
+
+  constructor(details: string) {
+    super(`The template cannot be saved that way: ${details}`, details);
+  }
+}
+
+export class PageTemplateLimitError extends DomainError {
+  public readonly code = 'PAGE_TEMPLATE_LIMIT';
+  public readonly httpStatus = 409;
+
+  constructor(limit: number) {
+    super(`A collection keeps at most ${String(limit)} templates`);
   }
 }
 

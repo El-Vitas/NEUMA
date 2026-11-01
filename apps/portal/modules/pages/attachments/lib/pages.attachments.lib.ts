@@ -65,7 +65,8 @@ export const excludePageAssetAttachments = (
 };
 
 export const triggerAttachmentBlobDownload = (download: AttachmentDownload): void => {
-  const blob = new Blob([new Uint8Array(download.body)], { type: download.mimeType });
+  const bytes = Uint8Array.from(atob(download.base64), (character) => character.codePointAt(0) ?? 0);
+  const blob = new Blob([bytes], { type: download.mimeType });
   const objectUrl = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = objectUrl;

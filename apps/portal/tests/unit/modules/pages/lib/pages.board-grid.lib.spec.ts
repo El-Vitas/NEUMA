@@ -5,6 +5,7 @@ import type { PageRow, PageViewBand } from '@/modules/pages/collections/types/pa
 const row = (id: string, status: string, priority: string): PageRow => ({
   id,
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues: { priority, status },

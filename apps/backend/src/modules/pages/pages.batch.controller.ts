@@ -4,6 +4,7 @@ import { Logger } from 'nestjs-pino';
 import type { DomainError } from '../../common/domain/domain.error';
 import { MutationId } from '../../common/infrastructure/decorators/mutation-id.decorator';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
+import { BlockWriteThrottlerGuard } from '../../common/infrastructure/guards/block-write-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
@@ -24,7 +25,7 @@ export class PagesBatchController {
   ) {}
 
   @Post('trash')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BlockWriteThrottlerGuard)
   async trash(
     @Body() dto: PageBatchTrashDto,
     @MutationId() mutationId: string,
@@ -37,7 +38,7 @@ export class PagesBatchController {
   }
 
   @Patch('move')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BlockWriteThrottlerGuard)
   async move(
     @Body() dto: PageBatchMoveDto,
     @MutationId() mutationId: string,
@@ -45,15 +46,16 @@ export class PagesBatchController {
   ): Promise<PageBatchOutcome> {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     return this.runBatch(dto.pageIds, workspace.id, payload, 'move', async (pageId) => {
-      const result = await this.pagesService.move(
-        pageId,
-        dto.parentId ?? null,
-        dto.targetSpaceId ?? null,
-        payload.sub,
-        workspace.id,
+      const result = await this.pagesService.move({
+        expectedVersion: null,
         mutationId,
-        payload.role,
-      );
+        pageId,
+        parentId: dto.parentId ?? null,
+        role: payload.role,
+        targetSpaceId: dto.targetSpaceId ?? null,
+        userId: payload.sub,
+        workspaceId: workspace.id,
+      });
       return result.isFail() ? Result.fail(result.getError()) : Result.ok(true);
     });
   }

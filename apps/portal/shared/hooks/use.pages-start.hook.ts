@@ -10,7 +10,7 @@ import { createEmptyPageContent } from '@/modules/pages/editor/lib/pages.editor.
 import type { PagesStartResult } from '@/modules/pages/navigation/types/pages.start.types';
 import { createPageAction } from '@/modules/pages/server/actions/pages.actions';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
-import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 
 /** Creates the page empty and opens it; the title is written in the page, not asked for in a form. */
@@ -30,12 +30,14 @@ export const usePagesStart = (): PagesStartResult => {
 
   const startPage = (spaceId: string, parentId: string | null = null): void => {
     startTransition(async () => {
-      const started = await createPageAction({
-        content: createEmptyPageContent(),
-        parentId: parentId ?? undefined,
-        spaceId,
-        title: '',
-      });
+      const started = await callAction(() =>
+        createPageAction({
+          content: createEmptyPageContent(),
+          parentId: parentId ?? undefined,
+          spaceId,
+          title: '',
+        }),
+      );
       openOrComplain(started, spaceId);
     });
   };
@@ -47,14 +49,16 @@ export const usePagesStart = (): PagesStartResult => {
         firstView: t('collection.firstView'),
         titleProperty: t('collection.titleProperty'),
       });
-      const started = await createPageCollectionAction({
-        content: createEmptyPageContent(),
-        parentId: parentId ?? undefined,
-        properties: shape.properties,
-        spaceId,
-        title: t('collection.newTitle'),
-        views: shape.views,
-      });
+      const started = await callAction(() =>
+        createPageCollectionAction({
+          content: createEmptyPageContent(),
+          parentId: parentId ?? undefined,
+          properties: shape.properties,
+          spaceId,
+          title: t('collection.newTitle'),
+          views: shape.views,
+        }),
+      );
       openOrComplain(started, spaceId);
     });
   };

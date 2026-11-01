@@ -47,6 +47,13 @@ const chartDefinition: PageViewDefinition = {
   type: PAGE_VIEW_TYPE.CHART,
 };
 
+/** Does not group: its rows are bars between two dates, one row each, on a scale of days. */
+const timelineDefinition: PageViewDefinition = {
+  grouping: PAGE_VIEW_GROUPING.UNSUPPORTED,
+  shape: PAGE_VIEW_SHAPE.FLAT,
+  type: PAGE_VIEW_TYPE.TIMELINE,
+};
+
 export const PAGE_VIEW_DEFINITIONS = {
   [PAGE_VIEW_TYPE.TABLE]: tableDefinition,
   [PAGE_VIEW_TYPE.BOARD]: boardDefinition,
@@ -54,4 +61,5 @@ export const PAGE_VIEW_DEFINITIONS = {
   [PAGE_VIEW_TYPE.GALLERY]: galleryDefinition,
   [PAGE_VIEW_TYPE.CALENDAR]: calendarDefinition,
   [PAGE_VIEW_TYPE.CHART]: chartDefinition,
+  [PAGE_VIEW_TYPE.TIMELINE]: timelineDefinition,
 } as const satisfies Record<PageViewType, PageViewDefinition>;

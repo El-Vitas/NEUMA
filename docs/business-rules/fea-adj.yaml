@@ -75,6 +75,30 @@ rules:
     title: Un archivo baja con su nombre y de un clic
     rule: Cualquier archivo de una página se descarga con un clic y llega con el nombre con que fue subido.
     why: Un archivo bajado con un nombre inventado obliga a renombrarlo para reconocerlo después.
+  - id: BR-d3de47c
+    status: active
+    title: Un agente sube un archivo igual que una persona
+    rule: >-
+      Un agente sube un archivo a una página o a una fila enviándolo en base64 con su nombre y su tipo, y recibe el id
+      para ponerlo en una columna de archivos. Pasa por las mismas reglas que la subida del portal: hasta 10 MB, solo
+      los tipos aceptados, un nombre válido, y solo en una página donde su token puede escribir. Una página que el token
+      tiene cerrada responde como si no existiera. Un archivo que no es base64 válido, está vacío o pasa del límite se
+      rechaza antes de guardar nada.
+    why: >-
+      Lo que una persona hace en el portal lo hace un agente por el MCP, y por el camino eficiente; una subida con
+      reglas más flojas sería la puerta trasera para guardar lo que el portal no deja.
+    context: >-
+      El archivo queda en la página a la que se subió, y quien ve esa página lo abre. Adjuntarlo a una fila es un paso
+      aparte: poner el id en la columna de archivos.
+    scenarios:
+      - title: Un tipo que el portal rechaza
+        given: Un token que escribe en una fila
+        when: El agente sube un ejecutable
+        then: Se rechaza y la fila no gana ningún archivo
+      - title: Subir y adjuntar
+        given: Un token que escribe en la colección
+        when: Sube un informe a una fila y pone su id en la columna de archivos
+        then: La fila lo lista y el archivo se descarga con su contenido
   - id: BR-f2bb3a7
     status: active
     title: Solo los archivos pueden enmarcarse, y solo en la propia aplicación

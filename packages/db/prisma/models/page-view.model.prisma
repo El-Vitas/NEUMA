@@ -4,7 +4,7 @@ model PageView {
   pageId   String
   userId   String
   viewedAt TimestamptzJsDate @default(now())
-  page     Page              @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageView_pageId_fkey", index: "PageView_pageId_viewedAt_idx")
+  page     Block             @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageView_pageId_fkey", index: "PageView_pageId_viewedAt_idx")
   user     User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageView_userId_fkey")
 
   @@index([pageId, viewedAt], map: "PageView_pageId_viewedAt_idx")

@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/components/ui/dialog';
-import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import { trashPageAction } from '../../server/actions/pages.actions';
 import { getPageTrashPreviewAction } from '../server/actions/pages.trash.actions';
 
@@ -35,7 +35,7 @@ export const PagesTrashConfirmDialog = ({ onClose, onTrashed, page, spaceId }: I
   useEffect(() => {
     if (pageId === null) return;
     let isCancelled = false;
-    void getPageTrashPreviewAction({ pageId, spaceId }).then((result) => {
+    void callAction(() => getPageTrashPreviewAction({ pageId, spaceId })).then((result) => {
       if (isCancelled || !isActionSuccess<{ childPageCount: number }>(result)) return;
       setChildPageCount(result.data.childPageCount);
       setResolvedPageId(pageId);
@@ -49,7 +49,7 @@ export const PagesTrashConfirmDialog = ({ onClose, onTrashed, page, spaceId }: I
 
   const confirmTrash = (): void => {
     startTransition(async () => {
-      const result = await trashPageAction({ pageId: page.id, spaceId });
+      const result = await callAction(() => trashPageAction({ pageId: page.id, spaceId }));
       if (hasActionError(result)) {
         toast.error(t('permissionError'));
         return;

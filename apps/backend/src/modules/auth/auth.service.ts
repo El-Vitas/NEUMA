@@ -1,17 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { type AuthSession, Result, type User } from '@neuma/shared';
+import { type AuthSession, Result } from '@neuma/shared';
+import type { TokenPayload } from '../../common/types/auth.types';
 import { toUser } from '../../common/utils/auth.utils';
-import { assertUserIsActive } from './domain/auth.domain';
+import { assertUserIsActive, isRefreshTokenCurrent } from './domain/auth.domain';
 import { type InactiveUserError, InvalidCredentialsError } from './domain/auth.error';
 import { LoginDto } from './dto/login.dto';
 import { PasswordAdapter } from './infrastructure/adapters/password.adapter';
 import { TokenAdapter } from './infrastructure/adapters/token.adapter';
 import { AuthRepository } from './infrastructure/persistence/auth.repository';
+import { RefreshSessionRepository } from './infrastructure/persistence/refresh-session.repository';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly authRepository: AuthRepository,
+    private readonly refreshSessionRepository: RefreshSessionRepository,
     private readonly passwordAdapter: PasswordAdapter,
     private readonly tokenAdapter: TokenAdapter,
   ) {}
@@ -20,26 +23,27 @@ export class AuthService {
     return this.passwordAdapter.hash(password);
   }
 
-  async loginUser(input: LoginDto): Promise<Result<AuthSession, InactiveUserError | InvalidCredentialsError>> {
+  async loginUser(input: LoginDto): Promise<Result<AuthSession, InvalidCredentialsError>> {
     const user = await this.authRepository.findByEmail(input.email);
-    if (user === null) {
+    const matches =
+      user === null
+        ? await this.passwordAdapter.compareAgainstNobody(input.password)
+        : await this.passwordAdapter.compare(input.password, user.password);
+    if (user === null || !matches || assertUserIsActive(user) !== null) {
       return Result.fail(new InvalidCredentialsError());
     }
 
-    const inactiveError = assertUserIsActive(user);
-    if (inactiveError !== null) {
-      return Result.fail(inactiveError);
-    }
-
-    const matches = await this.passwordAdapter.compare(input.password, user.password);
-    if (!matches) {
-      return Result.fail(new InvalidCredentialsError());
-    }
-
-    return Result.ok(await this.tokenAdapter.issueSession(toUser(user)));
+    const record = await this.refreshSessionRepository.startFamily(
+      user.id,
+      this.tokenAdapter.computeRefreshExpiry(new Date()),
+    );
+    return Result.ok(await this.tokenAdapter.issueSession(toUser(user), user.tokenVersion, record));
   }
 
-  /** Re-reads the user on every renewal so a deactivated user stops being renewed. */
+  /**
+   * Re-reads the user on every renewal so a deactivated user or a revoked token stops being renewed. Each renewal
+   * spends the presented token and issues its successor; a spent token that comes back late revokes its family.
+   */
   async refreshSession(
     refreshToken: string,
   ): Promise<Result<AuthSession, InactiveUserError | InvalidCredentialsError>> {
@@ -49,7 +53,7 @@ export class AuthService {
     }
 
     const user = await this.authRepository.findByEmail(payload.email);
-    if (user === null) {
+    if (user === null || !isRefreshTokenCurrent(payload.ver, user.tokenVersion)) {
       return Result.fail(new InvalidCredentialsError());
     }
 
@@ -58,14 +62,29 @@ export class AuthService {
       return Result.fail(inactiveError);
     }
 
-    return Result.ok(await this.tokenAdapter.issueSession(toUser(user)));
+    const now = new Date();
+    const outcome = await this.refreshSessionRepository.rotate({
+      now,
+      successorExpiresAt: this.tokenAdapter.computeRefreshExpiry(now),
+      tokenId: payload.jti,
+      userId: user.id,
+    });
+    if (outcome.status === 'reused' || outcome.status === 'unknown') {
+      return Result.fail(new InvalidCredentialsError());
+    }
+
+    return Result.ok(await this.tokenAdapter.issueSession(toUser(user), user.tokenVersion, outcome.session));
   }
 
-  logoutUser(): void {
-    return;
+  /**
+   * Ends the session this access token came from; other devices stay signed in. An open access token still
+   * works until it expires, minutes later.
+   */
+  async logoutUser(payload: TokenPayload): Promise<void> {
+    await this.refreshSessionRepository.revokeFamily(payload.sub, payload.sid);
   }
 
-  async signAccessToken(user: User): Promise<string> {
-    return this.tokenAdapter.signAccessToken(user);
+  async purgeExpiredRefreshSessions(now: Date): Promise<number> {
+    return this.refreshSessionRepository.deleteExpired(now);
   }
 }

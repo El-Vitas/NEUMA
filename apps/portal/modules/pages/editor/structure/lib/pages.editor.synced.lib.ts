@@ -49,9 +49,9 @@ export const buildSyncedBlockContent = (reference: Omit<PageSyncedReference, 'po
   type: 'doc',
 });
 
-/** Drops id and comments: they belong to the original block, and one block cannot be two. */
+/** Drops the id: it belongs to the original block, and one block cannot be two. */
 const asACopy = (borrowed: EditorNode): EditorNode =>
-  borrowed.type.create({ ...borrowed.attrs, comments: null, id: null }, borrowed.content, borrowed.marks);
+  borrowed.type.create({ ...borrowed.attrs, id: null }, borrowed.content, borrowed.marks);
 
 /** Replaces the synced block with an independent copy of the original. */
 export const createPageUnsyncCommand =

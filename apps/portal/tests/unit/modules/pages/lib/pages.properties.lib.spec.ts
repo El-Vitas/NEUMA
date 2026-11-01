@@ -4,22 +4,29 @@ import {
   findPagePersonOption,
   formatPropertyValueForDisplay,
   getBooleanPropertyValue,
+  getDatePropertyValue,
   getEditableSchemaProperties,
-  getMultiSelectPropertyValue,
+  getListPropertyValue,
   getNumberPropertyValue,
   getPagePersonOptionLabel,
   getStringPropertyValue,
   hasPersonProperty,
+  isPropertyBulkAssignable,
+  isPropertyEditableInPlace,
+  isPropertyReadableWithoutLookups,
+  joinPropertyNames,
   readPagePersonDisplayName,
+  readPropertyLinkHref,
 } from '@/modules/pages/collections/lib/pages.properties.lib';
 import type {
   PagePersonOption,
   PageSchema,
   PageSchemaProperty,
 } from '@/modules/pages/collections/types/pages.schema.types';
-import { asPropertyOptions } from './pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 
 const titleProperty: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'title',
   label: 'Title',
   options: null,
@@ -27,6 +34,7 @@ const titleProperty: PageSchemaProperty = {
   type: 'TITLE',
 };
 const statusProperty: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'status',
   label: 'Status',
   options: asPropertyOptions('todo', 'in_progress', 'done'),
@@ -34,6 +42,7 @@ const statusProperty: PageSchemaProperty = {
   type: 'SELECT',
 };
 const teamProperty: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'team',
   label: 'Team',
   options: asPropertyOptions('design', 'engineering'),
@@ -41,6 +50,7 @@ const teamProperty: PageSchemaProperty = {
   type: 'MULTI_SELECT',
 };
 const doneProperty: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'done',
   label: 'Done',
   options: null,
@@ -48,11 +58,44 @@ const doneProperty: PageSchemaProperty = {
   type: 'CHECKBOX',
 };
 const countProperty: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'count',
   label: 'Count',
   options: null,
   required: false,
   type: 'NUMBER',
+};
+const uniqueIdProperty: PageSchemaProperty = {
+  config: { ...defaultConfig, prefix: 'TSK' },
+  key: 'ticket',
+  label: 'Ticket',
+  options: null,
+  required: false,
+  type: 'UNIQUE_ID',
+};
+const percentProperty: PageSchemaProperty = {
+  config: { ...defaultConfig, decimals: 1, numberFormat: 'PERCENT' },
+  key: 'progress',
+  label: 'Progress',
+  options: null,
+  required: false,
+  type: 'NUMBER',
+};
+const relationProperty: PageSchemaProperty = {
+  config: { ...defaultConfig, targetCollectionId: 'other' },
+  key: 'related',
+  label: 'Related',
+  options: null,
+  required: false,
+  type: 'RELATION',
+};
+const filesProperty: PageSchemaProperty = {
+  config: defaultConfig,
+  key: 'files',
+  label: 'Files',
+  options: null,
+  required: false,
+  type: 'FILES',
 };
 
 const rowSchema: PageSchema = {
@@ -100,9 +143,19 @@ describe('property value getters', () => {
     expect(getBooleanPropertyValue(undefined)).toBe(false);
   });
 
-  it('extracts a multi-select value and falls back to an empty list', () => {
-    expect(getMultiSelectPropertyValue(['design'])).toEqual(['design']);
-    expect(getMultiSelectPropertyValue(undefined)).toEqual([]);
+  it('extracts a list value and falls back to an empty list', () => {
+    expect(getListPropertyValue(['design'])).toEqual(['design']);
+    expect(getListPropertyValue(undefined)).toEqual([]);
+    expect(getListPropertyValue('design')).toEqual([]);
+  });
+
+  it('extracts a date value and falls back to nothing', () => {
+    expect(getDatePropertyValue({ end: '2026-03-03', start: '2026-03-01' })).toEqual({
+      end: '2026-03-03',
+      start: '2026-03-01',
+    });
+    expect(getDatePropertyValue('2026-03-01')).toBeNull();
+    expect(getDatePropertyValue(undefined)).toBeNull();
   });
 });
 
@@ -115,6 +168,32 @@ describe('formatPropertyValueForDisplay', () => {
     expect(formatPropertyValueForDisplay(statusProperty, 'in_progress')).toBe('In progress');
   });
 
+  it('writes a number a formula gives with up to two decimals, never as a raw float', () => {
+    const unit: PageSchemaProperty = {
+      ...countProperty,
+      computed: {
+        formula: {
+          ast: { from: 0, kind: 'LITERAL', to: 1, value: 1 },
+          isClockDependent: false,
+          references: [],
+          resultType: 'NUMBER',
+          source: '1',
+        },
+        rollup: null,
+      },
+      type: 'FORMULA',
+    };
+
+    expect(formatPropertyValueForDisplay(unit, 10 / 3)).toBe('3.33');
+    expect(formatPropertyValueForDisplay(unit, 30)).toBe('30');
+  });
+
+  it('keeps the decimals of the column when it sets them, formula or not', () => {
+    const exact: PageSchemaProperty = { ...countProperty, config: { ...defaultConfig, decimals: 3 } };
+
+    expect(formatPropertyValueForDisplay(exact, 2)).toBe('2.000');
+  });
+
   it('stringifies other values', () => {
     expect(formatPropertyValueForDisplay(countProperty, 3)).toBe('3');
   });
@@ -122,10 +201,56 @@ describe('formatPropertyValueForDisplay', () => {
   it('returns an empty string when the value is undefined', () => {
     expect(formatPropertyValueForDisplay(statusProperty, undefined)).toBe('');
   });
+
+  it('shows a percent as a percent although it is stored as a fraction', () => {
+    expect(formatPropertyValueForDisplay(percentProperty, 0.255)).toBe('25.5%');
+  });
+
+  it('shows a unique id with its prefix', () => {
+    expect(formatPropertyValueForDisplay(uniqueIdProperty, 42)).toBe('TSK-42');
+  });
+});
+
+describe('which properties a person can write', () => {
+  it('edits what is typed or picked in the cell', () => {
+    expect(isPropertyEditableInPlace(statusProperty)).toBe(true);
+    expect(isPropertyEditableInPlace(relationProperty)).toBe(true);
+  });
+
+  it('never edits in the cell what the server fills or what is chosen among the row files', () => {
+    expect(isPropertyEditableInPlace(uniqueIdProperty)).toBe(false);
+    expect(isPropertyEditableInPlace(filesProperty)).toBe(false);
+  });
+
+  it('assigns one value to many rows only for what is typed or picked', () => {
+    expect(isPropertyBulkAssignable(statusProperty)).toBe(true);
+    expect(isPropertyBulkAssignable(relationProperty)).toBe(false);
+    expect(isPropertyBulkAssignable(filesProperty)).toBe(false);
+    expect(isPropertyBulkAssignable(uniqueIdProperty)).toBe(false);
+  });
+
+  it('leaves out of a summary what is held as an id', () => {
+    expect(isPropertyReadableWithoutLookups(statusProperty)).toBe(true);
+    expect(isPropertyReadableWithoutLookups(relationProperty)).toBe(false);
+    expect(isPropertyReadableWithoutLookups(filesProperty)).toBe(false);
+  });
+});
+
+describe('how a value opens', () => {
+  it('opens a mail with its scheme and a phone without its spaces', () => {
+    expect(readPropertyLinkHref('EMAIL', 'ada@example.com')).toBe('mailto:ada@example.com');
+    expect(readPropertyLinkHref('PHONE', '+56 9 1234 5678')).toBe('tel:+56912345678');
+    expect(readPropertyLinkHref('URL', 'https://example.com')).toBe('https://example.com');
+  });
+
+  it('joins names without leaving a gap for one that could not be resolved', () => {
+    expect(joinPropertyNames(['Ada', '', 'Grace'])).toBe('Ada, Grace');
+  });
 });
 
 describe('hasPersonProperty', () => {
   const assigneeProperty: PageSchemaProperty = {
+    config: defaultConfig,
     key: 'assignee',
     label: 'Assignee',
     options: null,
@@ -174,7 +299,6 @@ describe('person option helpers', () => {
   });
 
   it('says nothing when nobody is assigned', () => {
-    expect(readPagePersonDisplayName(options, undefined)).toBe('');
     expect(readPagePersonDisplayName(options, '')).toBe('');
   });
 

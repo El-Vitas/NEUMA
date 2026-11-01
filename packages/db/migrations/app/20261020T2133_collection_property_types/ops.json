@@ -1,0 +1,740 @@
+[
+  {
+    "id": "addNativeEnumValue.DatabasePropertyType.STATUS",
+    "label": "Add value \"STATUS\" to enum type \"DatabasePropertyType\"",
+    "summary": "Adds value \"STATUS\" to enum type \"DatabasePropertyType\". A newly added enum value cannot be used until the transaction that adds it commits, so a migration that both appends a value and uses it in the same step will fail at apply.",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabasePropertyType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure enum type \"DatabasePropertyType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_type\" AS \"t\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"t\".\"typtype\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "e"
+        ]
+      },
+      {
+        "description": "ensure value \"STATUS\" is absent from enum type \"DatabasePropertyType\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "STATUS"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add value \"STATUS\" to enum type \"DatabasePropertyType\"",
+        "sql": "ALTER TYPE \"public\".\"DatabasePropertyType\" ADD VALUE 'STATUS'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify value \"STATUS\" exists on enum type \"DatabasePropertyType\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "STATUS"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "addNativeEnumValue.DatabasePropertyType.RELATION",
+    "label": "Add value \"RELATION\" to enum type \"DatabasePropertyType\"",
+    "summary": "Adds value \"RELATION\" to enum type \"DatabasePropertyType\". A newly added enum value cannot be used until the transaction that adds it commits, so a migration that both appends a value and uses it in the same step will fail at apply.",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabasePropertyType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure enum type \"DatabasePropertyType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_type\" AS \"t\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"t\".\"typtype\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "e"
+        ]
+      },
+      {
+        "description": "ensure value \"RELATION\" is absent from enum type \"DatabasePropertyType\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "RELATION"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add value \"RELATION\" to enum type \"DatabasePropertyType\"",
+        "sql": "ALTER TYPE \"public\".\"DatabasePropertyType\" ADD VALUE 'RELATION'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify value \"RELATION\" exists on enum type \"DatabasePropertyType\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "RELATION"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "addNativeEnumValue.DatabasePropertyType.URL",
+    "label": "Add value \"URL\" to enum type \"DatabasePropertyType\"",
+    "summary": "Adds value \"URL\" to enum type \"DatabasePropertyType\". A newly added enum value cannot be used until the transaction that adds it commits, so a migration that both appends a value and uses it in the same step will fail at apply.",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabasePropertyType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure enum type \"DatabasePropertyType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_type\" AS \"t\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"t\".\"typtype\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "e"
+        ]
+      },
+      {
+        "description": "ensure value \"URL\" is absent from enum type \"DatabasePropertyType\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "URL"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add value \"URL\" to enum type \"DatabasePropertyType\"",
+        "sql": "ALTER TYPE \"public\".\"DatabasePropertyType\" ADD VALUE 'URL'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify value \"URL\" exists on enum type \"DatabasePropertyType\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "URL"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "addNativeEnumValue.DatabasePropertyType.EMAIL",
+    "label": "Add value \"EMAIL\" to enum type \"DatabasePropertyType\"",
+    "summary": "Adds value \"EMAIL\" to enum type \"DatabasePropertyType\". A newly added enum value cannot be used until the transaction that adds it commits, so a migration that both appends a value and uses it in the same step will fail at apply.",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabasePropertyType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure enum type \"DatabasePropertyType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_type\" AS \"t\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"t\".\"typtype\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "e"
+        ]
+      },
+      {
+        "description": "ensure value \"EMAIL\" is absent from enum type \"DatabasePropertyType\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "EMAIL"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add value \"EMAIL\" to enum type \"DatabasePropertyType\"",
+        "sql": "ALTER TYPE \"public\".\"DatabasePropertyType\" ADD VALUE 'EMAIL'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify value \"EMAIL\" exists on enum type \"DatabasePropertyType\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "EMAIL"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "addNativeEnumValue.DatabasePropertyType.PHONE",
+    "label": "Add value \"PHONE\" to enum type \"DatabasePropertyType\"",
+    "summary": "Adds value \"PHONE\" to enum type \"DatabasePropertyType\". A newly added enum value cannot be used until the transaction that adds it commits, so a migration that both appends a value and uses it in the same step will fail at apply.",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabasePropertyType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure enum type \"DatabasePropertyType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_type\" AS \"t\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"t\".\"typtype\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "e"
+        ]
+      },
+      {
+        "description": "ensure value \"PHONE\" is absent from enum type \"DatabasePropertyType\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "PHONE"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add value \"PHONE\" to enum type \"DatabasePropertyType\"",
+        "sql": "ALTER TYPE \"public\".\"DatabasePropertyType\" ADD VALUE 'PHONE'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify value \"PHONE\" exists on enum type \"DatabasePropertyType\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "PHONE"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "addNativeEnumValue.DatabasePropertyType.FILES",
+    "label": "Add value \"FILES\" to enum type \"DatabasePropertyType\"",
+    "summary": "Adds value \"FILES\" to enum type \"DatabasePropertyType\". A newly added enum value cannot be used until the transaction that adds it commits, so a migration that both appends a value and uses it in the same step will fail at apply.",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabasePropertyType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure enum type \"DatabasePropertyType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_type\" AS \"t\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"t\".\"typtype\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "e"
+        ]
+      },
+      {
+        "description": "ensure value \"FILES\" is absent from enum type \"DatabasePropertyType\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "FILES"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add value \"FILES\" to enum type \"DatabasePropertyType\"",
+        "sql": "ALTER TYPE \"public\".\"DatabasePropertyType\" ADD VALUE 'FILES'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify value \"FILES\" exists on enum type \"DatabasePropertyType\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "FILES"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "addNativeEnumValue.DatabasePropertyType.CREATED_TIME",
+    "label": "Add value \"CREATED_TIME\" to enum type \"DatabasePropertyType\"",
+    "summary": "Adds value \"CREATED_TIME\" to enum type \"DatabasePropertyType\". A newly added enum value cannot be used until the transaction that adds it commits, so a migration that both appends a value and uses it in the same step will fail at apply.",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabasePropertyType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure enum type \"DatabasePropertyType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_type\" AS \"t\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"t\".\"typtype\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "e"
+        ]
+      },
+      {
+        "description": "ensure value \"CREATED_TIME\" is absent from enum type \"DatabasePropertyType\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "CREATED_TIME"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add value \"CREATED_TIME\" to enum type \"DatabasePropertyType\"",
+        "sql": "ALTER TYPE \"public\".\"DatabasePropertyType\" ADD VALUE 'CREATED_TIME'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify value \"CREATED_TIME\" exists on enum type \"DatabasePropertyType\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "CREATED_TIME"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "addNativeEnumValue.DatabasePropertyType.EDITED_TIME",
+    "label": "Add value \"EDITED_TIME\" to enum type \"DatabasePropertyType\"",
+    "summary": "Adds value \"EDITED_TIME\" to enum type \"DatabasePropertyType\". A newly added enum value cannot be used until the transaction that adds it commits, so a migration that both appends a value and uses it in the same step will fail at apply.",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabasePropertyType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure enum type \"DatabasePropertyType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_type\" AS \"t\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"t\".\"typtype\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "e"
+        ]
+      },
+      {
+        "description": "ensure value \"EDITED_TIME\" is absent from enum type \"DatabasePropertyType\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "EDITED_TIME"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add value \"EDITED_TIME\" to enum type \"DatabasePropertyType\"",
+        "sql": "ALTER TYPE \"public\".\"DatabasePropertyType\" ADD VALUE 'EDITED_TIME'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify value \"EDITED_TIME\" exists on enum type \"DatabasePropertyType\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "EDITED_TIME"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "addNativeEnumValue.DatabasePropertyType.CREATED_BY",
+    "label": "Add value \"CREATED_BY\" to enum type \"DatabasePropertyType\"",
+    "summary": "Adds value \"CREATED_BY\" to enum type \"DatabasePropertyType\". A newly added enum value cannot be used until the transaction that adds it commits, so a migration that both appends a value and uses it in the same step will fail at apply.",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabasePropertyType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure enum type \"DatabasePropertyType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_type\" AS \"t\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"t\".\"typtype\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "e"
+        ]
+      },
+      {
+        "description": "ensure value \"CREATED_BY\" is absent from enum type \"DatabasePropertyType\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "CREATED_BY"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add value \"CREATED_BY\" to enum type \"DatabasePropertyType\"",
+        "sql": "ALTER TYPE \"public\".\"DatabasePropertyType\" ADD VALUE 'CREATED_BY'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify value \"CREATED_BY\" exists on enum type \"DatabasePropertyType\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "CREATED_BY"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "addNativeEnumValue.DatabasePropertyType.EDITED_BY",
+    "label": "Add value \"EDITED_BY\" to enum type \"DatabasePropertyType\"",
+    "summary": "Adds value \"EDITED_BY\" to enum type \"DatabasePropertyType\". A newly added enum value cannot be used until the transaction that adds it commits, so a migration that both appends a value and uses it in the same step will fail at apply.",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabasePropertyType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure enum type \"DatabasePropertyType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_type\" AS \"t\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"t\".\"typtype\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "e"
+        ]
+      },
+      {
+        "description": "ensure value \"EDITED_BY\" is absent from enum type \"DatabasePropertyType\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "EDITED_BY"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add value \"EDITED_BY\" to enum type \"DatabasePropertyType\"",
+        "sql": "ALTER TYPE \"public\".\"DatabasePropertyType\" ADD VALUE 'EDITED_BY'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify value \"EDITED_BY\" exists on enum type \"DatabasePropertyType\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "EDITED_BY"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "addNativeEnumValue.DatabasePropertyType.UNIQUE_ID",
+    "label": "Add value \"UNIQUE_ID\" to enum type \"DatabasePropertyType\"",
+    "summary": "Adds value \"UNIQUE_ID\" to enum type \"DatabasePropertyType\". A newly added enum value cannot be used until the transaction that adds it commits, so a migration that both appends a value and uses it in the same step will fail at apply.",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabasePropertyType"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure enum type \"DatabasePropertyType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_type\" AS \"t\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"t\".\"typtype\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "e"
+        ]
+      },
+      {
+        "description": "ensure value \"UNIQUE_ID\" is absent from enum type \"DatabasePropertyType\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "UNIQUE_ID"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add value \"UNIQUE_ID\" to enum type \"DatabasePropertyType\"",
+        "sql": "ALTER TYPE \"public\".\"DatabasePropertyType\" ADD VALUE 'UNIQUE_ID'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify value \"UNIQUE_ID\" exists on enum type \"DatabasePropertyType\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_enum\" AS \"e\" INNER JOIN \"pg_type\" AS \"t\" ON \"t\".\"oid\" = \"e\".\"enumtypid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"t\".\"typnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"t\".\"typname\" = $2 AND \"e\".\"enumlabel\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "DatabasePropertyType",
+          "UNIQUE_ID"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.PageSchemaProperty.config",
+    "label": "Add column \"config\" to \"PageSchemaProperty\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "config",
+        "table": "PageSchemaProperty"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"config\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "PageSchemaProperty",
+          "config"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"config\"",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaProperty\" ADD COLUMN \"config\" jsonb"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"config\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "PageSchemaProperty",
+          "config"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.PageSchemaProperty.nextValue",
+    "label": "Add column \"nextValue\" to \"PageSchemaProperty\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "nextValue",
+        "table": "PageSchemaProperty"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"nextValue\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "PageSchemaProperty",
+          "nextValue"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"nextValue\"",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaProperty\" ADD COLUMN \"nextValue\" int4 DEFAULT 1 NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"nextValue\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "PageSchemaProperty",
+          "nextValue"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "function.neuma_remap_filter",
+    "label": "Create the helper that moves a filter from option names to ids",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create \"neuma_remap_filter\"",
+        "sql": "\nCREATE FUNCTION \"public\".\"neuma_remap_filter\"(filter jsonb, names jsonb, person_keys jsonb) RETURNS jsonb\nLANGUAGE plpgsql IMMUTABLE AS $function$\nDECLARE\n  mapped jsonb;\n  property_key text;\n  current_value jsonb;\n  next_value jsonb;\n  next_operator text;\nBEGIN\n  IF filter IS NULL OR jsonb_typeof(filter) <> 'object' THEN\n    RETURN filter;\n  END IF;\n  IF filter ->> 'kind' = 'GROUP' THEN\n    SELECT COALESCE(jsonb_agg(\"public\".\"neuma_remap_filter\"(item, names, person_keys) ORDER BY position), '[]'::jsonb)\n    INTO mapped\n    FROM jsonb_array_elements(COALESCE(filter -> 'conditions', '[]'::jsonb)) WITH ORDINALITY AS each(item, position);\n    RETURN jsonb_set(filter, '{conditions}', mapped);\n  END IF;\n  property_key := filter ->> 'propertyKey';\n  IF property_key IS NOT NULL AND names -> property_key IS NOT NULL THEN\n    current_value := filter -> 'value';\n    IF jsonb_typeof(current_value) = 'string' THEN\n      next_value := COALESCE(to_jsonb(names -> property_key ->> (current_value #>> '{}')), current_value);\n    ELSIF jsonb_typeof(current_value) = 'array' THEN\n      SELECT COALESCE(jsonb_agg(COALESCE(to_jsonb(names -> property_key ->> each.name), to_jsonb(each.name)) ORDER BY position), '[]'::jsonb)\n      INTO next_value\n      FROM jsonb_array_elements_text(current_value) WITH ORDINALITY AS each(name, position);\n    ELSE\n      next_value := current_value;\n    END IF;\n    RETURN jsonb_set(filter, '{value}', COALESCE(next_value, 'null'::jsonb));\n  END IF;\n  IF property_key IS NOT NULL AND person_keys @> to_jsonb(property_key) THEN\n    next_operator := CASE filter ->> 'operator'\n      WHEN 'IS' THEN 'CONTAINS'\n      WHEN 'IS_NOT' THEN 'NOT_CONTAINS'\n      ELSE filter ->> 'operator'\n    END;\n    RETURN jsonb_set(filter, '{operator}', to_jsonb(next_operator));\n  END IF;\n  RETURN filter;\nEND\n$function$"
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "function.neuma_map_group_name",
+    "label": "Create the helper that moves a board column name to an option id",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create \"neuma_map_group_name\"",
+        "sql": "\nCREATE FUNCTION \"public\".\"neuma_map_group_name\"(names jsonb, configuration jsonb, group_name text) RETURNS text\nLANGUAGE sql IMMUTABLE AS $function$\n  SELECT COALESCE(\n    names -> (configuration ->> 'groupBy') ->> group_name,\n    names -> (configuration ->> 'subGroupBy') ->> group_name,\n    group_name\n  )\n$function$"
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "backfill.PageSchemaProperty.optionIds",
+    "label": "Give each option an id and move rows and views from names to ids, persons to lists, dates to ranges",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "rewrite options, rows and views",
+        "sql": "\nDO $migration$\nDECLARE\n  property record;\n  view_row record;\n  next_configuration jsonb;\n  total_values integer := 0;\n  moved_values integer := 0;\n  unresolved_total integer := 0;\n  moved_persons integer := 0;\n  moved_dates integer := 0;\n  dropped_dates integer := 0;\n  count_before integer;\n  count_after integer;\nBEGIN\n  CREATE TEMP TABLE \"option_map\" ON COMMIT DROP AS\n  SELECT\n    schema_property.\"id\" AS \"propertyId\",\n    schema_property.\"pageId\",\n    schema_property.\"key\" AS \"propertyKey\",\n    CASE jsonb_typeof(item) WHEN 'string' THEN item #>> '{}' ELSE item ->> 'value' END AS \"name\",\n    CASE jsonb_typeof(item) WHEN 'string' THEN NULL ELSE item ->> 'color' END AS \"color\",\n    substr(md5(schema_property.\"id\" || ':' || position::text), 1, 8) AS \"optionId\",\n    position\n  FROM \"public\".\"PageSchemaProperty\" AS schema_property\n  CROSS JOIN LATERAL jsonb_array_elements(schema_property.\"options\") WITH ORDINALITY AS each(item, position)\n  WHERE schema_property.\"type\" IN ('SELECT', 'MULTI_SELECT') AND jsonb_typeof(schema_property.\"options\") = 'array';\n\n  UPDATE \"public\".\"PageSchemaProperty\" AS schema_property\n  SET \"options\" = (\n    SELECT jsonb_agg(jsonb_build_object('id', mapped.\"optionId\", 'value', mapped.\"name\", 'color', mapped.\"color\") ORDER BY mapped.position)\n    FROM \"option_map\" AS mapped\n    WHERE mapped.\"propertyId\" = schema_property.\"id\"\n  )\n  WHERE schema_property.\"id\" IN (SELECT \"propertyId\" FROM \"option_map\");\n\n  FOR property IN\n    SELECT \"id\", \"pageId\", \"key\", \"type\" FROM \"public\".\"PageSchemaProperty\" WHERE \"type\" IN ('SELECT', 'MULTI_SELECT')\n  LOOP\n    IF property.\"type\" = 'SELECT' THEN\n      SELECT count(*) INTO count_before FROM \"public\".\"Block\" AS row_block\n      WHERE row_block.\"parentId\" = property.\"pageId\" AND jsonb_typeof(row_block.\"properties\" -> 'values' -> property.\"key\") = 'string';\n      total_values := total_values + count_before;\n      UPDATE \"public\".\"Block\" AS row_block\n      SET \"properties\" = jsonb_set(\n        row_block.\"properties\",\n        ARRAY['values', property.\"key\"],\n        COALESCE((\n          SELECT to_jsonb(mapped.\"optionId\") FROM \"option_map\" AS mapped\n          WHERE mapped.\"propertyId\" = property.\"id\" AND mapped.\"name\" = row_block.\"properties\" -> 'values' ->> property.\"key\"\n          LIMIT 1\n        ), 'null'::jsonb)\n      )\n      WHERE row_block.\"parentId\" = property.\"pageId\" AND jsonb_typeof(row_block.\"properties\" -> 'values' -> property.\"key\") = 'string';\n      SELECT count(*) INTO count_after FROM \"public\".\"Block\" AS row_block\n      WHERE row_block.\"parentId\" = property.\"pageId\" AND jsonb_typeof(row_block.\"properties\" -> 'values' -> property.\"key\") = 'string';\n      moved_values := moved_values + count_after;\n      UPDATE \"public\".\"Block\" AS row_block\n      SET \"properties\" = row_block.\"properties\" #- ARRAY['values', property.\"key\"]\n      WHERE row_block.\"parentId\" = property.\"pageId\" AND jsonb_typeof(row_block.\"properties\" -> 'values' -> property.\"key\") = 'null';\n    ELSE\n      SELECT COALESCE(sum(jsonb_array_length(row_block.\"properties\" -> 'values' -> property.\"key\")), 0) INTO count_before\n      FROM \"public\".\"Block\" AS row_block\n      WHERE row_block.\"parentId\" = property.\"pageId\" AND jsonb_typeof(row_block.\"properties\" -> 'values' -> property.\"key\") = 'array';\n      total_values := total_values + count_before;\n      UPDATE \"public\".\"Block\" AS row_block\n      SET \"properties\" = jsonb_set(\n        row_block.\"properties\",\n        ARRAY['values', property.\"key\"],\n        COALESCE((\n          SELECT jsonb_agg(mapped.\"optionId\" ORDER BY entry.position)\n          FROM jsonb_array_elements_text(row_block.\"properties\" -> 'values' -> property.\"key\") WITH ORDINALITY AS entry(name, position)\n          JOIN \"option_map\" AS mapped ON mapped.\"propertyId\" = property.\"id\" AND mapped.\"name\" = entry.name\n        ), '[]'::jsonb)\n      )\n      WHERE row_block.\"parentId\" = property.\"pageId\" AND jsonb_typeof(row_block.\"properties\" -> 'values' -> property.\"key\") = 'array';\n      SELECT COALESCE(sum(jsonb_array_length(row_block.\"properties\" -> 'values' -> property.\"key\")), 0) INTO count_after\n      FROM \"public\".\"Block\" AS row_block\n      WHERE row_block.\"parentId\" = property.\"pageId\" AND jsonb_typeof(row_block.\"properties\" -> 'values' -> property.\"key\") = 'array';\n      moved_values := moved_values + count_after;\n      UPDATE \"public\".\"Block\" AS row_block\n      SET \"properties\" = row_block.\"properties\" #- ARRAY['values', property.\"key\"]\n      WHERE row_block.\"parentId\" = property.\"pageId\" AND row_block.\"properties\" -> 'values' -> property.\"key\" = '[]'::jsonb;\n    END IF;\n  END LOOP;\n  unresolved_total := total_values - moved_values;\n\n  FOR property IN\n    SELECT \"pageId\", \"key\" FROM \"public\".\"PageSchemaProperty\" WHERE \"type\" = 'PERSON'\n  LOOP\n    UPDATE \"public\".\"Block\" AS row_block\n    SET \"properties\" = jsonb_set(row_block.\"properties\", ARRAY['values', property.\"key\"], jsonb_build_array(row_block.\"properties\" -> 'values' -> property.\"key\"))\n    WHERE row_block.\"parentId\" = property.\"pageId\"\n      AND jsonb_typeof(row_block.\"properties\" -> 'values' -> property.\"key\") = 'string'\n      AND row_block.\"properties\" -> 'values' ->> property.\"key\" <> '';\n    GET DIAGNOSTICS count_after = ROW_COUNT;\n    moved_persons := moved_persons + count_after;\n    UPDATE \"public\".\"Block\" AS row_block\n    SET \"properties\" = row_block.\"properties\" #- ARRAY['values', property.\"key\"]\n    WHERE row_block.\"parentId\" = property.\"pageId\"\n      AND jsonb_typeof(row_block.\"properties\" -> 'values' -> property.\"key\") = 'string';\n  END LOOP;\n\n  FOR property IN\n    SELECT \"pageId\", \"key\" FROM \"public\".\"PageSchemaProperty\" WHERE \"type\" = 'DATE'\n  LOOP\n    UPDATE \"public\".\"Block\" AS row_block\n    SET \"properties\" = jsonb_set(\n      row_block.\"properties\",\n      ARRAY['values', property.\"key\"],\n      jsonb_build_object('start',\n        CASE\n          WHEN row_block.\"properties\" -> 'values' ->> property.\"key\" ~ '^\\d{4}-\\d{2}-\\d{2}$' THEN row_block.\"properties\" -> 'values' ->> property.\"key\"\n          WHEN row_block.\"properties\" -> 'values' ->> property.\"key\" ~ '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d{1,3})?)?(Z|[+-]\\d{2}:\\d{2})$' THEN row_block.\"properties\" -> 'values' ->> property.\"key\"\n          WHEN row_block.\"properties\" -> 'values' ->> property.\"key\" ~ '^\\d{4}-\\d{2}-\\d{2}T' THEN left(row_block.\"properties\" -> 'values' ->> property.\"key\", 10)\n          ELSE NULL\n        END\n      )\n    )\n    WHERE row_block.\"parentId\" = property.\"pageId\" AND jsonb_typeof(row_block.\"properties\" -> 'values' -> property.\"key\") = 'string';\n    GET DIAGNOSTICS count_after = ROW_COUNT;\n    moved_dates := moved_dates + count_after;\n    UPDATE \"public\".\"Block\" AS row_block\n    SET \"properties\" = row_block.\"properties\" #- ARRAY['values', property.\"key\"]\n    WHERE row_block.\"parentId\" = property.\"pageId\"\n      AND jsonb_typeof(row_block.\"properties\" -> 'values' -> property.\"key\" -> 'start') = 'null';\n    GET DIAGNOSTICS count_after = ROW_COUNT;\n    dropped_dates := dropped_dates + count_after;\n  END LOOP;\n\n  CREATE TEMP TABLE \"page_lookup\" ON COMMIT DROP AS\n  SELECT\n    pages.\"pageId\",\n    COALESCE((\n      SELECT jsonb_object_agg(per_property.\"propertyKey\", per_property.\"names\")\n      FROM (\n        SELECT mapped.\"propertyKey\", jsonb_object_agg(mapped.\"name\", mapped.\"optionId\") AS \"names\"\n        FROM \"option_map\" AS mapped WHERE mapped.\"pageId\" = pages.\"pageId\" GROUP BY mapped.\"propertyKey\"\n      ) AS per_property\n    ), '{}'::jsonb) AS \"names\",\n    COALESCE((\n      SELECT jsonb_agg(person.\"key\") FROM \"public\".\"PageSchemaProperty\" AS person\n      WHERE person.\"pageId\" = pages.\"pageId\" AND person.\"type\" = 'PERSON'\n    ), '[]'::jsonb) AS \"personKeys\"\n  FROM (SELECT DISTINCT \"pageId\" FROM \"public\".\"PageSchemaView\") AS pages;\n\n  FOR view_row IN\n    SELECT schema_view.\"id\", schema_view.\"configuration\", lookup.\"names\", lookup.\"personKeys\"\n    FROM \"public\".\"PageSchemaView\" AS schema_view\n    JOIN \"page_lookup\" AS lookup ON lookup.\"pageId\" = schema_view.\"pageId\"\n  LOOP\n    next_configuration := view_row.\"configuration\";\n    IF jsonb_typeof(next_configuration -> 'filter') = 'object' THEN\n      next_configuration := jsonb_set(\n        next_configuration, '{filter}',\n        \"public\".\"neuma_remap_filter\"(next_configuration -> 'filter', view_row.\"names\", view_row.\"personKeys\")\n      );\n    END IF;\n    IF jsonb_typeof(next_configuration -> 'collapsedGroups') = 'array' THEN\n      next_configuration := jsonb_set(\n        next_configuration, '{collapsedGroups}',\n        COALESCE((\n          SELECT jsonb_agg(\"public\".\"neuma_map_group_name\"(view_row.\"names\", next_configuration, entry.name) ORDER BY entry.position)\n          FROM jsonb_array_elements_text(next_configuration -> 'collapsedGroups') WITH ORDINALITY AS entry(name, position)\n        ), '[]'::jsonb)\n      );\n    END IF;\n    IF jsonb_typeof(next_configuration -> 'columnLimits') = 'object' THEN\n      next_configuration := jsonb_set(\n        next_configuration, '{columnLimits}',\n        COALESCE((\n          SELECT jsonb_object_agg(\"public\".\"neuma_map_group_name\"(view_row.\"names\", next_configuration, entry.key), entry.value)\n          FROM jsonb_each(next_configuration -> 'columnLimits') AS entry(key, value)\n        ), '{}'::jsonb)\n      );\n    END IF;\n    IF next_configuration <> view_row.\"configuration\" THEN\n      UPDATE \"public\".\"PageSchemaView\" SET \"configuration\" = next_configuration WHERE \"id\" = view_row.\"id\";\n    END IF;\n  END LOOP;\n\n  RAISE WARNING 'collection property types migration: % option values found, % moved to ids, % named an option the property does not have and were dropped',\n    total_values, moved_values, unresolved_total;\n  RAISE WARNING 'collection property types migration: % person values turned into lists, % dates wrapped, % dates dropped because they were not a date',\n    moved_persons, moved_dates, dropped_dates;\nEND\n$migration$"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every option has an id",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1\n  FROM \"public\".\"PageSchemaProperty\" AS schema_property\n  CROSS JOIN LATERAL jsonb_array_elements(schema_property.\"options\") AS each(item)\n  WHERE schema_property.\"type\" IN ('SELECT', 'MULTI_SELECT')\n    AND jsonb_typeof(schema_property.\"options\") = 'array'\n    AND (jsonb_typeof(item) <> 'object' OR item -> 'id' IS NULL)\n)"
+      },
+      {
+        "description": "no row keeps a person as text",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1\n  FROM \"public\".\"PageSchemaProperty\" AS schema_property\n  JOIN \"public\".\"Block\" AS row_block ON row_block.\"parentId\" = schema_property.\"pageId\"\n  WHERE schema_property.\"type\" = 'PERSON'\n    AND jsonb_typeof(row_block.\"properties\" -> 'values' -> schema_property.\"key\") = 'string'\n)"
+      },
+      {
+        "description": "no row keeps a date as text",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1\n  FROM \"public\".\"PageSchemaProperty\" AS schema_property\n  JOIN \"public\".\"Block\" AS row_block ON row_block.\"parentId\" = schema_property.\"pageId\"\n  WHERE schema_property.\"type\" = 'DATE'\n    AND jsonb_typeof(row_block.\"properties\" -> 'values' -> schema_property.\"key\") = 'string'\n)"
+      }
+    ]
+  },
+  {
+    "id": "function.drop.neuma_remap_filter",
+    "label": "Drop the helper that moved a filter from option names to ids",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "drop \"neuma_remap_filter\"",
+        "sql": "DROP FUNCTION \"public\".\"neuma_remap_filter\"(jsonb, jsonb, jsonb)"
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "function.drop.neuma_map_group_name",
+    "label": "Drop the helper that moved a board column name to an option id",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "drop \"neuma_map_group_name\"",
+        "sql": "DROP FUNCTION \"public\".\"neuma_map_group_name\"(jsonb, jsonb, text)"
+      }
+    ],
+    "postcheck": []
+  }
+]

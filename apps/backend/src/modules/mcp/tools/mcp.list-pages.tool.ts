@@ -20,7 +20,7 @@ const resolveListingPlace = async (
   input: McpListPagesInput,
 ): Promise<{ readonly parentId: string | null; readonly spaceId: string }> => {
   if (input.parentPageId !== undefined) {
-    const [parent] = await dependencies.outline.listReadable([input.parentPageId], call.viewer);
+    const [parent] = await dependencies.outline.listReadable([input.parentPageId], await call.readOutlineViewer());
     if (parent === undefined) throw new McpToolError(MCP_INACCESSIBLE_MESSAGE);
     return { parentId: parent.id, spaceId: parent.spaceId };
   }
@@ -48,7 +48,7 @@ export const listPagesTool: McpToolDefinition = {
       MCP_TOOL_NAMES.listPages,
       {
         description:
-          'Browse the page tree one level at a time: the pages at the top of a space, or the pages right under a page, each with how many pages are under it. Under a collection (a table or board of tasks), each row comes with its properties, such as status, assignee and due date. Long lists come in parts, with a cursor for the next one.',
+          'Browse the page tree one level at a time: the pages at the top of a space, or the pages right under a page, each marked when it has pages under it (hasChildren). Under a collection (a table or board of tasks), each row comes with its properties, such as status, assignee and due date. Long lists come in parts, with a cursor for the next one.',
         inputSchema: listPagesInputSchema,
         outputSchema: listPagesOutputSchema,
       },
@@ -61,8 +61,9 @@ export const listPagesTool: McpToolDefinition = {
             const place = await resolveListingPlace(dependencies, call, input);
             const start = readMcpOffset(input.cursor);
             const end = start + input.limit;
+            const outlineViewer = await call.readOutlineViewer();
             const [children, describeRow] = await Promise.all([
-              dependencies.outline.listChildren(place.spaceId, place.parentId, call.viewer, {
+              dependencies.outline.listChildren(place.spaceId, place.parentId, outlineViewer, {
                 skip: start,
                 take: input.limit,
               }),
@@ -73,7 +74,7 @@ export const listPagesTool: McpToolDefinition = {
               pages: children.entries.map((child) => {
                 const properties = describeRow(child);
                 return {
-                  childCount: child.childCount,
+                  hasChildren: child.hasChildren,
                   id: child.id,
                   isCollection: child.isCollection,
                   ...(properties.length === 0 ? {} : { properties }),

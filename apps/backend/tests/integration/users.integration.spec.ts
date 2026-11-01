@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { USER_ROLE } from '@neuma/shared';
 import request from 'supertest';
-import { TokenAdapter } from '@/modules/auth/infrastructure/adapters/token.adapter';
+import { BlockLiveTokenService } from '@/modules/blocks/block.live.token.service';
 import { UsersService } from '@/modules/users/users.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { createAccount, loginUser } from '../helpers/auth.helper';
@@ -158,13 +158,13 @@ describe('Users Module (Integration)', () => {
       await request(testApp.getServer()).get('/api/v1/users').expect(401);
     });
 
-    it('rejects a refresh token and a live-document token presented as an access token', async () => {
+    it('rejects a refresh token and a live channel token presented as an access token', async () => {
       const session = await loginUser(testApp, adminEmail, password);
-      const liveDocumentToken = await testApp
-        .get(TokenAdapter)
-        .signCollaborationToken(session.user, 'workspace-1', '00000000-0000-7000-8000-000000000001', 'write');
+      const liveChannelToken = await testApp
+        .get(BlockLiveTokenService)
+        .mint({ role: session.user.role, userId: session.user.id, workspaceId: 'workspace-1' });
 
-      for (const token of [session.refreshToken, liveDocumentToken]) {
+      for (const token of [session.refreshToken, liveChannelToken]) {
         await request(testApp.getServer()).get('/api/v1/users').set('Authorization', `Bearer ${token}`).expect(401);
       }
     });

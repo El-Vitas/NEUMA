@@ -4,9 +4,13 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { readPageOptionDotClass, readPageOptionSurfaceClass } from '../lib/pages.option-color.lib';
 import type { PageBoardColumnDrag } from '../types/pages.board-drag.types';
-import type { PageViewGroup } from '../types/pages.schema.types';
+import type { PageViewAggregates, PageViewGroup } from '../types/pages.schema.types';
+import { PagesCollectionGroupCount } from './pages.collection.group-count';
 
 interface IProps {
+  readonly aggregates: Promise<PageViewAggregates | null>;
+  /** Empty when the board has no bands. */
+  readonly bandKey: string;
   readonly columnDrag: PageBoardColumnDrag;
   readonly group: PageViewGroup;
   readonly label: string;
@@ -14,7 +18,14 @@ interface IProps {
 }
 
 /** Still a drop target for columns, otherwise a folded column would split the board in two. */
-export const PagesCollectionBoardColumnFolded = ({ columnDrag, group, label, onUnfold }: IProps) => {
+export const PagesCollectionBoardColumnFolded = ({
+  aggregates,
+  bandKey,
+  columnDrag,
+  group,
+  label,
+  onUnfold,
+}: IProps) => {
   const t = useTranslations('pages');
 
   return (
@@ -41,7 +52,14 @@ export const PagesCollectionBoardColumnFolded = ({ columnDrag, group, label, onU
       type="button"
     >
       <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-full', readPageOptionDotClass(group.color))} />
-      <span className="font-medium text-muted-foreground text-xs tabular-nums">{group.rows.length}</span>
+      <span className="font-medium text-muted-foreground text-xs tabular-nums">
+        <PagesCollectionGroupCount
+          aggregates={aggregates}
+          drawn={group.rows.length}
+          groupKey={group.key}
+          subKey={bandKey}
+        />
+      </span>
       {/* Vertical: a 44px strip cannot fit the name written horizontally. */}
       <span className="truncate font-medium text-foreground text-sm [writing-mode:vertical-rl]">{label}</span>
     </button>

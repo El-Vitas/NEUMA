@@ -30,3 +30,6 @@ export const FILE_RANGE_UNSATISFIABLE: FileByteRangeRequest = { kind: 'unsatisfi
 export const FILE_RANGE_NOT_SATISFIABLE_STATUS = 416;
 
 export const UNKNOWN_FILE_OWNER_NAME = 'Unknown';
+
+/** Caps the blocks read to find one a viewer can read that shows an asset. */
+export const FILE_REFERENCE_SCAN_LIMIT = 50;

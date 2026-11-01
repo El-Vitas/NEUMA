@@ -70,7 +70,7 @@ De lo que sostiene todo lo demás a lo que menos se usa:
 
 ## De dónde salen algunos comportamientos
 
-Varias casillas de `01`, `05` y `13` no salieron de mirar Notion, sino de leer cómo lo resuelven AFFiNE y AppFlowy. El estudio está en `../../architecture/references/block-and-database-engines.md`.
+Varias casillas de `01`, `05` y `13` no salieron de mirar Notion, sino de estudiar cómo resuelven lo mismo otros editores de bloques de código abierto, como AFFiNE y AppFlowy.
 
 Una advertencia que sale de ahí: que una colección sea un bloque **dentro** de una página —y no una página completa— es el escalón que `../../architecture/adr/008-adopt-single-page-primitive-notion-alignment.md` dejó deliberadamente fuera. Las casillas están escritas igual, porque describen lo que el producto debe hacer; cumplirlas implica revisar esa decisión.
 

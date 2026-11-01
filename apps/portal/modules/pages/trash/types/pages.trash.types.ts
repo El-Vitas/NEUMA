@@ -4,10 +4,20 @@ export interface TrashedPage {
   readonly deletedAt: Date;
   readonly deletedBy: null | PageAuthor;
   readonly id: string;
+  /** A template of its collection (its parent): restoring it puts it back among the templates. */
+  readonly isTemplate: boolean;
   readonly parentId: null | string;
+  /** Null until an administrator deletes it forever; then the day it goes. */
+  readonly purgeAfter: Date | null;
   readonly spaceId: string;
   readonly title: string;
   readonly trashedChildCount: number;
+}
+
+export interface TrashedPagesListing {
+  readonly items: readonly TrashedPage[];
+  /** Everything in the trash for the search, whatever the window shows. */
+  readonly total: number;
 }
 
 export interface TrashDescendantsPreview {

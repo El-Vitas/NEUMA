@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { and, FileAssetLifecycle, PageLifecycle } from '@neuma/db';
-import { USER_ROLE, type UserRole } from '@neuma/shared';
-import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
+import { FileAssetLifecycle } from '@neuma/db';
+import { canEditBlock, USER_ROLE, type UserRole } from '@neuma/shared';
+import { BlockAccessRepository } from '../../../../common/infrastructure/persistence/block-access.repository';
+import type { BlockAccessViewer } from '../../../../common/types/block-access.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import {
   FILE_ASSET_FIELDS,
   FILE_ASSET_METADATA_FIELDS,
+  FILE_REFERENCE_SCAN_LIMIT,
   UNKNOWN_FILE_OWNER_NAME,
 } from '../../constants/files.constants';
 import type { FileAssetMetadata, FileAssetSummary } from '../../domain/files.domain.types';
@@ -27,7 +29,10 @@ const toFileAssetSummary = (asset: FileAssetSummary): FileAssetSummary => ({
 
 @Injectable()
 export class FileAssetRepositoryImpl implements FileAssetRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly blockAccess: BlockAccessRepository,
+  ) {}
 
   async canAttachToContent(
     pageId: string | null,
@@ -36,7 +41,7 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
     role: UserRole,
   ): Promise<boolean> {
     if (pageId === null || role === USER_ROLE.CLIENT) return false;
-    return this.hasPageAccess(pageId, workspaceId, userId, role);
+    return this.canEditPage(pageId, workspaceId, userId, role);
   }
 
   async create(input: Parameters<FileAssetRepository['create']>[0]): Promise<FileAssetSummary> {
@@ -58,9 +63,27 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
       .select(...FILE_ASSET_FIELDS)
       .first();
     if (asset === null) return null;
-    if (asset.pageId !== null)
-      return (await this.hasPageAccess(asset.pageId, workspaceId, userId, role)) ? asset : null;
-    return asset.ownerId === userId || role !== USER_ROLE.CLIENT ? asset : null;
+    if (asset.pageId === null) return asset.ownerId === userId || role !== USER_ROLE.CLIENT ? asset : null;
+    if (await this.hasPageAccess(asset.pageId, workspaceId, userId, role)) return asset;
+    return (await this.isReferencedByReadableBlock(assetId, { role, userId, workspaceId })) ? asset : null;
+  }
+
+  async findDeletable(
+    assetId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<FileAssetSummary | null> {
+    const asset = await this.prisma.models.FileAsset.where({
+      id: assetId,
+      lifecycle: FileAssetLifecycle.ACTIVE,
+      workspaceId,
+    })
+      .select(...FILE_ASSET_FIELDS)
+      .first();
+    if (asset === null) return null;
+    if (asset.pageId === null) return asset.ownerId === userId ? asset : null;
+    return (await this.canEditPage(asset.pageId, workspaceId, userId, role)) ? asset : null;
   }
 
   async findByPage(
@@ -106,13 +129,36 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
   }
 
   private async hasPageAccess(pageId: string, workspaceId: string, userId: string, role: UserRole): Promise<boolean> {
-    const isVisibleSpace = buildSpaceVisibilityFilter(userId, role);
-    const page = await this.prisma.models.Page.where({ id: pageId, lifecycle: PageLifecycle.ACTIVE })
-      .where((candidate) =>
-        candidate.space.some((space) => and(space.workspaceId.eq(workspaceId), isVisibleSpace(space))),
+    const pages = await this.blockAccess.findReadablePages([pageId], { role, userId, workspaceId });
+    return pages.length > 0;
+  }
+
+  /** Reading is not enough to change what a page holds: the same standing that edits its blocks is required. */
+  private async canEditPage(pageId: string, workspaceId: string, userId: string, role: UserRole): Promise<boolean> {
+    if (!(await this.hasPageAccess(pageId, workspaceId, userId, role))) return false;
+    const standing = await this.blockAccess.findStanding(pageId, { role, userId, workspaceId });
+    return standing !== null && canEditBlock(standing.role);
+  }
+
+  /** One statement finds the blocks that show the asset: media and file blocks, a page icon or a page cover. */
+  private async isReferencedByReadableBlock(assetId: string, viewer: BlockAccessViewer): Promise<boolean> {
+    const rows = await this.prisma.runner.query(
+      this.prisma.sql`
+      SELECT "id" FROM "Block"
+      WHERE "alive" AND (
+        "properties"->>'assetId' = ${assetId}
+        OR "format"->'icon'->>'assetId' = ${assetId}
+        OR "format"->'cover'->>'assetId' = ${assetId}
       )
-      .select('id')
-      .first();
-    return page !== null;
+      LIMIT ${FILE_REFERENCE_SCAN_LIMIT}
+    `
+        .returnsRow({ id: this.prisma.tables.Block.columns.id })
+        .build(),
+    );
+    const readableIds = await this.blockAccess.findReadableBlockIds(
+      rows.map((row) => row.id),
+      viewer,
+    );
+    return readableIds.size > 0;
   }
 }

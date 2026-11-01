@@ -1,31 +1,20 @@
 import { Module } from '@nestjs/common';
-import { OutboxConsumer } from '@neuma/db';
-import { OutboxRepository } from '../../common/infrastructure/persistence/outbox.repository';
+import { BlockAccessRepository } from '../../common/infrastructure/persistence/block-access.repository';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
-import { LINKS_PROJECTION_OUTBOX, LINKS_PROJECTION_SOURCE, LINKS_REPOSITORY } from './constants/links.tokens';
-import { PageLinkRepository } from './infrastructure/persistence/page-link.repository';
-import { LinksProjectionSource } from './infrastructure/worker/links.projection.source';
-import { LinksProjectionWorker } from './infrastructure/worker/links.projection.worker';
+import { LINKS_REPOSITORY } from './constants/links.tokens';
+import { BlockLinkRepository } from './infrastructure/persistence/block-link.repository';
 import { LinksController } from './links.controller';
 import { LinksService } from './links.service';
 
 @Module({
   controllers: [LinksController],
-  exports: [LinksService, LinksProjectionWorker],
+  exports: [LinksService],
   providers: [
-    PageLinkRepository,
-    { provide: LINKS_REPOSITORY, useExisting: PageLinkRepository },
+    BlockAccessRepository,
+    BlockLinkRepository,
+    { provide: LINKS_REPOSITORY, useExisting: BlockLinkRepository },
     LinksService,
     WorkspaceContextService,
-    OutboxRepository,
-    LinksProjectionWorker,
-    LinksProjectionSource,
-    {
-      provide: LINKS_PROJECTION_OUTBOX,
-      useFactory: (outbox: OutboxRepository) => outbox.forConsumer(OutboxConsumer.LINKS),
-      inject: [OutboxRepository],
-    },
-    { provide: LINKS_PROJECTION_SOURCE, useExisting: LinksProjectionSource },
   ],
 })
 export class LinksModule {}

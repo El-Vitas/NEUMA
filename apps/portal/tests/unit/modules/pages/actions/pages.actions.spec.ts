@@ -5,10 +5,12 @@ import { createSafeActionMock } from '../../../../mocks/safe-action.mock';
 
 let cookieValue: string | undefined;
 const createdPage = {
+  canEdit: true,
   content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
   cover: null,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
+  hasOwnPermissions: false,
   id: '33333333-3333-4333-8333-333333333333',
   lifecycle: 'ACTIVE',
   lockedAt: null,
@@ -33,8 +35,11 @@ const updateTagMock = mock(() => undefined);
 
 mock.module('server-only', () => ({}));
 mock.module('next/cache', () => ({ updateTag: updateTagMock }));
+/** Listing destinations reaches the search, which caches reads with an API this module replaces. */
+mock.module('@/modules/pages/server/lib/pages.destinations.server', () => ({ readPageDestinations: async () => [] }));
 mock.module('next/headers', () => ({
   cookies: async () => ({ get: () => (cookieValue === undefined ? undefined : { value: cookieValue }) }),
+  headers: async () => new Headers(),
 }));
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
 mock.module('@/lib/safe-action', createSafeActionMock);
@@ -42,14 +47,9 @@ mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
 
-const {
-  addBlocksToPageAction,
-  createPageAction,
-  movePageAction,
-  replacePageContentAction,
-  restorePageAction,
-  trashPageAction,
-} = await import('@/modules/pages/server/actions/pages.actions');
+const { addBlocksToPageAction, createPageAction, movePageAction, restorePageAction, trashPageAction } = await import(
+  '@/modules/pages/server/actions/pages.actions'
+);
 
 const spaceId = '11111111-1111-4111-8111-111111111111';
 const pageId = '22222222-2222-4222-8222-222222222222';
@@ -80,22 +80,6 @@ describe('pages.actions without an access token', () => {
       content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
       spaceId,
       title: 'Untitled',
-    });
-
-    expect(result).toEqual({ serverError: 'forbidden' });
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(updateTagMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects replacePageContentAction without making an outbound request', async () => {
-    cookieValue = undefined;
-    fetchMock.mockClear();
-    updateTagMock.mockClear();
-
-    const result = await replacePageContentAction({
-      content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
-      pageId,
-      spaceId,
     });
 
     expect(result).toEqual({ serverError: 'forbidden' });

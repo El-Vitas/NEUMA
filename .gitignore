@@ -85,6 +85,11 @@ report/
 
 # playwright mcp session output
 .playwright-mcp/
+# screenshots saved at the root while checking the app in a browser
+/*.png
+
+# Archify working folders
+.archify/
 
 # external references: local paths, not part of the project
 docs/referencias-externas.md

@@ -1,0 +1,349 @@
+[
+  {
+    "id": "dropTable.CollaborationSnapshot",
+    "label": "Drop table \"CollaborationSnapshot\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "CollaborationSnapshot"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"CollaborationSnapshot\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"CollaborationSnapshot\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"CollaborationSnapshot\"",
+        "sql": "DROP TABLE \"public\".\"CollaborationSnapshot\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"CollaborationSnapshot\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"CollaborationSnapshot\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropTable.OutboxDelivery",
+    "label": "Drop table \"OutboxDelivery\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "OutboxDelivery"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"OutboxDelivery\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxDelivery\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"OutboxDelivery\"",
+        "sql": "DROP TABLE \"public\".\"OutboxDelivery\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"OutboxDelivery\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxDelivery\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropTable.OutboxEvent",
+    "label": "Drop table \"OutboxEvent\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "OutboxEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"OutboxEvent\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxEvent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"OutboxEvent\"",
+        "sql": "DROP TABLE \"public\".\"OutboxEvent\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"OutboxEvent\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxEvent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropTable.PageBlock",
+    "label": "Drop table \"PageBlock\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PageBlock"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PageBlock\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageBlock\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"PageBlock\"",
+        "sql": "DROP TABLE \"public\".\"PageBlock\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PageBlock\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageBlock\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropTable.PageLink",
+    "label": "Drop table \"PageLink\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PageLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PageLink\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageLink\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"PageLink\"",
+        "sql": "DROP TABLE \"public\".\"PageLink\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PageLink\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageLink\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropTable.Page",
+    "label": "Drop table \"Page\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Page"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Page\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"Page\"",
+        "sql": "DROP TABLE \"public\".\"Page\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Page\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropTable.SearchDocument",
+    "label": "Drop table \"SearchDocument\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "SearchDocument"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"SearchDocument\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SearchDocument\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"SearchDocument\"",
+        "sql": "DROP TABLE \"public\".\"SearchDocument\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"SearchDocument\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SearchDocument\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropNativeEnumType.OutboxConsumer",
+    "label": "Drop enum type \"OutboxConsumer\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "OutboxConsumer"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "drop enum type \"OutboxConsumer\"",
+        "sql": "DROP TYPE \"public\".\"OutboxConsumer\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "dropNativeEnumType.OutboxStatus",
+    "label": "Drop enum type \"OutboxStatus\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "OutboxStatus"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "drop enum type \"OutboxStatus\"",
+        "sql": "DROP TYPE \"public\".\"OutboxStatus\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "dropNativeEnumType.SearchIndexingState",
+    "label": "Drop enum type \"SearchIndexingState\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "SearchIndexingState"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "drop enum type \"SearchIndexingState\"",
+        "sql": "DROP TYPE \"public\".\"SearchIndexingState\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "dropNativeEnumType.SearchSourceType",
+    "label": "Drop enum type \"SearchSourceType\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "SearchSourceType"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "drop enum type \"SearchSourceType\"",
+        "sql": "DROP TYPE \"public\".\"SearchSourceType\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  }
+]

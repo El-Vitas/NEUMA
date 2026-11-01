@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from '@/i18n/navigation';
-import { hasActionError } from '@/shared/lib/action-result';
+import { callAction, hasActionError } from '@/shared/lib/action-result';
 import {
   addSchemaOption,
   isSchemaOptionNameTaken,
@@ -16,10 +16,12 @@ import {
 import {
   readViewCollapsedGroups,
   readViewColumnLimits,
+  readViewHiddenGroups,
   readViewHidesEmptyGroups,
   readViewHidesUnassignedColumn,
   setViewColumnLimit,
   toggleViewCollapsedGroup,
+  toggleViewHiddenGroup,
   toggleViewHidesUnassignedColumn,
 } from '../lib/pages.view-filtering.lib';
 import { rewritePageCollectionOptionAction } from '../server/actions/pages.collections.actions';
@@ -54,15 +56,17 @@ export const usePagesBoardColumns = (
 
   const saveShape = (properties: PageSchema['properties']): void => shape.save(properties, viewSaving.views);
 
-  const rewrite = (from: string, to: null | string): void => {
+  const rewrite = (optionId: string, to: null | string): void => {
     startRewriting(async () => {
-      const written = await rewritePageCollectionOptionAction({
-        from,
-        pageId: schema.pageId,
-        propertyKey: groupByKey,
-        spaceId,
-        to,
-      });
+      const written = await callAction(() =>
+        rewritePageCollectionOptionAction({
+          optionId,
+          pageId: schema.pageId,
+          propertyKey: groupByKey,
+          spaceId,
+          to,
+        }),
+      );
       if (hasActionError(written)) {
         toast.error(tErrors('generic'));
         return;
@@ -83,6 +87,7 @@ export const usePagesBoardColumns = (
       if (!refuseTakenName(name)) saveShape(addSchemaOption(schema.properties, groupByKey, name));
     },
     collapsedColumns: activeView === null ? [] : readViewCollapsedGroups(activeView),
+    hiddenColumns: activeView === null ? [] : readViewHiddenGroups(activeView),
     hidesEmptyGroups: activeView !== null && readViewHidesEmptyGroups(activeView),
     hidesUnassignedColumn: activeView !== null && readViewHidesUnassignedColumn(activeView),
     isBusy: isRewriting || shape.isSaving || viewSaving.isSaving,
@@ -93,14 +98,16 @@ export const usePagesBoardColumns = (
       saveShape(moveSchemaOptionSideways(schema.properties, groupByKey, value, direction)),
     paintColumn: (value: string, color: PageOptionColor | null) =>
       saveShape(updateSchemaOptionColor(schema.properties, groupByKey, value, color)),
-    removeColumn: (value: string) => rewrite(value, null),
-    renameColumn: (from: string, to: string) => {
-      if (!refuseTakenName(to)) rewrite(from, to);
+    removeColumn: (optionId: string) => rewrite(optionId, null),
+    renameColumn: (optionId: string, to: string) => {
+      if (!refuseTakenName(to)) rewrite(optionId, to);
     },
     setLimit: (value: string, limit: null | number) =>
       viewSaving.apply((current) => setViewColumnLimit(current, activeViewName, value, limit)),
     toggleCollapsed: (value: string) =>
       viewSaving.apply((current) => toggleViewCollapsedGroup(current, activeViewName, value)),
+    toggleHidden: (value: string) =>
+      viewSaving.apply((current) => toggleViewHiddenGroup(current, activeViewName, value)),
     toggleUnassignedColumn: () =>
       viewSaving.apply((current) => toggleViewHidesUnassignedColumn(current, activeViewName)),
   };

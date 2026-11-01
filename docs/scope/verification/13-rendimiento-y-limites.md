@@ -3,8 +3,6 @@
 Que sea potente sin exigir una máquina grande. Todo lo de aquí se comprueba usando el producto, no leyendo métricas.
 
 > Leer `README.md` de esta carpeta antes de usar este documento.
->
-> Las técnicas detrás de estos comportamientos están en `../../architecture/references/block-and-database-engines.md`, tomadas de cómo lo resuelven AFFiNE y AppFlowy.
 
 ## Cómo está construido hoy
 

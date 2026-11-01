@@ -1,5 +1,5 @@
 import type { DatabasePropertyType, DatabaseViewType, JsonObject, JsonValue } from '@neuma/db';
-import { readPagePropertyOptions } from '@neuma/shared';
+import { readPageComputedConfig, readPagePropertyConfig, readPagePropertyOptions } from '@neuma/shared';
 import type {
   SchemaPropertyDefinition,
   SchemaPropertyValue,
@@ -12,12 +12,15 @@ const isJsonObject = (value: JsonValue): value is JsonObject =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 export const toSchemaPropertyDefinition = (property: {
+  config: JsonValue | null;
   key: string;
   label: string;
   type: DatabasePropertyType;
   required: boolean;
   options: JsonValue | null;
 }): SchemaPropertyDefinition => ({
+  computed: readPageComputedConfig(property.config),
+  config: readPagePropertyConfig(property.config),
   key: property.key,
   label: property.label,
   options: readPagePropertyOptions(property.options),
@@ -26,13 +29,22 @@ export const toSchemaPropertyDefinition = (property: {
 });
 
 export const toSchemaViewDefinition = (view: {
+  id: string;
   name: string;
   type: DatabaseViewType;
   configuration: JsonValue;
   isDefault: boolean;
+  version: number;
 }): SchemaViewDefinition | null => {
   if (!isJsonObject(view.configuration)) return null;
-  return { configuration: view.configuration, isDefault: view.isDefault, name: view.name, type: view.type };
+  return {
+    configuration: view.configuration,
+    id: view.id,
+    isDefault: view.isDefault,
+    name: view.name,
+    type: view.type,
+    version: view.version,
+  };
 };
 
 export const parseSchemaPropertyValues = (value: JsonValue): SchemaPropertyValues | null => {

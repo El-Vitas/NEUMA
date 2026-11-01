@@ -1,4 +1,20 @@
-import type { PageViewBand } from './pages.schema.types';
+import type { PageGroupByMode } from '@neuma/shared';
+import type { PageSchemaProperty, PageViewBand } from './pages.schema.types';
+
+export interface PageBoardDragInput {
+  readonly bands: readonly PageViewBand[];
+  readonly groupByKey: string;
+  readonly groupByMode: PageGroupByMode;
+  /** False when the view sorts its cards: their place is then the sort's, and only the value is written. */
+  readonly isManualOrder: boolean;
+  /** The collection the cards are rows of. */
+  readonly pageId: string;
+  readonly properties: readonly PageSchemaProperty[];
+  readonly spaceId: string;
+  /** Empty when the board has a single grouping dimension. */
+  readonly subGroupByKey?: string;
+  readonly viewId: string;
+}
 
 export type PageBoardMoveDirection = 'BACKWARD' | 'FORWARD';
 
@@ -66,4 +82,10 @@ export interface PageBoardDragController {
   readonly onDragStart: (rowId: string, fromGroupKey: string, fromBandKey: string) => void;
   readonly onDrop: () => void;
   readonly target: null | PageBoardGridDropTarget;
+}
+
+/** A move the network has not carried yet, kept on screen where the person dropped the card. */
+export interface QueuedBoardMove {
+  readonly move: PageBoardGridMove;
+  readonly rowId: string;
 }

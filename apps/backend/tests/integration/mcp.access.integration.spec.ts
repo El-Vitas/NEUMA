@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { PageLifecycle, SpaceVisibility } from '@neuma/db';
+import { SpaceVisibility } from '@neuma/db';
 import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, type PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { z } from 'zod';
 import { PrismaService } from '@/prisma/prisma.service';
 import { createAccount, loginUser } from '../helpers/auth.helper';
 import { callMcpTool, listenForMcp, listMcpToolNames, type McpToolAnswer } from '../helpers/mcp.helper';
-import { drainSearchProjection } from '../helpers/search.helper';
+import { readStoredPage } from '../helpers/mcp.stored-page.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 const MCP_PATH = '/api/v1/mcp';
@@ -27,6 +27,7 @@ const foundShape = z.object({
   pages: z.array(z.object({ pageId: z.string() })),
 });
 const refusalShape = z.object({ error: z.object({ code: z.string() }) });
+const storedContentShape = z.object({ content: z.array(z.object({ attrs: z.object({ id: z.string() }) })) });
 
 const access = (rules: Partial<AccessTokenAccess>): AccessTokenAccess => ({
   allSpaces: [],
@@ -138,6 +139,30 @@ describe('MCP access (Integration)', () => {
     return [...new Set([...found.blocks, ...found.pages].map((item) => item.pageId))];
   };
 
+  const adminPageHeaders = () => ({ Authorization: `Bearer ${admin.token}`, 'x-mutation-id': crypto.randomUUID() });
+  const pagePath = (pageId: string, suffix: string): string =>
+    `/api/v1/spaces/${spaces.open}/pages/${pageId}/${suffix}`;
+
+  const movePage = async (pageId: string, parentId: string | null): Promise<void> => {
+    await request(testApp.getServer())
+      .patch(pagePath(pageId, 'move'))
+      .set(adminPageHeaders())
+      .send({ parentId })
+      .expect(200);
+  };
+
+  const trashPage = async (pageId: string): Promise<void> => {
+    await request(testApp.getServer()).post(pagePath(pageId, 'trash')).set(adminPageHeaders()).expect(201);
+  };
+
+  const restorePage = async (pageId: string): Promise<void> => {
+    await request(testApp.getServer())
+      .post(pagePath(pageId, 'restore'))
+      .set(adminPageHeaders())
+      .send({ includeChildren: false })
+      .expect(201);
+  };
+
   const canRead = async (secret: string, pageId: string): Promise<boolean> =>
     (await call(secret, 'fetch', { address: pageId })).isError !== true;
 
@@ -170,7 +195,6 @@ describe('MCP access (Integration)', () => {
     pages.summer = await createPage(admin, spaces.open, words.summer, pages.holidays);
     pages.restricted = await createPage(admin, spaces.restricted, words.restricted);
     pages.workerPrivate = await createPage(worker, spaces.workerPrivate, words.workerPrivate);
-    await drainSearchProjection(testApp);
   });
 
   afterAll(async () => {
@@ -295,15 +319,15 @@ describe('MCP access (Integration)', () => {
     let mentioningPageId: string;
 
     const firstBlockIdOf = async (pageId: string): Promise<string> => {
-      const page = await testApp.get(PrismaService).models.Page.select('content').where({ id: pageId }).first();
-      const blockId = (page?.content as PageContent | undefined)?.content[0]?.attrs?.id;
-      if (typeof blockId !== 'string') throw new Error('the page was stored without block ids');
+      const page = await readStoredPage(testApp, admin.token, pageId);
+      const blockId = storedContentShape.parse(page.content).content[0]?.attrs.id;
+      if (blockId === undefined) throw new Error('the page was stored without block ids');
       return blockId;
     };
 
     const listedUnder = async (parentPageId: string) =>
       z
-        .object({ pages: z.array(z.object({ childCount: z.number(), id: z.string() })) })
+        .object({ pages: z.array(z.object({ hasChildren: z.boolean(), id: z.string() })) })
         .parse((await call(secret, 'list_pages', { parentPageId })).structuredContent).pages;
 
     beforeAll(async () => {
@@ -363,11 +387,24 @@ describe('MCP access (Integration)', () => {
     it('neither lists nor counts a closed page under one it can read', async () => {
       const underHr = await listedUnder(pages.hr);
       const atTheTop = z
-        .object({ pages: z.array(z.object({ childCount: z.number(), id: z.string() })) })
+        .object({ pages: z.array(z.object({ hasChildren: z.boolean(), id: z.string() })) })
         .parse((await call(secret, 'list_pages', { spaceId: spaces.open })).structuredContent).pages;
 
       expect(underHr.map((page) => page.id)).toEqual([pages.holidays]);
-      expect(atTheTop.find((page) => page.id === pages.hr)?.childCount).toBe(1);
+      expect(atTheTop.find((page) => page.id === pages.hr)?.hasChildren).toBe(true);
+    });
+
+    it('says a page has nothing under it when every page under it is closed to the token', async () => {
+      const closedBelow = await tokenFor(
+        worker,
+        access({ allSpaces: [read], pages: [{ pageId: pages.bonus, permissions: nothing }] }),
+      );
+      const listed = z
+        .object({ pages: z.array(z.object({ hasChildren: z.boolean(), id: z.string() })) })
+        .parse((await call(closedBelow, 'list_pages', { parentPageId: pages.hr })).structuredContent).pages;
+
+      expect(listed.find((page) => page.id === pages.salaries)?.hasChildren).toBe(false);
+      expect(listed.find((page) => page.id === pages.holidays)?.hasChildren).toBe(true);
     });
 
     it('does not name a closed ancestor in the path of a page reopened under it', async () => {
@@ -417,28 +454,26 @@ describe('MCP access (Integration)', () => {
 
   describe('el árbol de hoy manda, no el del día en que se dio', () => {
     it('loses a page moved out from under the page it was given', async () => {
-      const prisma = testApp.get(PrismaService);
       const secret = await tokenFor(worker, access({ pages: [{ pageId: pages.holidays, permissions: [read] }] }));
 
       expect(await canRead(secret, pages.summer)).toBe(true);
-      await prisma.models.Page.where({ id: pages.summer }).update({ parentId: null });
+      await movePage(pages.summer, null);
       const afterMove = await canRead(secret, pages.summer);
-      await prisma.models.Page.where({ id: pages.summer }).update({ parentId: pages.holidays });
+      await movePage(pages.summer, pages.holidays);
 
       expect(afterMove).toBe(false);
     });
 
     it('closes a page moved in under a closed one', async () => {
-      const prisma = testApp.get(PrismaService);
       const secret = await tokenFor(
         worker,
         access({ allSpaces: [read], pages: [{ pageId: pages.hr, permissions: nothing }] }),
       );
 
       expect(await reaches(secret, 'open')).toBe(true);
-      await prisma.models.Page.where({ id: pages.open }).update({ parentId: pages.hr });
+      await movePage(pages.open, pages.hr);
       const afterMove = await reaches(secret, 'open');
-      await prisma.models.Page.where({ id: pages.open }).update({ parentId: null });
+      await movePage(pages.open, null);
 
       expect(afterMove).toBe(false);
     });
@@ -480,7 +515,6 @@ describe('MCP access (Integration)', () => {
     });
 
     it('refuses a page its creator cannot see, a page that does not exist, and one in the trash', async () => {
-      const prisma = testApp.get(PrismaService);
       const invisible = await askForToken(
         admin,
         access({ pages: [{ pageId: pages.workerPrivate, permissions: [read] }] }),
@@ -489,9 +523,9 @@ describe('MCP access (Integration)', () => {
         worker,
         access({ pages: [{ pageId: '00000000-0000-4000-8000-000000000000', permissions: [read] }] }),
       ).expect(403);
-      await prisma.models.Page.where({ id: pages.bonus }).update({ lifecycle: PageLifecycle.TRASHED });
+      await trashPage(pages.bonus);
       const trashed = await askForToken(worker, access({ pages: [{ pageId: pages.bonus, permissions: [read] }] }));
-      await prisma.models.Page.where({ id: pages.bonus }).update({ lifecycle: PageLifecycle.ACTIVE });
+      await restorePage(pages.bonus);
 
       expect(refusalCode(invisible.body)).toBe('ACCESS_TOKEN_PAGE_NOT_ACCESSIBLE');
       expect(refusalCode(missing.body)).toBe('ACCESS_TOKEN_PAGE_NOT_ACCESSIBLE');
@@ -614,7 +648,14 @@ describe('MCP access (Integration)', () => {
         worker,
         access({ spaces: [{ permissions: [ACCESS_TOKEN_PERMISSIONS.collectionsRead], spaceId: spaces.open }] }),
       );
-      expect(await listMcpToolNames(baseUrl, secret)).toEqual(['list_spaces', 'get_collection', 'query_collection']);
+      expect(await listMcpToolNames(baseUrl, secret)).toEqual([
+        'list_spaces',
+        'get_collection',
+        'query_collection',
+        'collection_changes',
+        'test_formula',
+        'list_templates',
+      ]);
     });
   });
 

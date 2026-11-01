@@ -19,6 +19,7 @@ import { canRenameUser } from '../../common/domain/workspace.domain';
 import { Permissions } from '../../common/infrastructure/decorators/permissions.decorator';
 import { User as AuthUser } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
+import { PasswordChangeThrottlerGuard } from '../../common/infrastructure/guards/password-change-throttler.guard';
 import { PermissionsGuard } from '../../common/infrastructure/guards/permissions.guard';
 import { UserInterceptor } from '../../common/infrastructure/interceptors/user.interceptor';
 import type { TokenPayload } from '../../common/types/auth.types';
@@ -76,7 +77,7 @@ export class UsersController {
 
   /** Only the session's own account may change its password, so the path id must match the token. */
   @Patch(':id/password')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PasswordChangeThrottlerGuard)
   @HttpCode(204)
   async changePassword(
     @Param('id') id: string,

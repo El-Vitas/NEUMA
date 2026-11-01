@@ -15,7 +15,7 @@ export interface PagesSchemaSettingsKindOption {
 }
 
 export type PagesSchemaSettingsRoute =
-  | { readonly level: 'OPTION'; readonly optionValue: string; readonly propertyKey: string }
+  | { readonly level: 'OPTION'; readonly optionId: string; readonly propertyKey: string }
   | { readonly level: 'PROPERTIES' }
   | { readonly level: 'PROPERTY'; readonly propertyKey: string }
   | { readonly level: 'ROOT' }

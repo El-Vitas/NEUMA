@@ -1,0 +1,120 @@
+[
+  {
+    "id": "column.public.Block.changeXid",
+    "label": "Add column \"changeXid\" to \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "changeXid",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"changeXid\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Block",
+          "changeXid"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"changeXid\"",
+        "sql": "ALTER TABLE \"public\".\"Block\" ADD COLUMN \"changeXid\" int8 DEFAULT '0'::int8 NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"changeXid\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Block",
+          "changeXid"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "function.neuma_set_block_change_xid",
+    "label": "Create the function that stamps a block with the id of the transaction that writes it",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create \"neuma_set_block_change_xid\"",
+        "sql": "\nCREATE FUNCTION \"public\".\"neuma_set_block_change_xid\"() RETURNS trigger\nLANGUAGE plpgsql VOLATILE AS $function$\nBEGIN\n  NEW.\"changeXid\" := pg_current_xact_id()::text::bigint;\n  RETURN NEW;\nEND\n$function$"
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "trigger.Block_change_xid_trigger",
+    "label": "Stamp every write of a block with its transaction id",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create \"Block_change_xid_trigger\"",
+        "sql": "\nCREATE TRIGGER \"Block_change_xid_trigger\" BEFORE INSERT OR UPDATE ON \"public\".\"Block\"\nFOR EACH ROW EXECUTE FUNCTION \"public\".\"neuma_set_block_change_xid\"()"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "the trigger exists",
+        "sql": "\nSELECT count(*) = 1 AS \"ok\" FROM pg_trigger WHERE tgname = 'Block_change_xid_trigger' AND NOT tgisinternal"
+      }
+    ]
+  },
+  {
+    "id": "index.Block.Block_parentId_changeXid_idx",
+    "label": "Create index \"Block_parentId_changeXid_idx\" on \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Block_parentId_changeXid_idx",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Block_parentId_changeXid_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_parentId_changeXid_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Block_parentId_changeXid_idx\"",
+        "sql": "CREATE INDEX \"Block_parentId_changeXid_idx\" ON \"public\".\"Block\" (\"parentId\", \"changeXid\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Block_parentId_changeXid_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_parentId_changeXid_idx\""
+        ]
+      }
+    ]
+  }
+]

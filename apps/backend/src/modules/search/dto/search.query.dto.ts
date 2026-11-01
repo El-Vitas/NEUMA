@@ -11,6 +11,7 @@ import {
   SEARCH_SOURCE_TYPE_VALUES,
 } from '../../../common/constants/search.constants';
 import type { SearchEditedRange, SearchSourceType } from '../../../common/types/search.types';
+import { parseQueryBoolean } from '../../../common/utils/query-boolean.utils';
 
 export class SearchQueryDto {
   @IsOptional()
@@ -53,16 +54,7 @@ export class SearchQueryDto {
   spaceId?: string;
 
   @IsOptional()
-  @IsString()
-  tags?: string;
-
-  @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value: unknown }) => {
-    if (typeof value !== 'string') return value;
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  })
+  @Transform(parseQueryBoolean)
   verifiedOnly?: boolean;
 }

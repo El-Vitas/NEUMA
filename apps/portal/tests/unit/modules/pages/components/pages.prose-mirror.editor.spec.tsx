@@ -2,17 +2,10 @@ import { describe, expect, it, mock } from 'bun:test';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { Command } from 'prosemirror-state';
-import type { EditorView } from 'prosemirror-view';
 import { createRef } from 'react';
 import en from '../../../../../messages/en.json';
 
-const collaborationSession = { fragment: null, marker: 'collaboration-session', provider: { awareness: null } };
-
 mock.module('server-only', () => ({}));
-
-mock.module('@/modules/pages/hooks/use.pages.collaboration', () => ({
-  usePagesCollaboration: () => ({ participants: [], session: collaborationSession, status: 'connected' }),
-}));
 
 const mentionCandidates: { id: string; label: string; spaceId: string }[] = [];
 
@@ -45,6 +38,8 @@ mock.module('@/modules/pages/attachments/server/actions/pages.attachments.action
 }));
 
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   createPageCollectionAction: async () => ({ data: { id: 'page-3', title: 'Colección' } }),
   readPageCollectionAction: async () => ({ data: null }),
 }));
@@ -68,29 +63,31 @@ mock.module('next/navigation', () => ({
   useRouter: () => ({ push: () => undefined }),
 }));
 
-const { createEmptyPageContent, createPageEditorState } = await import('@/modules/pages/editor/lib/pages.editor.lib');
+const { createEmptyPageContent } = await import('@/modules/pages/editor/lib/pages.editor.lib');
 const { createPageAssetInsertCommand } = await import('@/modules/pages/editor/lib/pages.editor.commands');
 const { pageEditorSchema } = await import('@/modules/pages/editor/lib/pages.editor.schema');
-const { pageContentSchema } = await import('@neuma/shared');
-
-const collaborationMarkerContent = pageContentSchema.parse({
-  content: [{ content: [{ text: 'from-collaboration-session', type: 'text' }], type: 'paragraph' }],
-  schemaVersion: 1,
-  type: 'doc',
-});
-
-mock.module('@/modules/pages/lib/pages.collaboration.lib', () => ({
-  createCollaborativePageEditorState: () => createPageEditorState(collaborationMarkerContent, 'Select block'),
-  getCollaborationStatusLabelKey: (status: string) => `collaboration.${status}`,
-  keepClicksAcrossChangesFromOthers: () => () => undefined,
-  readWhereThisPersonWrites: (view: EditorView) => ({
-    anchor: view.state.selection.anchor,
-    head: view.state.selection.head,
-  }),
-  restoreSelectionIfStillWriting: () => undefined,
-}));
 
 const { PagesProseMirrorEditor } = await import('@/modules/pages/components/pages.prose-mirror.editor');
+const { PagesDiscussionsProvider } = await import('@/modules/pages/discussions/components/pages.discussions.provider');
+
+const unused = (): Promise<never> => Promise.reject(new Error('Not used in this test'));
+
+const noDiscussions = {
+  api: {
+    discussions: [],
+    edit: unused,
+    open: unused,
+    refresh: () => Promise.resolve(),
+    remove: unused,
+    reopen: unused,
+    reply: unused,
+    resolve: unused,
+    status: 'ready' as const,
+    summary: { openCounts: new Map<string, number>(), openMarkIds: new Set<string>() },
+  },
+  currentUserId: null,
+  personOptions: [],
+};
 
 const renderEditor = (props: {
   readonly canEdit: boolean;
@@ -104,14 +101,16 @@ const renderEditor = (props: {
   } | null>();
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <PagesProseMirrorEditor
-        canEdit={props.canEdit}
-        content={createEmptyPageContent()}
-        onContentChange={props.onContentChange}
-        pageId={props.pageId}
-        ref={ref}
-        spaceId="space-1"
-      />
+      <PagesDiscussionsProvider value={noDiscussions}>
+        <PagesProseMirrorEditor
+          canEdit={props.canEdit}
+          content={createEmptyPageContent()}
+          onContentChange={props.onContentChange}
+          pageId={props.pageId}
+          ref={ref}
+          spaceId="space-1"
+        />
+      </PagesDiscussionsProvider>
     </NextIntlClientProvider>,
   );
   return ref;
@@ -264,28 +263,6 @@ describe('PagesProseMirrorEditor runCommand', () => {
 
     expect(dispatched).toBe(false);
     expect(contentUpdates).toHaveLength(0);
-  });
-
-  it('dispatches into the collaboration-bound state once a session is active, without remounting', () => {
-    const contentUpdates: unknown[] = [];
-    const ref = renderEditor({
-      canEdit: true,
-      onContentChange: (content) => contentUpdates.push(content),
-      pageId: '22222222-2222-4222-8222-222222222222',
-    });
-
-    const insertImage = createPageAssetInsertCommand(pageEditorSchema, 'image', { assetId: 'collab-asset' });
-    let dispatched: boolean | undefined;
-    act(() => {
-      dispatched = ref.current?.runCommand(insertImage);
-    });
-
-    expect(dispatched).toBe(true);
-    const finalContent = contentUpdates.at(-1) as {
-      readonly content: readonly { readonly content?: readonly { readonly text?: string }[]; readonly type: string }[];
-    };
-    expect(finalContent.content.map((node) => node.type)).toEqual(['image', 'paragraph']);
-    expect(finalContent.content[1]?.content?.[0]?.text).toBe('from-collaboration-session');
   });
 });
 
@@ -464,7 +441,7 @@ describe('PagesProseMirrorEditor block menu', () => {
 
     fireEvent.click(screen.getByRole('menuitem', { name: 'Comment' }));
 
-    await waitFor(() => expect(screen.getByText('Block comments')).toBeDefined());
+    await waitFor(() => expect(screen.getByText('Comments on this block')).toBeDefined());
   });
 
   it('opens where the block is going when its menu asks to move it', async () => {

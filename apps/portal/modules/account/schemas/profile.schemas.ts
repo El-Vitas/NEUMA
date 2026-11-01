@@ -1,5 +1,5 @@
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@neuma/shared';
 import { z } from 'zod';
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/shared/constants/password.constants';
 
 export const UpdateNameSchema = z.object({
   name: z.string().min(1).max(100),

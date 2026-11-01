@@ -1,14 +1,15 @@
-import { Injectable, type OnModuleDestroy } from '@nestjs/common';
+import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createNeumaDatabase, type NeumaDatabase, type NeumaTransaction } from '@neuma/db';
+import { DATABASE_URL_KEY } from '../common/constants/env.constants';
 import type { NeumaModels, NeumaSqlRunner, NeumaSqlTag, NeumaTables } from './types/prisma.types';
 
 @Injectable()
-export class PrismaService implements OnModuleDestroy {
+export class PrismaService implements OnApplicationShutdown {
   private readonly database: NeumaDatabase;
 
   constructor(configService: ConfigService) {
-    this.database = createNeumaDatabase(configService.getOrThrow<string>('DATABASE_URL'));
+    this.database = createNeumaDatabase(configService.getOrThrow<string>(DATABASE_URL_KEY));
   }
 
   get models(): NeumaModels {
@@ -43,7 +44,8 @@ export class PrismaService implements OnModuleDestroy {
     return this.database.transaction(work);
   }
 
-  async onModuleDestroy(): Promise<void> {
+  // The last shutdown hook: live documents save in `beforeApplicationShutdown`, which runs earlier.
+  async onApplicationShutdown(): Promise<void> {
     await this.database.close();
   }
 }

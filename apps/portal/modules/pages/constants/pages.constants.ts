@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import type { AttachmentSummary } from '../attachments/types/pages.attachments.types';
-import type { PagePersonOption } from '../collections/types/pages.schema.types';
+import type { PagePersonOption, PageRelatedRow } from '../collections/types/pages.schema.types';
 import type { PageEditorHeading } from '../editor/structure/types/pages.editor.contents.types';
 import type { PageBacklinksResult } from '../links/types/pages.backlinks.types';
 import type { PageInfoMetadata } from '../trust/types/pages.info.types';
-import type { PageSummary } from '../types/pages.types';
+import type { PageReference, PageSyncedSource } from '../types/pages.types';
 
 export const PAGE_BACKLINKS_CACHE_TAG = (pageId: string): string => `page-backlinks:${pageId}`;
 
@@ -19,7 +19,13 @@ export const EMPTY_PAGE_ATTACHMENTS: readonly AttachmentSummary[] = [];
 /** Shared constants: a fresh `[]` or `{}` per call is a new value every render and redraws everything downstream. */
 export const EMPTY_PAGE_PERSON_OPTIONS: readonly PagePersonOption[] = [];
 
-export const EMPTY_PAGE_SUMMARIES: readonly PageSummary[] = [];
+export const EMPTY_PAGE_REFERENCES: readonly PageReference[] = [];
+
+export const EMPTY_PAGE_RELATED_ROWS: readonly PageRelatedRow[] = [];
+
+export const EMPTY_PAGE_SYNCED_SOURCES: readonly PageSyncedSource[] = [];
+
+export const EMPTY_RESTRICTED_BLOCK_IDS: ReadonlySet<string> = new Set();
 
 export const EMPTY_PAGE_HEADINGS: readonly PageEditorHeading[] = [];
 
@@ -46,7 +52,6 @@ export const PAGE_API_ROUTES = {
   list: (spaceId: string, includeTrashed = false) =>
     `/api/v1/spaces/${spaceId}/pages?includeTrashed=${String(includeTrashed)}`,
   item: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}`,
-  content: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/content`,
   blocks: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/blocks`,
   exportMarkdown: (spaceId: string, query: string) => `/api/v1/spaces/${spaceId}/pages/export/markdown?${query}`,
   duplicate: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/duplicate`,
@@ -57,7 +62,8 @@ export const PAGE_API_ROUTES = {
   properties: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/properties`,
   verification: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/verification`,
   assigned: '/api/v1/pages/assigned',
-  moveDestinations: (pageId: string) => `/api/v1/pages/move-destinations/${pageId}`,
+  moveDestinations: (pageId: string, query: string) =>
+    `/api/v1/pages/move-destinations/${pageId}?query=${encodeURIComponent(query)}`,
   location: (pageId: string) => `/api/v1/pages/location/${pageId}`,
   title: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/title`,
   trash: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/trash`,
@@ -66,11 +72,14 @@ export const PAGE_API_ROUTES = {
   schema: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/schema`,
   rewriteOption: (spaceId: string, pageId: string, propertyKey: string) =>
     `/api/v1/spaces/${spaceId}/pages/${pageId}/schema/properties/${propertyKey}/rewrite-option`,
-  viewConfiguration: (spaceId: string, pageId: string, viewName: string) =>
-    `/api/v1/spaces/${spaceId}/pages/${pageId}/schema/views/${encodeURIComponent(viewName)}/configuration`,
-  rows: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/rows`,
-  view: (spaceId: string, pageId: string, viewName: string) =>
-    `/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewName)}`,
+  transactions: '/api/v1/transactions',
+  collections: (spaceId: string) => `/api/v1/spaces/${spaceId}/collections`,
+  query: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/query`,
+  changes: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/changes`,
+  viewOperations: (spaceId: string, pageId: string, viewId: string) =>
+    `/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewId)}/operations`,
+  moveRow: (spaceId: string, pageId: string, viewId: string) =>
+    `/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewId)}/move-row`,
 } as const;
 
 export const PAGES_LIST_IS_NOT_A_LIST = 'The pages list arrived as something that is not a list';

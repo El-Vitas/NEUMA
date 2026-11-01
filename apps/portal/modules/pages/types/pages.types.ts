@@ -39,11 +39,22 @@ export interface PageMentionInsertCommandOptions {
   readonly spaceId: string;
 }
 
+export interface PageComputedValues {
+  readonly computedErrors?: Readonly<Record<string, { readonly code: string; readonly message: string }>>;
+  readonly propertyValues: PagePropertyValues | null;
+}
+
 export interface PageSummary {
+  /** True when the viewer's role on this page allows editing it; the backend resolves it like the write path does. */
+  readonly canEdit: boolean;
+  /** Why a formula or rollup of the row could not be computed; only set on a row opened on its own page. */
+  readonly computedErrors?: Readonly<Record<string, { readonly code: string; readonly message: string }>>;
   readonly content: PageContent;
   readonly cover?: PageCoverValue | null;
   readonly createdAt: Date;
   readonly createdBy: null | PageAuthor;
+  /** True when the page declares its own access instead of following its parent or the space. */
+  readonly hasOwnPermissions?: boolean;
   readonly icon?: PageIcon | null;
   readonly id: string;
   readonly lifecycle: PageLifecycle;
@@ -64,7 +75,17 @@ export interface PageSummary {
   readonly version: number;
 }
 
-export interface PageTreeItem {
-  readonly children: readonly PageTreeItem[];
-  readonly page: PageSummary;
+/** What a mention, a link, a subpage or a relation shows of another page: no content and no list of pages. */
+export interface PageReference {
+  readonly icon?: PageIcon | null;
+  readonly id: string;
+  readonly lifecycle: PageLifecycle;
+  readonly spaceId: string;
+  readonly title: string;
+}
+
+/** The content of a page another page borrows a block from. */
+export interface PageSyncedSource {
+  readonly content: PageContent;
+  readonly id: string;
 }

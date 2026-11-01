@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
-import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import type { FavoritePage } from '@/shared/types/favorites.types';
 import { swapFavoritePages } from '../lib/favorites.lib';
 import { moveFavoriteAction, removeFavoriteAction } from '../server/actions/favorites.actions';
@@ -18,7 +18,7 @@ export const useFavorites = (serverFavorites: readonly FavoritePage[]): UseFavor
     async (pageId: string): Promise<boolean> => {
       setOverride({ favorites: favorites.filter((favorite) => favorite.pageId !== pageId), source: serverFavorites });
 
-      const result = await removeFavoriteAction({ pageId });
+      const result = await callAction(() => removeFavoriteAction({ pageId }));
       if (hasActionError(result)) {
         setOverride({ favorites, source: serverFavorites });
         return false;
@@ -33,7 +33,7 @@ export const useFavorites = (serverFavorites: readonly FavoritePage[]): UseFavor
     async (pageId: string, direction: FavoriteMoveDirection): Promise<boolean> => {
       setOverride({ favorites: swapFavoritePages(favorites, pageId, direction), source: serverFavorites });
 
-      const result = await moveFavoriteAction({ direction, pageId });
+      const result = await callAction(() => moveFavoriteAction({ direction, pageId }));
       if (!isActionSuccess<readonly FavoritePage[]>(result)) {
         setOverride({ favorites, source: serverFavorites });
         return false;

@@ -1,5 +1,6 @@
 import { Card } from '@/shared/components/ui/card';
 import type { PagePersonOption, PageRow, PageSchemaProperty } from '../types/pages.schema.types';
+import { PagesCollectionCardCover } from './pages.collection.card-cover';
 import { PagesCollectionCardProperties } from './pages.collection.card-properties';
 import { PagesCollectionRowTitle } from './pages.collection.row-title';
 
@@ -25,6 +26,7 @@ export const PagesCollectionGalleryCard = ({
       className="h-full gap-2 rounded-md border-border/60 p-3 text-sm shadow-xs transition-shadow hover:shadow-sm"
       data-testid="collection-gallery-card"
     >
+      <PagesCollectionCardCover row={row} />
       <PagesCollectionRowTitle
         className="w-full items-start justify-between gap-2 font-medium"
         openFullPageLabel={openFullPageLabel}

@@ -344,7 +344,7 @@ These items are intentionally excluded from the initial implementation but must 
 
 ## Licensing And Provenance
 
-Outline is used as a functional and architectural reference. If authorized source code is reused for local learning, the applicable license and authorization terms must remain available to the project maintainers. No component should be presented as independently authored if it is directly copied.
+Outline and Notion are functional references for the user experience. No source code, styles or assets are taken from them; every component is written for this project.
 
 Preferred independent dependencies for new capabilities:
 

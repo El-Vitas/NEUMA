@@ -8,13 +8,15 @@ type ActionResult<T> = { data: T } | { serverError: string };
 
 const movePage = mock(async () => ({ data: undefined }));
 const getSpaceMoveAccessLoss = mock(async (): Promise<ActionResult<{ count: number }>> => ({ data: { count: 0 } }));
-const useMoveDestinations = mock(() => ({
+const defaultDestinations = (_isOpen: boolean, _pageId: string, _spaceId: string, _query: string) => ({
   pages: [{ id: 'page-b', spaceId: 'space-a', title: 'Notes' }],
+  parentTitle: null as string | null,
   spaces: [
     { id: 'space-a', name: 'Alpha' },
     { id: 'space-b', name: 'Beta' },
   ],
-}));
+});
+const useMoveDestinations = mock(defaultDestinations);
 
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   movePageAction: movePage,
@@ -55,6 +57,50 @@ const clickOnceEnabled = async (name: string): Promise<void> => {
   fireEvent.click(button);
 };
 
+describe('PagesMoveForm — choosing where to move', () => {
+  afterEach(() => {
+    mock.clearAllMocks();
+    useMoveDestinations.mockImplementation(defaultDestinations);
+  });
+
+  it('asks for what is typed instead of filtering a list it already holds', async () => {
+    renderForm();
+    fireEvent.click(screen.getByRole('button', { name: /Space root/i }));
+
+    fireEvent.change(await screen.findByPlaceholderText(en.pages.moveSearch), { target: { value: 'road' } });
+
+    await waitFor(() => {
+      expect(useMoveDestinations).toHaveBeenLastCalledWith(true, 'page-a', 'space-a', 'road');
+    });
+  });
+
+  it('keeps what the server found even when its title does not contain the typed text', async () => {
+    renderForm();
+    fireEvent.click(screen.getByRole('button', { name: /Space root/i }));
+
+    fireEvent.change(await screen.findByPlaceholderText(en.pages.moveSearch), { target: { value: 'zzz' } });
+
+    expect(await screen.findByRole('option', { name: 'Notes' })).toBeDefined();
+  });
+
+  it('names the page it hangs from now, as the server says', async () => {
+    useMoveDestinations.mockImplementation(() => ({
+      pages: [{ id: 'page-b', spaceId: 'space-a', title: 'Notes' }],
+      parentTitle: 'Handbook',
+      spaces: [{ id: 'space-a', name: 'Alpha' }],
+    }));
+    const nested = { ...page, parentId: 'page-p' } as Parameters<typeof PagesMoveForm>[0]['page'];
+
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesMoveForm ariaLabelledBy="move-label" page={nested} spaceId="space-a" />
+      </NextIntlClientProvider>,
+    );
+
+    expect(await screen.findByRole('button', { name: /Handbook/ })).toBeDefined();
+  });
+});
+
 describe('PagesMoveForm — moving across spaces', () => {
   afterEach(() => {
     mock.clearAllMocks();
@@ -79,6 +125,16 @@ describe('PagesMoveForm — moving across spaces', () => {
       });
     });
     expect(getSpaceMoveAccessLoss).not.toHaveBeenCalled();
+  });
+
+  it('says the page is locked, not that the move failed, when the page cannot be moved because it is locked', async () => {
+    movePage.mockImplementation(async () => ({ serverError: 'locked' }) as never);
+    renderForm();
+
+    fireEvent.click(screen.getByRole('button', { name: /Space root/i }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Notes' }));
+
+    expect(await screen.findByText(en.errors.reasons.locked)).toBeDefined();
   });
 
   it('moves right away across spaces when nobody would lose access', async () => {

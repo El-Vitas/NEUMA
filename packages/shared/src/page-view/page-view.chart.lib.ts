@@ -1,5 +1,5 @@
-import type { PagePropertyType } from '../types/page-schema.types.js';
 import type { PagePropertyValue } from '../page-property/page-property.types.js';
+import type { PagePropertyType } from '../types/page-schema.types.js';
 import { computePageCalculation } from './page-view.calculation.lib.js';
 import type { PageChartMeasure } from './page-view.types.js';
 import { PAGE_CHART_MEASURE, PAGE_VIEW_CALCULATION } from './page-view.types.js';

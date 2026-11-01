@@ -45,9 +45,11 @@ export class JwtAuthGuard implements CanActivate {
     (request as FastifyRequest & { user?: RequestUser }).user = user;
   }
 
-  /** Refresh and collaboration tokens carry other audiences and must not open the API. */
+  /** Refresh and live channel tokens carry other audiences and must not open the API. */
   private async getPayloadFromToken(token: string): Promise<TokenPayload> {
     const secret = this.configService.getOrThrow<string>(JWT_SECRET_KEY);
-    return this.jwtService.verifyAsync<TokenPayload>(token, { audience: ACCESS_TOKEN_AUDIENCE, secret });
+    const payload = await this.jwtService.verifyAsync<TokenPayload>(token, { audience: ACCESS_TOKEN_AUDIENCE, secret });
+    if (typeof payload.sid !== 'string') throw new UnauthorizedException('Token inválido o expirado');
+    return payload;
   }
 }

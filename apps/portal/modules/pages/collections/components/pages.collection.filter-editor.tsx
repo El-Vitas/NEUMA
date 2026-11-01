@@ -3,11 +3,11 @@
 import { useTranslations } from 'next-intl';
 import { Button } from '@/shared/components/ui/button';
 import type { PageSchemaProperty } from '../types/pages.schema.types';
-import type { PagesViewFiltering } from '../types/pages.view-filtering.types';
+import type { PagesFilterEditing } from '../types/pages.view-filtering.types';
 import { PagesCollectionFilterGroup } from './pages.collection.filter-group';
 
 interface IProps {
-  readonly filtering: PagesViewFiltering;
+  readonly filtering: PagesFilterEditing;
   readonly properties: readonly PageSchemaProperty[];
 }
 

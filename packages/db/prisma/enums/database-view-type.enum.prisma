@@ -6,4 +6,5 @@ native_enum DatabaseViewType {
   GALLERY = "GALLERY"
   CALENDAR = "CALENDAR"
   CHART = "CHART"
+  TIMELINE = "TIMELINE"
 }

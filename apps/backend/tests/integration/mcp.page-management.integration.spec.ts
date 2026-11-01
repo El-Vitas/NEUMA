@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { SpaceVisibility } from '@neuma/db';
+import { PageLifecycle, SpaceVisibility } from '@neuma/db';
 import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, type PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { z } from 'zod';
 import {
+  MCP_INACCESSIBLE_MESSAGE,
   MCP_PAGE_LOCKED_MESSAGE,
   MCP_PAGE_MANAGE_REFUSED_MESSAGE,
   MCP_PROTECTED_UNREADABLE_DESCENDANT_MESSAGE,
@@ -13,12 +14,19 @@ import {
 import { PrismaService } from '@/prisma/prisma.service';
 import { createAccount, loginUser } from '../helpers/auth.helper';
 import { callMcpTool, listenForMcp, readMcpText } from '../helpers/mcp.helper';
+import { listActivePageIdsTitled, readStoredContent, readStoredPage } from '../helpers/mcp.stored-page.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 const PASSWORD = 'plainPassword123';
 const { pagesManage, pagesRead, pagesTrash, pagesWrite } = ACCESS_TOKEN_PERMISSIONS;
 
-const commentedShape = z.object({ comment: z.object({ id: z.string() }) });
+const commentedShape = z.object({ comment: z.object({ discussionId: z.string(), id: z.string() }) });
+const discussionShape = z.object({
+  comments: z.array(z.object({ text: z.string() })),
+  id: z.string(),
+});
+const discussionsShape = z.object({ discussions: z.array(discussionShape) });
+const repliedShape = z.object({ discussion: discussionShape });
 const trashShape = z.object({
   pages: z.array(
     z.object({
@@ -43,7 +51,7 @@ describe('MCP page management (Integration)', () => {
 
   const api = () => request(testApp.getServer());
   const prisma = () => testApp.get(PrismaService);
-  const storedPage = (pageId: string) => prisma().models.Page.where({ id: pageId }).all().firstOrThrow();
+  const storedPage = (pageId: string) => readStoredPage(testApp, ownerToken, pageId);
 
   const createPage = async (title: string, content: PageContent, parentId?: string): Promise<string> => {
     const response = await api()
@@ -68,16 +76,20 @@ describe('MCP page management (Integration)', () => {
   const call = (secret: string, name: string, args: Record<string, unknown>) =>
     callMcpTool(baseUrl, secret, name, args);
 
-  const storedContent = async (pageId: string): Promise<string> =>
-    JSON.stringify((await prisma().models.Page.select('content').where({ id: pageId }).all().firstOrThrow()).content);
+  const storedContent = (pageId: string): Promise<string> => readStoredContent(testApp, ownerToken, pageId);
 
-  const freshPage = (title: string, parentId?: string) =>
-    createPage(
+  // A block id belongs to one page for good, so every page gets an id of its own.
+  const introBlocks = new Map<string, string>();
+  const introOf = (pageId: string): string => introBlocks.get(pageId) ?? 'no intro';
+
+  const freshPage = async (title: string, parentId?: string): Promise<string> => {
+    const introId = crypto.randomUUID();
+    const pageId = await createPage(
       title,
       {
         content: [
           {
-            attrs: { id: 'intro' },
+            attrs: { id: introId },
             content: [{ text: 'Revisar la fecha de entrega', type: 'text' }],
             type: 'paragraph',
           },
@@ -87,6 +99,9 @@ describe('MCP page management (Integration)', () => {
       },
       parentId,
     );
+    introBlocks.set(pageId, introId);
+    return pageId;
+  };
 
   beforeAll(async () => {
     testApp = await bootstrapTestApp();
@@ -114,7 +129,7 @@ describe('MCP page management (Integration)', () => {
 
       await call(secret, 'update_block', {
         backgroundColor: 'yellow',
-        block: 'intro',
+        block: introOf(pageId),
         page: pageId,
         text: '<u>Ojo</u> con la <span color="red">fecha</span> y el <mark color="green">monto</mark>',
       });
@@ -145,7 +160,7 @@ describe('MCP page management (Integration)', () => {
           },
           { title: 'Guía', type: 'bookmark', url: 'https://example.com/guia' },
           { type: 'embed', url: 'https://www.youtube.com/watch?v=abc' },
-          { block: 'intro', page: sourceId, type: 'synced' },
+          { block: introOf(sourceId), page: sourceId, type: 'synced' },
         ],
         page: pageId,
       });
@@ -175,44 +190,150 @@ describe('MCP page management (Integration)', () => {
   });
 
   describe('comentarios', () => {
-    it('comments on some words of a block, signed by the token owner, and deletes the comment', async () => {
+    let secret = '';
+
+    beforeAll(async () => {
+      secret = await fullToken();
+    });
+
+    it('opens a discussion on some words of a block, signed by the token owner, and deletes the comment', async () => {
       const pageId = await freshPage('Comentarios');
-      const secret = await fullToken();
 
       const commented = await call(secret, 'comment_on_block', {
-        block: 'intro',
+        block: introOf(pageId),
         page: pageId,
         quote: 'fecha',
         text: '¿Es la fecha final?',
       });
-      const commentId = commentedShape.parse(commented.structuredContent).comment.id;
+      const { comment } = commentedShape.parse(commented.structuredContent);
 
       const stored = await storedContent(pageId);
-      expect(stored).toContain('"author":"Ana Pérez"');
       expect(stored).toContain('"type":"comment"');
-      expect(stored.split(commentId).length - 1).toBe(2);
+      expect(stored).toContain(comment.discussionId);
+      expect(stored).not.toContain('"comments"');
       expect(readMcpText(await call(secret, 'fetch', { address: pageId }))).toContain(
-        `Comment ${commentId} by Ana Pérez`,
+        `Comment ${comment.id} in discussion ${comment.discussionId} by Ana Pérez`,
       );
 
-      await call(secret, 'delete_comment', { block: 'intro', comment: commentId, page: pageId });
+      await call(secret, 'delete_comment', { block: introOf(pageId), comment: comment.id, page: pageId });
 
-      expect(await storedContent(pageId)).not.toContain(commentId);
+      expect(await storedContent(pageId)).not.toContain(comment.discussionId);
+    });
+
+    it('refuses to delete a comment that lives on another page than the one named', async () => {
+      const pageId = await freshPage('Página nombrada');
+      const otherPageId = await freshPage('Página ajena');
+      const commented = await call(secret, 'comment_on_block', {
+        block: introOf(otherPageId),
+        page: otherPageId,
+        text: 'No se borra desde otra página',
+      });
+      const { comment } = commentedShape.parse(commented.structuredContent);
+
+      const refused = await call(secret, 'delete_comment', {
+        block: introOf(pageId),
+        comment: comment.id,
+        page: pageId,
+      });
+
+      expect(refused.isError).toBe(true);
+      expect(readMcpText(refused)).toContain(MCP_INACCESSIBLE_MESSAGE);
+      const listed = await call(secret, 'list_discussions', { page: otherPageId });
+      expect(discussionsShape.parse(listed.structuredContent).discussions).toHaveLength(1);
+    });
+
+    it('lists the discussions of a page and replies to one as the token owner', async () => {
+      const pageId = await freshPage('Hilos');
+      const commented = await call(secret, 'comment_on_block', {
+        block: introOf(pageId),
+        page: pageId,
+        text: '¿Quién revisa esto?',
+      });
+      const { comment } = commentedShape.parse(commented.structuredContent);
+
+      const replied = await call(secret, 'reply_to_discussion', { discussion: comment.discussionId, text: 'Yo' });
+      const listed = await call(secret, 'list_discussions', { page: pageId });
+
+      expect(repliedShape.parse(replied.structuredContent).discussion.comments.map((entry) => entry.text)).toEqual([
+        '¿Quién revisa esto?',
+        'Yo',
+      ]);
+      const [discussion] = discussionsShape.parse(listed.structuredContent).discussions;
+      expect(discussion?.id).toBe(comment.discussionId);
+      expect(discussion?.comments).toHaveLength(2);
+    });
+
+    it('hides resolved discussions until asked for them', async () => {
+      const pageId = await freshPage('Resueltos');
+      const commented = await call(secret, 'comment_on_block', { block: introOf(pageId), page: pageId, text: 'Hecho' });
+      const { comment } = commentedShape.parse(commented.structuredContent);
+      await api()
+        .post(`/api/v1/discussions/${comment.discussionId}/resolve`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(201);
+
+      const open = await call(secret, 'list_discussions', { page: pageId });
+      const all = await call(secret, 'list_discussions', { includeResolved: true, page: pageId });
+
+      expect(discussionsShape.parse(open.structuredContent).discussions).toHaveLength(0);
+      expect(discussionsShape.parse(all.structuredContent).discussions).toHaveLength(1);
+    });
+
+    it('never shows, lists or lets reply to a discussion on a block its owner cannot read', async () => {
+      const pageId = await freshPage('Bloque oculto');
+      const strangerEmail = `mcp-stranger-${crypto.randomUUID()}@test.com`;
+      const created = await createAccount(testApp, { email: strangerEmail, name: 'Extraña', password: PASSWORD });
+      await prisma().models.User.where({ id: created.user.id }).update({ role: 'ADMIN' });
+      const stranger = await loginUser(testApp, strangerEmail, PASSWORD);
+      const hiddenBlockId = crypto.randomUUID();
+      await prisma().models.Block.create({
+        createdById: stranger.user.id,
+        editedById: stranger.user.id,
+        id: hiddenBlockId,
+        parentId: pageId,
+        permissions: [{ principal: { kind: 'user', userId: stranger.user.id }, role: 'full' }],
+        properties: { title: [{ insert: 'Reservado' }] },
+        spaceId,
+        type: 'paragraph',
+      });
+      const secretDiscussion = (
+        await api()
+          .post(`/api/v1/blocks/${hiddenBlockId}/discussions`)
+          .set('Authorization', `Bearer ${stranger.accessToken}`)
+          .send({ body: [{ insert: 'Confidencial' }] })
+          .expect(201)
+      ).body as { id: string };
+
+      const listed = await call(secret, 'list_discussions', { page: pageId });
+      const fetched = await call(secret, 'fetch', { address: pageId });
+      const reply = await call(secret, 'reply_to_discussion', { discussion: secretDiscussion.id, text: 'Intruso' });
+
+      expect(JSON.stringify(listed)).not.toContain('Confidencial');
+      expect(readMcpText(fetched)).not.toContain('Confidencial');
+      expect(reply.isError).toBe(true);
+      expect(readMcpText(reply)).not.toContain('Confidencial');
     });
   });
 
   describe('tablas', () => {
     it('changes a cell and adds a row, keeping the ids of what it left alone', async () => {
+      const ids = {
+        cell: crypto.randomUUID(),
+        header: crypto.randomUUID(),
+        headerRow: crypto.randomUUID(),
+        row: crypto.randomUUID(),
+        table: crypto.randomUUID(),
+      };
       const pageId = await createPage('Tabla', {
         content: [
           {
-            attrs: { id: 't' },
+            attrs: { id: ids.table },
             content: [
               {
-                attrs: { id: 'r1' },
+                attrs: { id: ids.headerRow },
                 content: [
                   {
-                    attrs: { id: 'h1' },
+                    attrs: { id: ids.header },
                     content: [{ content: [{ text: 'Tarea', type: 'text' }], type: 'paragraph' }],
                     type: 'table_header',
                   },
@@ -220,10 +341,10 @@ describe('MCP page management (Integration)', () => {
                 type: 'table_row',
               },
               {
-                attrs: { id: 'r2' },
+                attrs: { id: ids.row },
                 content: [
                   {
-                    attrs: { id: 'c1' },
+                    attrs: { id: ids.cell },
                     content: [{ content: [{ text: 'Diseño', type: 'text' }], type: 'paragraph' }],
                     type: 'table_cell',
                   },
@@ -242,12 +363,12 @@ describe('MCP page management (Integration)', () => {
         addRows: [['Pruebas']],
         cells: [{ column: 1, row: 2, text: 'Diseño **final**' }],
         page: pageId,
-        table: 't',
+        table: ids.table,
       });
 
       expect(answer.isError).toBeUndefined();
       const stored = await storedContent(pageId);
-      expect(stored).toContain('"id":"c1"');
+      expect(stored).toContain(`"id":"${ids.cell}"`);
       expect(stored).toContain('final');
       expect(stored).toContain('Pruebas');
     });
@@ -271,6 +392,7 @@ describe('MCP page management (Integration)', () => {
       expect(page.title).toBe('Nuevo nombre');
       expect(JSON.stringify(page.icon)).toContain('📌');
       expect(page.lockedAt).not.toBeNull();
+      expect(page.lifecycle).toBe(PageLifecycle.ACTIVE);
       expect(readMcpText(refused)).toBe(MCP_PAGE_LOCKED_MESSAGE);
     });
 
@@ -305,22 +427,36 @@ describe('MCP page management (Integration)', () => {
         (await call(secret, 'duplicate_page', { page: pageId, title: 'Copia' })).structuredContent,
       );
       const trashed = managedShape.parse((await call(secret, 'trash_page', { page: pageId })).structuredContent);
-      const inTrash = await prisma()
-        .models.Page.select('id')
-        .where((page) => page.id.in([pageId, childId]))
-        .where((page) => page.trashedAt.isNotNull())
-        .all();
+      const inTrash = (await Promise.all([pageId, childId].map((id) => storedPage(id)))).filter(
+        (page) => page.lifecycle === PageLifecycle.TRASHED,
+      );
       const restored = managedShape.parse(
         (await call(secret, 'restore_page', { page: pageId, withChildren: true })).structuredContent,
       );
 
       const moved = await storedPage(pageId);
       expect(moved.parentId).toBe(parentId);
-      expect(moved.trashedAt).toBeNull();
+      expect(moved.lifecycle).toBe(PageLifecycle.ACTIVE);
       expect(copy.page.title).toBe('Copia');
       expect(trashed.childPages).toBe(1);
       expect(inTrash).toHaveLength(2);
+      expect(restored.childPages).toBe(0);
+      expect((await storedPage(childId)).lifecycle).toBe(PageLifecycle.ACTIVE);
+    });
+
+    it('brings back with a page the pages under it that were trashed on their own first, when asked to', async () => {
+      const secret = await fullToken();
+      const pageId = await freshPage('Madre con hija borrada antes');
+      const childId = await freshPage('Hija borrada antes', pageId);
+      await call(secret, 'trash_page', { page: childId });
+      await call(secret, 'trash_page', { page: pageId });
+
+      const restored = managedShape.parse(
+        (await call(secret, 'restore_page', { page: pageId, withChildren: true })).structuredContent,
+      );
+
       expect(restored.childPages).toBe(1);
+      expect((await storedPage(childId)).lifecycle).toBe(PageLifecycle.ACTIVE);
     });
 
     it('refuses to trash a page when a page under it is closed to the token for that, and trashes nothing', async () => {
@@ -334,7 +470,7 @@ describe('MCP page management (Integration)', () => {
       const answer = await call(secret, 'trash_page', { page: pageId });
 
       expect(readMcpText(answer)).toContain(childId);
-      expect((await storedPage(pageId)).trashedAt).toBeNull();
+      expect((await storedPage(pageId)).lifecycle).toBe(PageLifecycle.ACTIVE);
     });
 
     it('refuses without naming a page under it that the token may not even read', async () => {
@@ -348,14 +484,18 @@ describe('MCP page management (Integration)', () => {
       const answer = await call(secret, 'trash_page', { page: pageId });
 
       expect(readMcpText(answer)).toBe(MCP_PROTECTED_UNREADABLE_DESCENDANT_MESSAGE);
-      expect((await storedPage(pageId)).trashedAt).toBeNull();
+      expect((await storedPage(pageId)).lifecycle).toBe(PageLifecycle.ACTIVE);
     });
 
     it('answers a token that writes but cannot read with ids and the link only', async () => {
       const pageId = await freshPage('Solo escritura');
       const writeOnly = await tokenFor({ allSpaces: [pagesWrite] });
 
-      const answer = await call(writeOnly, 'comment_on_block', { block: 'intro', page: pageId, text: 'Revisado' });
+      const answer = await call(writeOnly, 'comment_on_block', {
+        block: introOf(pageId),
+        page: pageId,
+        text: 'Revisado',
+      });
 
       const text = readMcpText(answer);
       expect(text).toContain(MCP_WRITTEN_UNREADABLE_NOTE);
@@ -384,10 +524,11 @@ describe('MCP page management (Integration)', () => {
       expect(action.detail).toEqual({ target: pageId });
     });
 
-    it('lists the pages in the trash the token may read, with who trashed them and how many went along', async () => {
+    it('lists the pages in the trash the token may read, with who trashed them and how many had been trashed on their own', async () => {
       const secret = await fullToken();
       const keptId = await freshPage('Para recuperar');
-      await freshPage('Hija que se fue', keptId);
+      const leftChildId = await freshPage('Hija que se fue', keptId);
+      await call(secret, 'trash_page', { page: leftChildId });
       const hiddenId = await freshPage('Cerrada al token');
       const closedHere = await tokenFor({
         allSpaces: [pagesRead, pagesWrite],
@@ -410,11 +551,7 @@ describe('MCP page management (Integration)', () => {
 
   describe('reintentos con el mismo id de pedido', () => {
     const countTitled = async (title: string): Promise<number> =>
-      (
-        await prisma()
-          .models.Page.where({ spaceId, title, trashedAt: null })
-          .aggregate((aggregation) => ({ total: aggregation.count() }))
-      ).total;
+      (await listActivePageIdsTitled(testApp, spaceId, title)).length;
 
     it('creates the page once and tells the retry where it is', async () => {
       const secret = await fullToken();
@@ -424,10 +561,10 @@ describe('MCP page management (Integration)', () => {
       await call(secret, 'create_page', args);
       const retry = await call(secret, 'create_page', args);
 
-      const created = await prisma().models.Page.select('id').where({ spaceId, title }).all().firstOrThrow();
+      const [createdId] = await listActivePageIdsTitled(testApp, spaceId, title);
       expect(await countTitled(title)).toBe(1);
       expect(readMcpText(retry)).toContain(MCP_REQUEST_ALREADY_DONE_MESSAGE);
-      expect(readMcpText(retry)).toContain(created.id);
+      expect(readMcpText(retry)).toContain(createdId ?? 'no page');
     });
 
     it('creates the page once when two calls with the same id arrive together', async () => {

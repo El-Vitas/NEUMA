@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserRole } from '@neuma/shared';
+import { PASSWORD_MIN_LENGTH, type UserRole } from '@neuma/shared';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -16,8 +16,7 @@ import {
   DialogTrigger,
 } from '@/shared/components/ui/dialog';
 import { FormField } from '@/shared/components/ui/form-field';
-import { PASSWORD_MIN_LENGTH } from '@/shared/constants/password.constants';
-import { hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
+import { callAction, hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
 import { USERS_DIALOG_INPUT_CLASS, USERS_NEW_ACCOUNT_ROLE } from '../constants/users.constants';
 import { isCreateUserInputValid } from '../lib/users.lib';
 import { createUserAction } from '../server/actions/users.actions';
@@ -45,7 +44,7 @@ export const UsersCreateDialog = () => {
   const handleCreate = async () => {
     setIsSubmitting(true);
     try {
-      const result = await createUserAction({ name, email, password, role });
+      const result = await callAction(() => createUserAction({ name, email, password, role }));
 
       if (hasActionError(result)) {
         toast.error(tErrors(`reasons.${readActionFailureReason(result)}`));

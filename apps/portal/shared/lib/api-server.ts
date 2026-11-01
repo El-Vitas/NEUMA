@@ -1,13 +1,18 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { getLocale } from 'next-intl/server';
 import { config } from '@/shared/config';
 import { ACCESS_TOKEN_COOKIE, BEARER_PREFIX, PUBLIC_API_REQUESTS } from '@/shared/constants/auth.constants';
+import {
+  BACKEND_FILE_REQUEST_TIMEOUT_MILLISECONDS,
+  BACKEND_REQUEST_TIMEOUT_MILLISECONDS,
+} from '@/shared/constants/backend-request.constants';
 import { API_ROUTES, ROUTES } from '@/shared/routes/constants/routes.constants';
 import type { DownloadedFile } from '@/shared/types/downloaded-file.types';
 import { redirect } from '../../i18n/navigation';
 import { ApiError } from './api';
 import { MissingAccessTokenError } from './auth.token.error';
 import { readAccessTokenCookie } from './auth.token.lib';
+import { forwardedForHeaders, readClientIp } from './client-ip.lib';
 import { NetworkError, parseJsonBodyStrict } from './parse-json-body';
 
 export const buildHeaders = (
@@ -20,20 +25,21 @@ export const buildHeaders = (
   ...(accessToken === undefined ? {} : { authorization: `${BEARER_PREFIX}${accessToken}` }),
 });
 
-export const buildUrl = (endpoint: string): string =>
-  endpoint.startsWith('http') ? endpoint : `${config.backendApiUrl}${endpoint}`;
+export const buildUrl = (endpoint: string): string => `${config.backendApiUrl}${endpoint}`;
 
 /** Not reaching the backend (offline) is distinct from it answering with an error status. */
 const fetchAcceptedResponse = async (
   endpoint: string,
   accessToken: string | undefined,
   init: RequestInit,
+  timeoutMilliseconds = BACKEND_REQUEST_TIMEOUT_MILLISECONDS,
 ): Promise<Response> => {
   let response: Response;
   try {
     response = await fetch(buildUrl(endpoint), {
       ...init,
       headers: buildHeaders(accessToken, init.headers, init.body !== undefined),
+      signal: AbortSignal.timeout(timeoutMilliseconds),
     });
   } catch (error) {
     throw new NetworkError(error);
@@ -50,7 +56,7 @@ export const apiRequest = async <T>(endpoint: string, accessToken: string, init:
 
 /** Bytes are encoded because a server action answers in JSON; sending an archive as text would corrupt it. */
 export const apiRequestFile = async (endpoint: string, accessToken: string): Promise<DownloadedFile> => {
-  const response = await fetchAcceptedResponse(endpoint, accessToken, {});
+  const response = await fetchAcceptedResponse(endpoint, accessToken, {}, BACKEND_FILE_REQUEST_TIMEOUT_MILLISECONDS);
   return {
     base64: Buffer.from(await response.arrayBuffer()).toString('base64'),
     mediaType: response.headers.get('content-type') ?? 'application/octet-stream',
@@ -91,9 +97,13 @@ const request = async <T>(
     throw new MissingAccessTokenError();
   }
 
+  const forwardedInit = {
+    ...init,
+    headers: { ...init.headers, ...forwardedForHeaders(readClientIp(await headers(), config.clientIpTrust)) },
+  };
   let caughtError: unknown;
   try {
-    return await readBody(await fetchAcceptedResponse(endpoint, accessToken, init));
+    return await readBody(await fetchAcceptedResponse(endpoint, accessToken, forwardedInit));
   } catch (error) {
     caughtError = error;
   }
@@ -114,5 +124,7 @@ export const apiServer = {
     request<T>(endpoint, { method: 'PUT', body: JSON.stringify(body) }, parseJsonBodyStrict),
   patch: <T>(endpoint: string, body: unknown) =>
     request<T>(endpoint, { method: 'PATCH', body: JSON.stringify(body) }, parseJsonBodyStrict),
+  patchDiscardingBody: (endpoint: string, body: unknown): Promise<void> =>
+    request(endpoint, { method: 'PATCH', body: JSON.stringify(body) }, discardBody),
   del: (endpoint: string): Promise<void> => request(endpoint, { method: 'DELETE' }, discardBody),
 };

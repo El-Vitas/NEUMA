@@ -1,6 +1,14 @@
 import { afterAll, beforeAll, describe, expect, setSystemTime, test } from 'bun:test';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
-import { ACCESS_TOKEN_PERMISSIONS, type PagePropertyType, Result, USER_ROLE, type UserRole } from '@neuma/shared';
+import {
+  ACCESS_TOKEN_PERMISSIONS,
+  DEFAULT_PAGE_PROPERTY_CONFIG,
+  type DiscussionView,
+  type PagePropertyType,
+  Result,
+  USER_ROLE,
+  type UserRole,
+} from '@neuma/shared';
 import { z } from 'zod';
 import type { AccessTokenPlaceReader } from '../../../../src/common/types/access-token.types';
 import type {
@@ -25,6 +33,7 @@ import { MCP_FETCH_CHILD_LIMIT } from '../../../../src/modules/mcp/constants/mcp
 import { writeMcpServerInstructions } from '../../../../src/modules/mcp/lib/mcp.instructions.lib';
 import { createMcpServer } from '../../../../src/modules/mcp/mcp.server';
 import type { McpCollectionService, McpColumn } from '../../../../src/modules/mcp/types/mcp.collections.types';
+import type { McpDiscussions } from '../../../../src/modules/mcp/types/mcp.discussions.types';
 import type {
   McpOutlineEntry,
   McpOutlineReader,
@@ -68,6 +77,7 @@ const spaces: readonly SpaceSummary[] = [
   },
 ];
 const page: PageSummary = {
+  canEdit: true,
   content: {
     content: [
       { attrs: { id: 'heading-1', level: 1 }, content: [{ text: 'Setup', type: 'text' }], type: 'heading' },
@@ -85,6 +95,7 @@ const page: PageSummary = {
   },
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
+  hasOwnPermissions: false,
   id: PAGE,
   lifecycle: 'ACTIVE',
   lockedAt: null,
@@ -165,7 +176,7 @@ const childrenOf =
 const outline: McpOutlineReader = {
   listAncestors: () => Promise.resolve([]),
   listChildren: childrenOf([
-    { childCount: 2, id: MISSING, isCollection: true, propertyValues: null, title: 'Incidents' },
+    { hasChildren: true, id: MISSING, isCollection: true, propertyValues: null, title: 'Incidents' },
   ]),
   listReadable: (pageIds) =>
     Promise.resolve(pageIds.filter((id) => id === PAGE).map((id) => ({ id, spaceId: SPACE, title: 'Runbook' }))),
@@ -173,6 +184,22 @@ const outline: McpOutlineReader = {
 
 const createPageReadResult = (pageSummary: PageSummary | null): McpPageReadResult =>
   pageSummary === null ? Result.fail(new Error('No page')) : Result.ok(pageSummary);
+
+const createDiscussions = (listed: readonly DiscussionView[]): McpDiscussions => ({
+  getDiscussion: (_viewer, discussionId) => {
+    const found = listed.find((discussion) => discussion.id === discussionId);
+    return Promise.resolve(
+      found === undefined
+        ? Result.fail({ code: 'DISCUSSION_NOT_FOUND', details: 'Discussion not found' })
+        : Result.ok(found),
+    );
+  },
+  listPageDiscussions: () => Promise.resolve(Result.ok({ discussions: listed, nextCursor: null })),
+  locateComment: () => Promise.reject(new Error('Not used in this test')),
+  openDiscussion: () => Promise.reject(new Error('Not used in this test')),
+  removeComment: () => Promise.reject(new Error('Not used in this test')),
+  reply: () => Promise.reject(new Error('Not used in this test')),
+});
 
 const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal): McpServerDependencies => ({
   actionLog: {
@@ -183,43 +210,57 @@ const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal):
   backlinks: { listBacklinks: () => Promise.resolve({ items: [] }) },
   collections: collectionWith([]),
   content: { edit: notUsedHere },
+  discussions: createDiscussions([]),
   drawings: { checkDiagram: notUsedHere, checkFormula: () => Result.ok('') },
+  files: { upload: notUsedHere },
   pages: createUnusedPageManager(),
   observer: { callFinished: () => undefined, unexpected: () => undefined },
   outline,
   pagesService: {
     getAccessible: (pageId) => Promise.resolve(createPageReadResult(pageId === PAGE ? page : null)),
   },
-  people: { listAssignableMembers: () => Promise.resolve([{ id: 'u-1', name: 'Ana Pérez' }]) },
+  people: {
+    listAssignableMembers: () => Promise.resolve([{ email: 'ana@example.com', id: 'u-1', name: 'Ana Pérez' }]),
+  },
   placeReader,
   portalUrl: PORTAL,
   principalResolver: { resolve: () => Promise.resolve(resolvedPrincipal) },
-  rows: { create: notUsedHere, rename: notUsedHere, updateProperties: notUsedHere },
+  rows: { changeRelations: notUsedHere, create: notUsedHere, rename: notUsedHere, updateProperties: notUsedHere },
   searchService: {
     locateBlock: (blockId) => Promise.resolve(blockId === BLOCK ? [PAGE] : []),
     search: () => Promise.resolve(pageHits),
     searchBlocks: () => Promise.resolve(blockHits),
   },
   spacesService: { listAccessible: () => Promise.resolve(spaces) },
+  templates: { create: notUsedHere, list: notUsedHere, remove: notUsedHere, update: notUsedHere },
   workspacesService: { resolveForUser: () => Promise.resolve(workspace) },
 });
 
 const notUsedHere = (): Promise<never> => Promise.reject(new Error('Not used in this test'));
 
-const column = (key: string, label: string, type: PagePropertyType): McpColumn => ({
+const column = (
+  key: string,
+  label: string,
+  type: PagePropertyType,
+  options: readonly string[] | null = null,
+): McpColumn => ({
+  config: DEFAULT_PAGE_PROPERTY_CONFIG,
   key,
   label,
-  options: null,
+  options: options?.map((value, index) => ({ color: null, group: null, id: `${key}-${String(index)}`, value })) ?? null,
   required: false,
   type,
 });
 
 const collectionWith = (properties: readonly McpColumn[]): McpCollectionService => ({
+  applyViewOperations: notUsedHere,
   defineSchema: notUsedHere,
+  moveRow: notUsedHere,
+  previewComputed: notUsedHere,
   getSchema: () => Promise.resolve(Result.ok({ properties, views: [] })),
-  queryRows: notUsedHere,
+  queryCollection: notUsedHere,
+  readChanges: notUsedHere,
   rewriteOption: notUsedHere,
-  setViewConfiguration: notUsedHere,
 });
 
 const servingPage = (served: PageSummary, overrides: Partial<McpServerDependencies> = {}): McpServerDependencies => ({
@@ -274,8 +315,12 @@ describe('MCP read contract', () => {
       'list_spaces',
       'list_pages',
       'list_trash',
+      'list_discussions',
       'get_collection',
       'query_collection',
+      'collection_changes',
+      'test_formula',
+      'list_templates',
     ]);
   });
 
@@ -511,7 +556,7 @@ describe('MCP fetch', () => {
         backlinks: [],
         children: [
           {
-            childCount: 2,
+            hasChildren: true,
             id: MISSING,
             isCollection: true,
             title: 'Incidents',
@@ -671,14 +716,14 @@ describe('MCP fetch — whether a page can be trusted', () => {
 
 describe('MCP fetch — rows, comments and long pages', () => {
   test('gives a row its properties, named by the columns of its collection, empty ones included', async () => {
-    const row = { ...page, parentId: MISSING, propertyValues: { status: 'En curso', tags: ['a', 'b'] } };
+    const row = { ...page, parentId: MISSING, propertyValues: { status: 'status-0', tags: ['tags-0', 'tags-1'] } };
     const result = await fetchAddress(
       PAGE,
       servingPage(row, {
         collections: collectionWith([
-          column('status', 'Estado', 'SELECT'),
+          column('status', 'Estado', 'SELECT', ['En curso']),
           column('owner', 'Responsable', 'RICH_TEXT'),
-          column('tags', 'Etiquetas', 'MULTI_SELECT'),
+          column('tags', 'Etiquetas', 'MULTI_SELECT', ['a', 'b']),
         ]),
       }),
     );
@@ -697,7 +742,7 @@ describe('MCP fetch — rows, comments and long pages', () => {
   });
 
   test('names the person a row is assigned to, not just their id', async () => {
-    const row = { ...page, parentId: MISSING, propertyValues: { assignee: 'u-1' } };
+    const row = { ...page, parentId: MISSING, propertyValues: { assignee: ['u-1'] } };
     const result = await fetchAddress(
       PAGE,
       servingPage(row, {
@@ -728,7 +773,7 @@ describe('MCP fetch — rows, comments and long pages', () => {
 
   test('names only the first pages under a page and says how many more there are', async () => {
     const many = Array.from({ length: MCP_FETCH_CHILD_LIMIT + 5 }, (_unused, index) => ({
-      childCount: 0,
+      hasChildren: false,
       id: `child-${String(index)}`,
       isCollection: false,
       propertyValues: null,
@@ -756,25 +801,56 @@ describe('MCP fetch — rows, comments and long pages', () => {
     expect(result.structuredContent).not.toHaveProperty('page.properties');
   });
 
-  test('hands over what was said on each block', async () => {
-    const comment = { author: 'Ana', body: 'Revisar', createdAt: '2026-09-01T10:00:00.000Z', id: 'c1' };
-    const commented: PageSummary = {
-      ...page,
-      content: {
-        content: [
-          { attrs: { comments: [comment], id: BLOCK }, content: [{ text: 'Uno', type: 'text' }], type: 'paragraph' },
-        ],
-        schemaVersion: 1,
-        type: 'doc',
-      },
+  test('hands over what was said in the open discussions, and leaves out the deleted comments', async () => {
+    const createdAt = '2026-09-01T10:00:00.000Z';
+    const discussion: DiscussionView = {
+      anchorMarkId: null,
+      blockId: BLOCK,
+      canComment: true,
+      comments: [
+        {
+          authorId: 'u-1',
+          authorName: 'Ana',
+          body: [{ insert: 'Revisar' }],
+          canDelete: true,
+          canEdit: true,
+          createdAt,
+          discussionId: 'd1',
+          editedAt: null,
+          id: 'c1',
+          isDeleted: false,
+        },
+        {
+          authorId: 'u-1',
+          authorName: 'Ana',
+          body: [],
+          canDelete: false,
+          canEdit: false,
+          createdAt,
+          discussionId: 'd1',
+          editedAt: null,
+          id: 'c2',
+          isDeleted: true,
+        },
+      ],
+      createdAt,
+      createdById: 'u-1',
+      id: 'd1',
+      pageId: PAGE,
+      quote: null,
+      resolvedAt: null,
+      resolvedById: null,
     };
 
-    const result = await fetchAddress(PAGE, servingPage(commented));
+    const result = await fetchAddress(PAGE, { ...createDependencies(), discussions: createDiscussions([discussion]) });
 
     expect(result.structuredContent).toMatchObject({
-      page: { comments: [{ author: 'Ana', blockId: BLOCK, body: 'Revisar', createdAt: comment.createdAt, id: 'c1' }] },
+      page: {
+        comments: [{ author: 'Ana', blockId: BLOCK, body: 'Revisar', createdAt, discussionId: 'd1', id: 'c1' }],
+      },
     });
-    expect(textOf(result)).toContain(`- Comment c1 by Ana on block ${BLOCK}`);
+    expect(textOf(result)).toContain(`- Comment c1 in discussion d1 by Ana on block ${BLOCK}`);
+    expect(textOf(result)).not.toContain('Comment c2');
   });
 
   test('hands a long page over in parts, and the cursor leads to the next one', async () => {
@@ -872,7 +948,7 @@ describe('MCP list_pages', () => {
     expect(result.structuredContent).toEqual({
       pages: [
         {
-          childCount: 2,
+          hasChildren: true,
           id: MISSING,
           isCollection: true,
           title: 'Incidents',
@@ -885,18 +961,18 @@ describe('MCP list_pages', () => {
 
   test('gives each row of a collection its properties, people by name', async () => {
     const task = (at: number, status: string) => ({
-      childCount: 0,
+      hasChildren: false,
       id: `task-${String(at)}`,
       isCollection: false,
-      propertyValues: { assignee: 'u-1', status },
+      propertyValues: { assignee: ['u-1'], status },
       title: `Tarea ${String(at)}`,
     });
     const client = await connectClient({
       ...createDependencies(),
-      outline: { ...outline, listChildren: childrenOf([task(1, 'todo'), task(2, 'done')]) },
+      outline: { ...outline, listChildren: childrenOf([task(1, 'status-0'), task(2, 'status-1')]) },
       collections: collectionWith([
         column('title', 'Título', 'TITLE'),
-        column('status', 'Estado', 'SELECT'),
+        column('status', 'Estado', 'SELECT', ['todo', 'done']),
         column('assignee', 'Asignada a', 'PERSON'),
       ]),
     });
@@ -910,7 +986,7 @@ describe('MCP list_pages', () => {
 
   test('lists a long level in parts, and the cursor leads to the rest', async () => {
     const many = Array.from({ length: 7 }, (_unused, at) => ({
-      childCount: 0,
+      hasChildren: false,
       id: `p-${String(at)}`,
       isCollection: false,
       propertyValues: null,

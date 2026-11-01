@@ -2,13 +2,16 @@ import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps } from 'react';
+import { NO_PAGE_AGGREGATES } from '@/modules/pages/collections/constants/pages.aggregates.constants';
 import type {
   PageSchemaProperty,
   PageSchemaView,
   PageViewOutcome,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
-import { asPropertyOptions } from '../lib/pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
+import { buildView } from '../lib/pages.views.fixture';
+import { COLLECTION_ACTION_STUBS } from '../stubs/pages.actions.stubs';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
@@ -20,9 +23,21 @@ mock.module('@/i18n/navigation', () => ({
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 // Server actions cannot be loaded in a browser-shaped test.
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  ...COLLECTION_ACTION_STUBS,
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
-  updatePageViewConfigurationAction: async () => ({ data: null }),
+  applyPageViewOperationsAction: async () => ({ data: null }),
+  loadMorePageRowsAction: async () => ({ data: null }),
+  readEveryPageRowAction: async () => ({ data: null }),
+  readPageCollectionAction: async () => ({ data: null }),
+  readPageCollectionChangesAction: async () => ({ data: null }),
+  readPageMatchingRowsAction: async () => ({ data: null }),
+  readPageViewAggregatesAction: async () => ({ data: null }),
+  refreshPageCollectionAction: async () => ({ data: null }),
+  refreshPageRowsAction: async () => ({ data: null }),
+  movePageRowAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
 }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
@@ -36,21 +51,23 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
 const { PagesCollectionView } = await import('@/modules/pages/collections/components/pages.collection.view');
 
 const properties: PageSchemaProperty[] = [
-  { key: 'status', label: 'Status', options: asPropertyOptions('todo', 'done'), required: true, type: 'SELECT' },
+  {
+    config: defaultConfig,
+    key: 'status',
+    label: 'Status',
+    options: asPropertyOptions('todo', 'done'),
+    required: true,
+    type: 'SELECT',
+  },
 ];
 
-const boardView: PageSchemaView = {
-  configuration: { groupBy: 'status' },
-  isDefault: false,
-  name: 'Board',
-  type: 'BOARD',
-};
+const boardView = buildView('Board', 'BOARD', { configuration: { groupBy: 'status' } });
 
-const tableView: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+const tableView = buildView('Table', 'TABLE', { isDefault: true });
 
-const listView: PageSchemaView = { configuration: {}, isDefault: false, name: 'List', type: 'LIST' };
+const listView = buildView('List', 'LIST');
 
-const galleryView: PageSchemaView = { configuration: {}, isDefault: false, name: 'Gallery', type: 'GALLERY' };
+const galleryView = buildView('Gallery', 'GALLERY');
 
 const groupedOutcome: PageViewOutcome = {
   groups: [
@@ -64,6 +81,7 @@ const rows = [
   {
     id: 'row-1',
     lifecycle: 'ACTIVE' as const,
+    version: 1,
     order: 0,
     parentId: 'collection-1',
     propertyValues: {},
@@ -79,7 +97,9 @@ const drawView = async (outcome: PageViewOutcome | null, view: PageSchemaView) =
     <NextIntlClientProvider locale="en" messages={en}>
       {
         await PagesCollectionView({
+          aggregates: NO_PAGE_AGGREGATES,
           canEdit: false,
+          changesCursor: null,
           outcome,
           properties,
           schema: { pageId: 'collection-1', properties, spaceId: 'space-1', views: [view] },

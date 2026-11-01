@@ -1,6 +1,7 @@
 # 013: Desplegar con tres imágenes y las proyecciones en procesos aparte
 
-**Status:** Accepted
+**Status:** Superseded
+**Superseded by:** 022 (los servicios de proyección; las tres imágenes siguen vigentes)
 **Date:** 2026-10-11
 **Depends on:** `007-adopt-bun-as-package-manager.md`, `010-adopt-prisma-orm-8.md`, `012-deliver-outbox-events-per-consumer.md`
 
@@ -16,7 +17,7 @@ El despliegue (Docker Compose en local) levantaba la base, las migraciones, el b
 
 ## Decision
 
-- `neuma-backend` sirve la API y, con otro comando, corre `search-worker` y `links-worker`. Compose y los quadlets los declaran como servicios propios, que arrancan después de las migraciones y no tienen chequeo HTTP.
+- `neuma-backend` sirve la API y, con otro comando, corre `search-worker` y `links-worker`. Compose los declara como servicios propios, que arrancan después de las migraciones y no tienen chequeo HTTP.
 - `neuma-migrate` es la única imagen con la CLI de Prisma. En `@neuma/db` la CLI es una dependencia de desarrollo, así que la instalación de producción del backend no la incluye. La imagen de migraciones quita las herramientas de `prisma deploy` y `prisma dev`, que firmar y migrar nunca cargan.
 - Las imágenes Alpine quitan las compilaciones `-gnu` de los módulos nativos.
 - El backend y los workers se conectan con el rol de mínimos privilegios (`neuma_app`); solo las migraciones usan el dueño.
@@ -29,9 +30,10 @@ El despliegue (Docker Compose en local) levantaba la base, las migraciones, el b
 
 ## Governance
 
-Una proyección nueva agrega su servicio en `docker-compose.yml` y su `.container` en `deploy/podman/`. Al subir de versión la CLI de Prisma, se aplica una base vacía con la imagen de migraciones antes de publicarla.
+Una proyección nueva agrega su servicio en `docker-compose.yml`. Al subir de versión la CLI de Prisma, se aplica una base vacía con la imagen de migraciones antes de publicarla.
 
 ## Notes
 
 - Author: El-Vitas, con Claude
 - Created: 2026-10-11
+- Modified: 2026-10-19 — El despliegue en producción suma dos imágenes de producción: `neuma-postgres`, con pgBackRest, y `neuma-ops`, el paquete de unidades y scripts. Las tres imágenes de la aplicación siguen como dice este ADR.

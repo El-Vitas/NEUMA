@@ -7,6 +7,7 @@ import {
   moveViewPropertySideways,
   readViewColumnAlignments,
   readViewColumnWidths,
+  readViewColumnWraps,
   readViewFrozenColumns,
   readViewRowHeight,
   readViewWrapsText,
@@ -14,6 +15,7 @@ import {
   setViewColumnWidth,
   setViewFrozenColumns,
   setViewRowHeight,
+  toggleViewColumnWrap,
   toggleViewWrapsText,
 } from '../lib/pages.view-filtering.lib';
 import type { PageSchema } from '../types/pages.schema.types';
@@ -31,6 +33,7 @@ export const usePagesTableColumns = (
   const activeView = views.find((view) => view.name === activeViewName) ?? null;
 
   return {
+    columnWraps: activeView === null ? {} : readViewColumnWraps(activeView),
     frozenColumns: activeView === null ? 0 : readViewFrozenColumns(activeView),
     isBusy: isSaving,
     moveColumn: (propertyKey: string, beforeKey: null | string) =>
@@ -46,6 +49,8 @@ export const usePagesTableColumns = (
       apply((current) => setViewRowHeight(current, activeViewName, rowHeight)),
     setWidth: (propertyKey: string, width: number) =>
       apply((current) => setViewColumnWidth(current, activeViewName, propertyKey, width)),
+    toggleColumnWrap: (propertyKey: string) =>
+      apply((current) => toggleViewColumnWrap(current, activeViewName, propertyKey)),
     toggleWrapsText: () => apply((current) => toggleViewWrapsText(current, activeViewName)),
     widths: activeView === null ? {} : readViewColumnWidths(activeView),
     wrapsText: activeView !== null && readViewWrapsText(activeView),

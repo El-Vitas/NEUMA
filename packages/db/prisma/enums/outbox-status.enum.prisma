@@ -1,7 +1,0 @@
-// use prisma-8
-native_enum OutboxStatus {
-  PENDING = "PENDING"
-  PROCESSING = "PROCESSING"
-  PROCESSED = "PROCESSED"
-  FAILED = "FAILED"
-}

@@ -11,13 +11,14 @@ interface IProps {
 
 /** Users who cannot write in the space get not-found, the same as for a space they cannot reach. */
 export default async function Page({ params }: IProps) {
-  const { spaceId } = await params;
-  const [spacesResult, user, t] = await Promise.all([
+  const [{ spaceId }, spacesResult, user, t] = await Promise.all([
+    params,
     getSpaces(),
     getCurrentUser(),
     getTranslations('spaces.settings'),
   ]);
-  const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
+  if (spacesResult.isFail()) throw spacesResult.getError();
+  const space = spacesResult.getValue().find((candidate) => candidate.id === spaceId);
 
   if (space === undefined || !canEditContent(user?.role ?? USER_ROLE.CLIENT)) notFound();
 
@@ -27,7 +28,7 @@ export default async function Page({ params }: IProps) {
         <h1 className="font-bold text-2xl">{t('title')}</h1>
         <p className="text-muted-foreground text-sm">{t('subtitle', { space: space.name })}</p>
       </header>
-      <SpacesSettingsForm space={space} />
+      <SpacesSettingsForm key={space.id} space={space} />
     </main>
   );
 }

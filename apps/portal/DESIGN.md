@@ -218,9 +218,8 @@ components:
 ## Overview
 
 Neuma is a private operating memory for a team. Its visual language borrows the useful part of
-athletic editorial design: decisive headlines, disciplined rhythm, and a strong monochrome base. It is
-not a Nike clone and it does not use Nike proprietary fonts or assets. The reference is optical energy,
-not brand imitation.
+athletic editorial design: decisive headlines, disciplined rhythm, and a strong monochrome base. The
+reference is optical energy, not the imitation of any brand.
 
 The interface stays quiet while knowledge is being read. `{colors.ink}` and `{colors.surface}` carry the
 workspace; `{colors.primary}` is the single signal color for intentional actions, selection, and errors
@@ -274,7 +273,7 @@ Cards and panels separate with a one-pixel `{colors.hairline}` border. Shadows a
 
 ### Font Roles
 
-- Display uses `Barlow Condensed, Arial Narrow, Arial, sans-serif`. Barlow Condensed is the open-source optical substitute for Nike's proprietary condensed display lineage.
+- Display uses `Barlow Condensed, Arial Narrow, Arial, sans-serif`. Barlow Condensed is an open-source condensed face that carries the display role.
 - Body uses `Inter, Helvetica Neue, Arial, sans-serif` for high-density reading and UI clarity.
 - Code uses `JetBrains Mono, SFMono-Regular, Consolas, monospace`.
 
@@ -299,11 +298,11 @@ Condensed display type creates the athletic signal; it is not a replacement for 
 not turn all UI labels into uppercase: only labels and eyebrows use `{typography.label}`. Body text stays
 sentence case. The visual system gets its energy from scale contrast, not from making every element loud.
 
-### Note on Font Substitutes
+### Note on Fonts
 
-Nike's custom display faces are proprietary. Use Barlow Condensed for the display role and Inter for body/UI;
-do not load, copy, or approximate a proprietary Nike font file. If a licensed brand font is supplied later,
-replace only the font-family tokens and preserve the same sizes, weights, tracking, and line heights.
+Use Barlow Condensed for the display role and Inter for body/UI, both open-source. If another licensed font
+is supplied later, replace only the font-family tokens and preserve the same sizes, weights, tracking, and
+line heights.
 
 ## Layout
 
@@ -379,7 +378,7 @@ cards or crop knowledge assets unless the asset explicitly declares a crop.
 
 ### Don't
 
-- Do not use Nike proprietary fonts, logos, photography, or copied brand assets.
+- Do not use proprietary fonts, logos, photography, or copied brand assets.
 - Do not add purple, blue, gradients, or decorative color to the core UI.
 - Do not turn every label into uppercase display type.
 - Do not wrap every feature in a rounded floating card.

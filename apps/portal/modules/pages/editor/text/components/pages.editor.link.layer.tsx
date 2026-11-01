@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageSummary } from '../../../types/pages.types';
+import type { PageReference } from '../../../types/pages.types';
 import type { PageEditorLinkAtHand } from '../types/pages.editor.link.types';
 import { PagesEditorLinkBubble } from './pages.editor.link.bubble';
 import { PagesEditorLinkField } from './pages.editor.link.field';
@@ -12,7 +12,7 @@ interface IProps {
   readonly onEdit: (rested: PageEditorLinkAtHand) => void;
   readonly onLeave: () => void;
   readonly onRemove: (rested: PageEditorLinkAtHand) => void;
-  readonly pagesAtHand: readonly PageSummary[];
+  readonly pagesAtHand: readonly PageReference[];
   readonly rested: PageEditorLinkAtHand | null;
 }
 

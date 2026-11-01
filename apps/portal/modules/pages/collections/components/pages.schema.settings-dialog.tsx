@@ -8,9 +8,9 @@ import { Button } from '@/shared/components/ui/button';
 import { useThemeRoot } from '@/shared/hooks/use.theme-root.hook';
 import { usePagesSchemaEditor } from '../hooks/use.pages.schema-editor';
 import { readSettingsLevel, readSettingsStepBack, readSettingsTitle } from '../lib/pages.schema-settings.lib';
-import { findBoardWithoutGrouping } from '../lib/pages.view-editing.lib';
-import type { PageSchema } from '../types/pages.schema.types';
+import type { PageRelatedRow, PageSchema } from '../types/pages.schema.types';
 import type { PagesSchemaSettingsRoute } from '../types/pages.schema-settings.types';
+import { PagesSchemaSettingsFooter } from './pages.schema.settings.footer';
 import { PagesSchemaSettingsOption } from './pages.schema.settings.option';
 import { PagesSchemaSettingsProperties } from './pages.schema.settings.properties';
 import { PagesSchemaSettingsProperty } from './pages.schema.settings.property';
@@ -18,13 +18,14 @@ import { PagesSchemaSettingsRoot } from './pages.schema.settings.root';
 import { PagesSchemaSettingsView } from './pages.schema.settings.view';
 
 interface IProps {
+  readonly collections: readonly PageRelatedRow[];
   readonly onClose: () => void;
   readonly schema: PageSchema;
   readonly spaceId: string;
 }
 
 /** A side panel, not a centered dialog, so changes stay visible in the rows beside it. */
-export const PagesSchemaSettingsDialog = ({ onClose, schema, spaceId }: IProps) => {
+export const PagesSchemaSettingsDialog = ({ collections, onClose, schema, spaceId }: IProps) => {
   const t = useTranslations('pages.collection');
   const editor = usePagesSchemaEditor(schema, spaceId);
   const themeRoot = useThemeRoot();
@@ -35,18 +36,13 @@ export const PagesSchemaSettingsDialog = ({ onClose, schema, spaceId }: IProps) 
       ? editor.properties.find((candidate) => candidate.key === route.propertyKey)
       : undefined;
   const option =
-    route.level === 'OPTION'
-      ? property?.options?.find((candidate) => candidate.value === route.optionValue)
-      : undefined;
+    route.level === 'OPTION' ? property?.options?.find((candidate) => candidate.id === route.optionId) : undefined;
   const view = route.level === 'VIEW' ? editor.views[route.viewPosition] : undefined;
   const level = readSettingsLevel(route, {
     option: option !== undefined,
     property: property !== undefined,
     view: view !== undefined,
   });
-  const boardWithoutGrouping = findBoardWithoutGrouping(editor.views, editor.properties);
-  const whatIsMissing =
-    boardWithoutGrouping === undefined ? null : t('boardNeedsGrouping', { view: boardWithoutGrouping.name });
 
   const goBack = (): void => setRoute(readSettingsStepBack(route));
 
@@ -88,7 +84,12 @@ export const PagesSchemaSettingsDialog = ({ onClose, schema, spaceId }: IProps) 
             {level === 'ROOT' && <PagesSchemaSettingsRoot editor={editor} onGo={setRoute} />}
             {level === 'PROPERTIES' && <PagesSchemaSettingsProperties editor={editor} onGo={setRoute} />}
             {level === 'PROPERTY' && property !== undefined && (
-              <PagesSchemaSettingsProperty editor={editor} onGo={setRoute} property={property} />
+              <PagesSchemaSettingsProperty
+                collections={collections}
+                editor={editor}
+                onGo={setRoute}
+                property={property}
+              />
             )}
             {level === 'OPTION' && property !== undefined && option !== undefined && (
               <PagesSchemaSettingsOption editor={editor} onGo={setRoute} option={option} property={property} />
@@ -98,24 +99,7 @@ export const PagesSchemaSettingsDialog = ({ onClose, schema, spaceId }: IProps) 
             )}
           </div>
 
-          {/* The bottom padding accounts for the system bar on mobile. */}
-          <div className="shrink-0 space-y-2 border-border border-t p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-            {whatIsMissing !== null && <p className="px-1 text-muted-foreground text-xs">{whatIsMissing}</p>}
-            {whatIsMissing === null && editor.hasUnsavedChanges && (
-              <p className="flex items-center gap-1.5 px-1 text-muted-foreground text-xs">
-                <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-primary" />
-                {t('unsavedChanges')}
-              </p>
-            )}
-            <Button
-              className="min-h-11 w-full"
-              disabled={editor.isSaving || whatIsMissing !== null}
-              onClick={editor.save}
-              type="button"
-            >
-              {t('save')}
-            </Button>
-          </div>
+          <PagesSchemaSettingsFooter editor={editor} />
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

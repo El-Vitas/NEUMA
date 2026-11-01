@@ -1,0 +1,354 @@
+import { z } from 'zod';
+import { PAGE_PROPERTY_KEY_MAX_LENGTH } from '../page-property/page-property.key.constants.js';
+import { PAGE_TEMPLATE_VARIABLE_VALUES } from '../page-template/page-template.constants.js';
+import type { PageContentUnknownNode } from '../schemas/page-content.schema.js';
+import {
+  isAllowedPageEmbedUrl,
+  maximumHeadingLevel,
+  maximumOrderedListOrder,
+  maximumPageContentNodes,
+  maximumPageTextLength,
+  maximumTableColumns,
+  maximumTableColumnWidth,
+  maximumTableRows,
+  maximumToggleSummaryLength,
+  minimumHeadingLevel,
+  PAGE_BLOCK_COLORS,
+  PAGE_BUTTON_DEEDS,
+  PAGE_BUTTON_PLACES,
+  PAGE_CALLOUT_ICONS,
+  PAGE_CODE_LANGUAGES,
+  PAGE_CONTENT_NODE_TYPES,
+  PAGE_CONTENT_SCHEMA_VERSION,
+  PAGE_DIAGRAM_FRAME_HEIGHT_LEAST,
+  PAGE_DIAGRAM_FRAME_HEIGHT_MOST,
+  PAGE_DIAGRAM_VIEWS,
+  PAGE_FILE_DISPLAYS,
+  pageAssetAttrsSchema,
+  pageBlockIdSchema,
+  pageBookmarkAttrsSchema,
+  pageButtonAttrsSchema,
+  pageCollectionAttrsSchema,
+  pageContentSchema,
+  pageEmbedAttrsSchema,
+  pageFileAttrsSchema,
+  pageMediaAttrsSchema,
+  pageSubpageAttrsSchema,
+  pageSyncedAttrsSchema,
+} from '../schemas/page-content.schema.js';
+import { pageCoverValueSchema } from '../schemas/page-cover.schema.js';
+import { pageIconSchema } from '../schemas/page-icon.schema.js';
+import { PAGE_TITLE_MAX_LENGTH } from '../types/page.types.js';
+import { extractPlainText } from './block-text.lib.js';
+import { blockPlainTextSchema, blockRichTextSchema } from './block-text.schemas.js';
+import { BLOCK_NESTED_LAYERS_MOST, BLOCK_TYPE } from './block-type.constants.js';
+
+const emptySchema = z.object({}).strict();
+
+const colorShape = {
+  backgroundColor: z.enum(PAGE_BLOCK_COLORS).optional(),
+  textColor: z.enum(PAGE_BLOCK_COLORS).optional(),
+};
+
+/** What a document wrapper that dissolved into a block still said: its id and colors. */
+export const blockWrapperAttributesSchema = z.object({ ...colorShape, id: pageBlockIdSchema.optional() }).strict();
+
+/**
+ * A nested_block that dissolved into the block it wraps. `from` is how many of the host children existed before the
+ * block_children it carried; layers are listed from the innermost wrapper outwards.
+ */
+export const blockNestedLayerSchema = z
+  .object({
+    attrs: blockWrapperAttributesSchema.optional(),
+    childrenAttrs: blockWrapperAttributesSchema.optional(),
+    from: z.number().int().min(0).max(maximumPageContentNodes),
+  })
+  .strict();
+
+export const blockNestedLayersSchema = z.array(blockNestedLayerSchema).min(1).max(BLOCK_NESTED_LAYERS_MOST);
+
+const annotationShape = {
+  ...colorShape,
+  nested: blockNestedLayersSchema.optional(),
+};
+
+/**
+ * `listWrapper` marks the first item of a list that had a wrapper of its own and keeps what the wrapper said.
+ * `line` keeps what the first paragraph of the item said, and is null when the item has no first paragraph.
+ */
+const listItemShape = {
+  line: blockWrapperAttributesSchema.nullable().optional(),
+  listWrapper: blockWrapperAttributesSchema.optional(),
+};
+
+const listStartSchema = z.number().int().min(1).max(maximumOrderedListOrder);
+
+/** The format keys that only exist to rebuild the page document; read from a row already checked by its type. */
+export const blockFormatMarkersSchema = z.object({
+  ...listItemShape,
+  nested: blockNestedLayersSchema.optional(),
+  start: listStartSchema.optional(),
+});
+
+/** Every block can be colored, as every node of the document was. Its conversations are discussions, not format. */
+const withAnnotations = <Shape extends z.ZodRawShape>(shape: Shape) =>
+  z.object({ ...annotationShape, ...shape }).strict();
+
+const annotationsOnlySchema = withAnnotations({});
+
+const titleOnlySchema = z.object({ title: blockRichTextSchema }).strict();
+
+const titleSummaryIsShortEnough = (properties: { readonly title: z.infer<typeof blockRichTextSchema> }): boolean =>
+  extractPlainText(properties.title).length <= maximumToggleSummaryLength;
+
+const isPreservableUnknownNode = (value: unknown): value is PageContentUnknownNode => {
+  if (typeof value !== 'object' || value === null || !('type' in value)) return false;
+  if (typeof value.type !== 'string' || PAGE_CONTENT_NODE_TYPES.includes(value.type)) return false;
+  return pageContentSchema.safeParse({ content: [value], schemaVersion: PAGE_CONTENT_SCHEMA_VERSION, type: 'doc' })
+    .success;
+};
+
+const unsupportedNodeSchema = z.custom<PageContentUnknownNode>(isPreservableUnknownNode, {
+  message: 'The node must keep the shape an unknown node has in a page document',
+});
+
+const pageDateValueSchema = z
+  .object({ end: z.string().max(maximumPageTextLength).optional(), start: z.string().max(maximumPageTextLength) })
+  .strict();
+
+const pagePropertyValueSchema = z.union([
+  z.string().max(maximumPageTextLength),
+  z.number(),
+  z.boolean(),
+  z.array(z.string().max(maximumPageTextLength)),
+  pageDateValueSchema,
+]);
+
+const PAGE_BLOCK_ID_MAX_LENGTH = 64;
+
+const pageTemplateMarkerSchema = z
+  .object({
+    variables: z
+      .record(z.string().min(1).max(PAGE_PROPERTY_KEY_MAX_LENGTH), z.enum(PAGE_TEMPLATE_VARIABLE_VALUES))
+      .optional(),
+  })
+  .strict();
+
+const pageTitleIsShortEnough = (properties: { readonly title: z.infer<typeof blockPlainTextSchema> }): boolean =>
+  extractPlainText(properties.title).length <= PAGE_TITLE_MAX_LENGTH;
+
+const embedProperties = z
+  .object({ provider: pageEmbedAttrsSchema.shape.provider, url: pageEmbedAttrsSchema.shape.url })
+  .strict()
+  .superRefine((properties, context) => {
+    if (!isAllowedPageEmbedUrl(properties.provider, properties.url)) {
+      context.addIssue({ code: 'custom', message: 'Embed URL is not allowed', path: ['url'] });
+    }
+  });
+
+const assetProperties = {
+  alt: pageAssetAttrsSchema.shape.alt,
+  assetId: pageAssetAttrsSchema.shape.assetId,
+  caption: pageAssetAttrsSchema.shape.caption,
+};
+
+const framedFormat = {
+  align: pageMediaAttrsSchema.shape.align,
+  width: pageMediaAttrsSchema.shape.width,
+};
+
+const linkedBlockProperties = {
+  pageId: pageSyncedAttrsSchema.shape.pageId,
+  spaceId: pageSyncedAttrsSchema.shape.spaceId,
+};
+
+interface BlockContentSchemaPair {
+  readonly format: z.ZodType;
+  readonly properties: z.ZodType;
+}
+
+/** Properties hold what the block says; format holds how it is shown. */
+export const BLOCK_CONTENT_SCHEMAS = {
+  [BLOCK_TYPE.page]: {
+    format: z.object({ cover: pageCoverValueSchema.optional(), icon: pageIconSchema.optional() }).strict(),
+    properties: z
+      .object({
+        defaultTemplateId: z.string().min(1).max(PAGE_BLOCK_ID_MAX_LENGTH).optional(),
+        template: pageTemplateMarkerSchema.optional(),
+        title: blockPlainTextSchema,
+        values: z.record(z.string().min(1).max(PAGE_PROPERTY_KEY_MAX_LENGTH), pagePropertyValueSchema).optional(),
+      })
+      .strict()
+      .refine(pageTitleIsShortEnough, { message: 'The page title is too long', path: ['title'] }),
+  },
+  [BLOCK_TYPE.paragraph]: { format: annotationsOnlySchema, properties: titleOnlySchema },
+  [BLOCK_TYPE.heading]: {
+    format: withAnnotations({ collapsed: z.boolean().optional() }),
+    properties: z
+      .object({
+        level: z.number().int().min(minimumHeadingLevel).max(maximumHeadingLevel),
+        title: blockRichTextSchema,
+      })
+      .strict(),
+  },
+  [BLOCK_TYPE.bulletedListItem]: { format: withAnnotations(listItemShape), properties: titleOnlySchema },
+  [BLOCK_TYPE.numberedListItem]: {
+    format: withAnnotations({ ...listItemShape, start: listStartSchema.optional() }),
+    properties: titleOnlySchema,
+  },
+  [BLOCK_TYPE.toDo]: {
+    format: withAnnotations(listItemShape),
+    properties: z.object({ checked: z.boolean().optional(), title: blockRichTextSchema }).strict(),
+  },
+  [BLOCK_TYPE.blockquote]: { format: annotationsOnlySchema, properties: emptySchema },
+  [BLOCK_TYPE.callout]: {
+    format: withAnnotations({ icon: z.enum(PAGE_CALLOUT_ICONS).optional() }),
+    properties: emptySchema,
+  },
+  [BLOCK_TYPE.codeBlock]: {
+    format: withAnnotations({
+      frameHeight: z.number().int().min(PAGE_DIAGRAM_FRAME_HEIGHT_LEAST).max(PAGE_DIAGRAM_FRAME_HEIGHT_MOST).optional(),
+      shown: z.enum(PAGE_DIAGRAM_VIEWS).optional(),
+      wrapped: z.boolean().optional(),
+    }),
+    properties: z.object({ language: z.enum(PAGE_CODE_LANGUAGES).optional(), title: blockPlainTextSchema }).strict(),
+  },
+  [BLOCK_TYPE.divider]: { format: annotationsOnlySchema, properties: emptySchema },
+  [BLOCK_TYPE.toggle]: {
+    format: withAnnotations({ open: z.boolean().optional() }),
+    properties: titleOnlySchema.refine(titleSummaryIsShortEnough, {
+      message: 'The toggle title is too long',
+      path: ['title'],
+    }),
+  },
+  [BLOCK_TYPE.image]: {
+    format: withAnnotations(framedFormat),
+    properties: z.object(assetProperties).strict(),
+  },
+  [BLOCK_TYPE.video]: {
+    format: withAnnotations(framedFormat),
+    properties: z.object(assetProperties).strict(),
+  },
+  [BLOCK_TYPE.audio]: {
+    format: withAnnotations(framedFormat),
+    properties: z.object(assetProperties).strict(),
+  },
+  [BLOCK_TYPE.file]: {
+    format: withAnnotations({ ...framedFormat, display: z.enum(PAGE_FILE_DISPLAYS).optional() }),
+    properties: z
+      .object({
+        ...assetProperties,
+        mimeType: pageFileAttrsSchema.shape.mimeType,
+        size: pageFileAttrsSchema.shape.size,
+      })
+      .strict(),
+  },
+  [BLOCK_TYPE.bookmark]: {
+    format: annotationsOnlySchema,
+    properties: z
+      .object({
+        description: pageBookmarkAttrsSchema.shape.description,
+        icon: pageBookmarkAttrsSchema.shape.icon,
+        title: pageBookmarkAttrsSchema.shape.title,
+        url: pageBookmarkAttrsSchema.shape.url,
+      })
+      .strict(),
+  },
+  [BLOCK_TYPE.embed]: {
+    format: withAnnotations({ align: pageEmbedAttrsSchema.shape.align, width: pageEmbedAttrsSchema.shape.width }),
+    properties: embedProperties,
+  },
+  [BLOCK_TYPE.button]: {
+    format: annotationsOnlySchema,
+    properties: z
+      .object({
+        deed: z.enum(PAGE_BUTTON_DEEDS).optional(),
+        label: pageButtonAttrsSchema.shape.label,
+        pageId: pageButtonAttrsSchema.shape.pageId,
+        place: z.enum(PAGE_BUTTON_PLACES).optional(),
+        spaceId: pageButtonAttrsSchema.shape.spaceId,
+        templateId: pageButtonAttrsSchema.shape.templateId,
+      })
+      .strict(),
+  },
+  [BLOCK_TYPE.tableOfContents]: { format: annotationsOnlySchema, properties: emptySchema },
+  [BLOCK_TYPE.synced]: {
+    format: annotationsOnlySchema,
+    properties: z.object({ ...linkedBlockProperties, blockId: pageSyncedAttrsSchema.shape.blockId }).strict(),
+  },
+  [BLOCK_TYPE.subpage]: {
+    format: annotationsOnlySchema,
+    properties: z.object({ ...linkedBlockProperties, label: pageSubpageAttrsSchema.shape.label }).strict(),
+  },
+  [BLOCK_TYPE.collection]: {
+    format: annotationsOnlySchema,
+    properties: z.object({ ...linkedBlockProperties, viewName: pageCollectionAttrsSchema.shape.viewName }).strict(),
+  },
+  [BLOCK_TYPE.table]: {
+    format: withAnnotations({ hasHeaderColumn: z.boolean().optional(), hasHeaderRow: z.boolean().optional() }),
+    properties: emptySchema,
+  },
+  [BLOCK_TYPE.tableRow]: { format: annotationsOnlySchema, properties: emptySchema },
+  [BLOCK_TYPE.tableCell]: {
+    format: withAnnotations({
+      colwidth: z
+        .array(z.number().int().min(1).max(maximumTableColumnWidth))
+        .max(maximumTableColumns)
+        .nullable()
+        .optional(),
+    }),
+    properties: z
+      .object({
+        colspan: z.number().int().min(1).max(maximumTableColumns).optional(),
+        isHeader: z.boolean().optional(),
+        rowspan: z.number().int().min(1).max(maximumTableRows).optional(),
+      })
+      .strict(),
+  },
+  [BLOCK_TYPE.columnList]: { format: annotationsOnlySchema, properties: emptySchema },
+  [BLOCK_TYPE.column]: {
+    format: withAnnotations({ width: pageMediaAttrsSchema.shape.width }),
+    properties: emptySchema,
+  },
+  [BLOCK_TYPE.unsupported]: {
+    format: z.object({ nested: blockNestedLayersSchema.optional() }).strict(),
+    properties: z.object({ node: unsupportedNodeSchema }).strict(),
+  },
+} as const satisfies Record<(typeof BLOCK_TYPE)[keyof typeof BLOCK_TYPE], BlockContentSchemaPair>;
+
+const describeBlockContent = <Type extends string, Properties extends z.ZodType, Format extends z.ZodType>(
+  type: Type,
+  schemas: { readonly format: Format; readonly properties: Properties },
+) => z.object({ format: schemas.format, properties: schemas.properties, type: z.literal(type) }).strict();
+
+/** One entry per block type; a test keeps it in step with `BLOCK_CONTENT_SCHEMAS`. */
+export const blockContentSchema = z.discriminatedUnion('type', [
+  describeBlockContent(BLOCK_TYPE.page, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.page]),
+  describeBlockContent(BLOCK_TYPE.paragraph, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.paragraph]),
+  describeBlockContent(BLOCK_TYPE.heading, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.heading]),
+  describeBlockContent(BLOCK_TYPE.bulletedListItem, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.bulletedListItem]),
+  describeBlockContent(BLOCK_TYPE.numberedListItem, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.numberedListItem]),
+  describeBlockContent(BLOCK_TYPE.toDo, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.toDo]),
+  describeBlockContent(BLOCK_TYPE.blockquote, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.blockquote]),
+  describeBlockContent(BLOCK_TYPE.callout, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.callout]),
+  describeBlockContent(BLOCK_TYPE.codeBlock, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.codeBlock]),
+  describeBlockContent(BLOCK_TYPE.divider, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.divider]),
+  describeBlockContent(BLOCK_TYPE.toggle, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.toggle]),
+  describeBlockContent(BLOCK_TYPE.image, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.image]),
+  describeBlockContent(BLOCK_TYPE.video, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.video]),
+  describeBlockContent(BLOCK_TYPE.audio, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.audio]),
+  describeBlockContent(BLOCK_TYPE.file, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.file]),
+  describeBlockContent(BLOCK_TYPE.bookmark, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.bookmark]),
+  describeBlockContent(BLOCK_TYPE.embed, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.embed]),
+  describeBlockContent(BLOCK_TYPE.button, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.button]),
+  describeBlockContent(BLOCK_TYPE.tableOfContents, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.tableOfContents]),
+  describeBlockContent(BLOCK_TYPE.synced, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.synced]),
+  describeBlockContent(BLOCK_TYPE.subpage, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.subpage]),
+  describeBlockContent(BLOCK_TYPE.collection, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.collection]),
+  describeBlockContent(BLOCK_TYPE.table, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.table]),
+  describeBlockContent(BLOCK_TYPE.tableRow, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.tableRow]),
+  describeBlockContent(BLOCK_TYPE.tableCell, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.tableCell]),
+  describeBlockContent(BLOCK_TYPE.columnList, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.columnList]),
+  describeBlockContent(BLOCK_TYPE.column, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.column]),
+  describeBlockContent(BLOCK_TYPE.unsupported, BLOCK_CONTENT_SCHEMAS[BLOCK_TYPE.unsupported]),
+]);

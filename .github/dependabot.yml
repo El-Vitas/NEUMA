@@ -1,0 +1,17 @@
+# Every version is pinned (images by digest, packages by lock file); Dependabot is how they move, always as a
+# pull request.
+version: 2
+updates:
+  - package-ecosystem: docker
+    directories:
+      - /apps/backend
+      - /apps/portal
+      - /packages/db
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
