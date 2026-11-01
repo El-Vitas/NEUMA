@@ -7,9 +7,12 @@ model PageSchemaView {
   configuration Jsonb
   isDefault     Boolean                    @default(false)
   order         Int                        @default(0)
+  // ADR 025. Null follows the order of the collection's `children`; a list is this view's own manual order.
+  manualOrder   String[]?                  @noCheck(elementNotNull)
+  version       Int                        @default(0)
   createdAt     TimestamptzJsDate          @default(now())
   updatedAt     temporal.updatedAtJsDate()
-  page          Page                       @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageSchemaView_pageId_fkey", index: "PageSchemaView_pageId_name_key")
+  page          Block                      @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageSchemaView_pageId_fkey", index: "PageSchemaView_pageId_name_key")
 
   @@unique([pageId, name], map: "PageSchemaView_pageId_name_key")
   @@index([pageId, order], map: "PageSchemaView_pageId_order_idx")

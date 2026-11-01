@@ -30,6 +30,8 @@ export interface McpTrashedPage {
   readonly deletedAt: Date;
   readonly deletedBy: null | McpPerson;
   readonly id: string;
+  /** A template of its collection, not a row of it. */
+  readonly isTemplate: boolean;
   readonly spaceId: string;
   readonly title: string;
   readonly trashedChildCount: number;

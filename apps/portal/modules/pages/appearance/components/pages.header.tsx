@@ -8,14 +8,17 @@ import { RecentPageRecorder } from '@/shared/components/portal/recents-recorder'
 import { EMPTY_PAGE_INFO } from '../../constants/pages.constants';
 import { PagesEditorSaveState } from '../../editor/components/pages.editor.save-state';
 import { createEmptyPageContent } from '../../editor/lib/pages.editor.lib';
+import { PagesHistoryPanel } from '../../history/components/pages.history.panel';
 import { usePagesDocumentTitle } from '../../hooks/use.pages.document-title';
+import { PagesInboxBell } from '../../inbox/components/pages.inbox.bell';
 import { buildPageDocumentTitle } from '../../lib/pages.lib';
 import { PagesBreadcrumb } from '../../navigation/components/pages.breadcrumb';
+import type { PageBreadcrumbParent } from '../../tree/types/pages.tree.types';
 import { PagesInfoPanel } from '../../trust/components/pages.info.panel';
 import { PagesUsageRecorder } from '../../trust/components/pages.usage.recorder';
 import type { PageInfoMetadata } from '../../trust/types/pages.info.types';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
-import type { PageContent, PageSummary } from '../../types/pages.types';
+import type { PageContent } from '../../types/pages.types';
 import { getPageAppearanceLayoutStyleClasses } from '../lib/pages.appearance.lib';
 import type { PagesAppearanceResult } from '../types/pages.appearance.types';
 import type { PagesCoverController } from '../types/pages.cover.types';
@@ -40,7 +43,7 @@ interface IProps {
   readonly onTitleChange: (title: string) => void;
   readonly onTitleLeft?: () => void;
   readonly pageId?: null | string;
-  readonly parentPages: readonly PageSummary[];
+  readonly parentPages: readonly PageBreadcrumbParent[];
   readonly savedAt: Date | null;
   readonly spaceId: string;
   readonly spaceName?: string;
@@ -97,6 +100,7 @@ export const PagesHeader = ({
           {canEdit && cover !== undefined && <PagesCoverField controller={cover} />}
           {pageId !== null && <PagesInfoPanel content={content ?? createEmptyPageContent()} info={info} />}
           {pageId !== null && usageControl}
+          {pageId !== null && <PagesHistoryPanel canEdit={canEdit} pageId={pageId} spaceId={spaceId} />}
           <PagesAppearanceMenu
             onTextSizeChange={appearance.setTextSize}
             onTypographyChange={appearance.setTypography}
@@ -107,6 +111,7 @@ export const PagesHeader = ({
             <PageFavoriteToggle isFavorite={isFavorite} pageId={pageId} title={title} />
           )}
           {trashControl}
+          <PagesInboxBell />
         </div>
       </div>
       {pageId !== null && (

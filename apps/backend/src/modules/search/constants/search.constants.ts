@@ -1,31 +1,54 @@
-export const SEARCH_TRIGRAM_THRESHOLD = 0.18;
-
-/** pg_trgm thresholds read by the `%` and `<<%` operators, the ones the trigram index can serve. */
-export const SEARCH_SIMILARITY_SETTING = 'pg_trgm.similarity_threshold';
-export const SEARCH_STRICT_WORD_SIMILARITY_SETTING = 'pg_trgm.strict_word_similarity_threshold';
-
-/**
- * Minimum similarity to a whole word of the block to count as a typo. Measured on real blocks:
- * unrelated words score 0.33 or less, a one-letter slip scores 0.62 to 0.67. Trade-off: two
- * transposed letters also score 0.33, so such typos are not found.
- */
-export const PAGE_BLOCK_WORD_SIMILARITY_THRESHOLD = 0.45;
 /** Shorter queries are not matched inside other words, since they occur in almost everything. */
 export const SEARCH_INSIDE_WORD_MIN_LENGTH = 3;
 
 /** Characters `ILIKE` treats as wildcards or escape; in a query they are literal. */
 export const SEARCH_LIKE_SPECIAL_SIGNS = /[\\%_]/g;
 
-/** Rank tiers: whole word first (by similarity), then inside a title word, then inside a text word. */
+/** Rank tiers: whole word first (by rank), then inside a word. A page title outranks the body at the same tier. */
 export const SEARCH_WHOLE_WORD_RANK = 1;
-export const SEARCH_INSIDE_TITLE_RANK = 0.5;
-export const SEARCH_INSIDE_TEXT_RANK = 0.25;
+export const SEARCH_INSIDE_WORD_RANK = 0.25;
+export const SEARCH_TITLE_RANK_BONUS = 0.5;
 
 /** Keeps Postgres rank within 0 to 1 so it never crosses the tiers above. */
 export const SEARCH_TEXT_RANK_NORMALIZATION = 32;
 
-export const SEARCH_OUTBOX_MAX_ATTEMPTS = 5;
-export const SEARCH_WORKER_IDLE_DELAY_MS = 1000;
+/**
+ * Minimum similarity to a whole word of the block to count as a typo. Measured on real blocks:
+ * unrelated words score 0.33 or less, a one-letter slip scores 0.62 to 0.67. Trade-off: two
+ * transposed letters also score 0.33, so such typos are not found.
+ */
+export const SEARCH_TYPO_WORD_SIMILARITY_THRESHOLD = 0.45;
 
-/** Largest int4. Marks a deleted page for removal; a larger value would fail the query. */
-export const SEARCH_MAX_VERSION_MARKER = 2_147_483_647;
+/** The pg_trgm threshold read by the `<<%` operator, the one the trigram index can serve. */
+export const SEARCH_STRICT_WORD_SIMILARITY_SETTING = 'pg_trgm.strict_word_similarity_threshold';
+
+/** Rows fetched per round, as a multiple of the page size, so blocks hidden by permissions do not shrink a page. */
+export const SEARCH_OVERFETCH_FACTOR = 2;
+
+/** Rounds a page may take when many fetched rows turn out to be unreadable. */
+export const SEARCH_MAX_ROUNDS = 4;
+
+/**
+ * Matches ranked and looked at per statement, as a multiple of the rows wanted: only these have their ancestors
+ * walked. A term found everywhere then costs the same as a rare one. When too few survive, the window grows.
+ */
+export const SEARCH_WINDOW_FACTOR = 8;
+
+/** The least a retry window grows by, as a multiple of the one before. */
+export const SEARCH_WINDOW_GROWTH = 4;
+
+/** Extra room, over what the survival rate of the last window predicts, so a retry rarely needs another. */
+export const SEARCH_WINDOW_ROOM = 1.5;
+
+/** Keeps a window within what the database accepts as a row limit. */
+export const SEARCH_MAX_WINDOW = 100_000_000;
+
+/** Stops a corrupt parent cycle from recursing forever in the ancestor chain. */
+export const SEARCH_ANCESTOR_DEPTH_LIMIT = 64;
+
+export const SEARCH_HEADING_BLOCK_TYPE = 'heading';
+
+/** Every result is a page; the field stays for clients that filter on it. */
+export const SEARCH_RESULT_CONTENT_TYPE = 'PAGE';
+
+export const SEARCH_SNIPPET_OPTIONS = 'StartSel=<mark>,StopSel=</mark>,MaxFragments=2,MaxWords=30,MinWords=8';

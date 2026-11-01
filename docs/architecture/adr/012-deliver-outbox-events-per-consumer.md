@@ -1,6 +1,7 @@
 # 012: Entregar cada evento del outbox a cada consumidor por separado
 
-**Status:** Accepted
+**Status:** Superseded
+**Superseded by:** 022
 **Date:** 2026-10-11
 **Depends on:** `010-adopt-prisma-orm-8.md`
 

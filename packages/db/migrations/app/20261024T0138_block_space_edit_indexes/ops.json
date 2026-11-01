@@ -1,0 +1,158 @@
+[
+  {
+    "id": "index.Block.Block_spaceId_changeXid_idx",
+    "label": "Create index \"Block_spaceId_changeXid_idx\" on \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Block_spaceId_changeXid_idx",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Block_spaceId_changeXid_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_spaceId_changeXid_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Block_spaceId_changeXid_idx\"",
+        "sql": "CREATE INDEX \"Block_spaceId_changeXid_idx\" ON \"public\".\"Block\" (\"spaceId\", \"changeXid\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Block_spaceId_changeXid_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_spaceId_changeXid_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Block.Block_spaceId_editedAt_idx",
+    "label": "Create index \"Block_spaceId_editedAt_idx\" on \"Block\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Block_spaceId_editedAt_idx",
+        "table": "Block"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Block_spaceId_editedAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_spaceId_editedAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Block_spaceId_editedAt_idx\"",
+        "sql": "CREATE INDEX \"Block_spaceId_editedAt_idx\" ON \"public\".\"Block\" (\"spaceId\", \"editedAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Block_spaceId_editedAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Block_spaceId_editedAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Block.Block_properties_assetId_idx",
+    "label": "Create index \"Block_properties_assetId_idx\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'Block_properties_assetId_idx'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Create index \"Block_properties_assetId_idx\"",
+        "sql": "CREATE INDEX \"Block_properties_assetId_idx\" ON \"public\".\"Block\" ((properties->>'assetId'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'Block_properties_assetId_idx')"
+      }
+    ]
+  },
+  {
+    "id": "index.Block.Block_format_icon_assetId_idx",
+    "label": "Create index \"Block_format_icon_assetId_idx\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'Block_format_icon_assetId_idx'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Create index \"Block_format_icon_assetId_idx\"",
+        "sql": "CREATE INDEX \"Block_format_icon_assetId_idx\" ON \"public\".\"Block\" ((format->'icon'->>'assetId'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'Block_format_icon_assetId_idx')"
+      }
+    ]
+  },
+  {
+    "id": "index.Block.Block_format_cover_assetId_idx",
+    "label": "Create index \"Block_format_cover_assetId_idx\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'Block_format_cover_assetId_idx'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Create index \"Block_format_cover_assetId_idx\"",
+        "sql": "CREATE INDEX \"Block_format_cover_assetId_idx\" ON \"public\".\"Block\" ((format->'cover'->>'assetId'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'Block_format_cover_assetId_idx')"
+      }
+    ]
+  }
+]

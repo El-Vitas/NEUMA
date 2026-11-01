@@ -30,3 +30,4 @@ Toda variable `NEXT_PUBLIC_*` nueva se agrega en `config/env.config.ts` con su n
 
 - Author: El-Vitas, con Claude
 - Created: 2026-10-11
+- Modified: 2026-10-20 — Con la edición sobre bloques (ADR 021) ya no hay socket de colaboración. La variable pasó a `NEXT_PUBLIC_LIVE_WS_URL` (en compose, `LIVE_WS_URL`) y apunta directo al canal en vivo del backend, `/api/v1/blocks/live`. Lo decidido, fijar la dirección al construir el portal, sigue igual.

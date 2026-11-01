@@ -5,26 +5,41 @@ import {
   setViewGroupBy,
   toggleViewProperty,
 } from '@/modules/pages/collections/lib/pages.view-editing.lib';
-import type { PageSchemaProperty, PageSchemaView } from '@/modules/pages/collections/types/pages.schema.types';
-import { asPropertyOptions } from './pages.options.fixture';
+import type { PageSchemaProperty, PageSchemaViewDraft } from '@/modules/pages/collections/types/pages.schema.types';
+import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 
 const status: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'status',
   label: 'Status',
   options: asPropertyOptions('todo', 'done'),
   required: false,
   type: 'SELECT',
 };
-const dueDate: PageSchemaProperty = { key: 'dueDate', label: 'Due date', options: null, required: false, type: 'DATE' };
-const title: PageSchemaProperty = { key: 'title', label: 'Title', options: null, required: true, type: 'TITLE' };
+const dueDate: PageSchemaProperty = {
+  config: defaultConfig,
+  key: 'dueDate',
+  label: 'Due date',
+  options: null,
+  required: false,
+  type: 'DATE',
+};
+const title: PageSchemaProperty = {
+  config: defaultConfig,
+  key: 'title',
+  label: 'Title',
+  options: null,
+  required: true,
+  type: 'TITLE',
+};
 
-const board: PageSchemaView = {
+const board: PageSchemaViewDraft = {
   configuration: { groupBy: 'status' },
   isDefault: true,
   name: 'Board',
   type: 'BOARD',
 };
-const table: PageSchemaView = { configuration: {}, isDefault: false, name: 'Table', type: 'TABLE' };
+const table: PageSchemaViewDraft = { configuration: {}, isDefault: false, name: 'Table', type: 'TABLE' };
 
 describe('listGroupablePropertyKeys', () => {
   it('offers only the properties a board can make columns from', () => {
@@ -34,7 +49,7 @@ describe('listGroupablePropertyKeys', () => {
 
 describe('findBoardWithoutGrouping', () => {
   it('finds the board that does not say what makes its columns', () => {
-    const ungrouped: PageSchemaView = { configuration: {}, isDefault: false, name: 'Nuevo', type: 'BOARD' };
+    const ungrouped: PageSchemaViewDraft = { configuration: {}, isDefault: false, name: 'Nuevo', type: 'BOARD' };
 
     expect(findBoardWithoutGrouping([table, ungrouped], [title, status])?.name).toBe('Nuevo');
   });
@@ -44,7 +59,7 @@ describe('findBoardWithoutGrouping', () => {
   });
 
   it('says nothing about a board grouped by a date', () => {
-    const byDate: PageSchemaView = {
+    const byDate: PageSchemaViewDraft = {
       configuration: { groupBy: 'dueDate' },
       isDefault: false,
       name: 'Plazos',
@@ -55,7 +70,7 @@ describe('findBoardWithoutGrouping', () => {
   });
 
   it('counts as ungrouped a board pointing at a property that cannot make columns', () => {
-    const byTitle: PageSchemaView = {
+    const byTitle: PageSchemaViewDraft = {
       configuration: { groupBy: 'title' },
       isDefault: false,
       name: 'Por nombre',
@@ -86,7 +101,7 @@ describe('setViewGroupBy', () => {
   });
 
   it('keeps the rest of the configuration', () => {
-    const withSorts: PageSchemaView = {
+    const withSorts: PageSchemaViewDraft = {
       ...board,
       configuration: { groupBy: 'status', sorts: [{ direction: 'ASCENDING', propertyKey: 'title' }] },
     };
@@ -105,7 +120,7 @@ describe('toggleViewProperty', () => {
   });
 
   it('shows again a property that was hidden', () => {
-    const hidden: PageSchemaView = { ...table, configuration: { visibleProperties: ['dueDate'] } };
+    const hidden: PageSchemaViewDraft = { ...table, configuration: { visibleProperties: ['dueDate'] } };
 
     const shownAgain = toggleViewProperty([hidden], 'Table', 'status', ['status', 'dueDate']);
 

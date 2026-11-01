@@ -2,9 +2,11 @@ import { Body, Controller, Delete, HttpCode, Post, UseGuards, UseInterceptors } 
 import { API_SEGMENTS, type AuthSession, RESOURCE_ROUTES } from '@neuma/shared';
 import { HTTP_STATUS_CREATED, HTTP_STATUS_NO_CONTENT } from '../../common/constants/http.constants';
 import { Public } from '../../common/infrastructure/decorators/public.decorator';
+import { User as AuthUser } from '../../common/infrastructure/decorators/user.decorator';
 import { CredentialsThrottlerGuard } from '../../common/infrastructure/guards/credentials-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { UserInterceptor } from '../../common/infrastructure/interceptors/user.interceptor';
+import type { TokenPayload } from '../../common/types/auth.types';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshSessionDto } from './dto/refresh.session.dto';
@@ -42,7 +44,7 @@ export class AuthController {
   @HttpCode(HTTP_STATUS_NO_CONTENT)
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(UserInterceptor)
-  logout(): void {
-    this.authService.logoutUser();
+  async logout(@AuthUser('payload') payload: TokenPayload): Promise<void> {
+    await this.authService.logoutUser(payload);
   }
 }

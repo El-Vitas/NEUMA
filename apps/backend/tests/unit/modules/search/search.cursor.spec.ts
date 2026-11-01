@@ -3,9 +3,15 @@ import { decodeSearchCursor, encodeSearchCursor } from '@/modules/search/utils/s
 
 describe('search cursor', () => {
   test('round trips the stable ranking tuple', () => {
-    const cursor = { rank: 0.42, sourceId: 'page-2', updatedAt: '2026-08-02T00:00:00.000Z' };
+    const cursor = { id: 'block-2', matching: 'words' as const, rank: 0.42 };
 
     expect(decodeSearchCursor(encodeSearchCursor(cursor))).toEqual(cursor);
+  });
+
+  test('keeps the mode of matching, so a next page never mixes words with typos', () => {
+    const cursor = { id: 'block-2', matching: 'typo' as const, rank: 0.5 };
+
+    expect(decodeSearchCursor(encodeSearchCursor(cursor))?.matching).toBe('typo');
   });
 
   test('rejects malformed cursors without exposing an exception path', () => {
@@ -13,12 +19,12 @@ describe('search cursor', () => {
     expect(decodeSearchCursor(undefined)).toBeNull();
   });
 
-  // Regression: "1" parses as a date in JavaScript but not in Postgres, and such a cursor ended in a server error.
-  test('rejects a cursor whose date is not a full timestamp', () => {
-    const forged = Buffer.from(JSON.stringify({ rank: 0.4, sourceId: 'page-2', updatedAt: '1' }), 'utf8').toString(
-      'base64url',
-    );
+  test('rejects a cursor from before the matching mode existed', () => {
+    const old = Buffer.from(
+      JSON.stringify({ rank: 0.4, sourceId: 'page-2', updatedAt: '2026-08-02T00:00:00.000Z' }),
+      'utf8',
+    ).toString('base64url');
 
-    expect(decodeSearchCursor(forged)).toBeNull();
+    expect(decodeSearchCursor(old)).toBeNull();
   });
 });

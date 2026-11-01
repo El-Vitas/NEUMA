@@ -50,6 +50,7 @@ interface IProps {
   readonly onDelete: () => void;
   readonly onDuplicate: () => void;
   readonly onMoveToPage: () => void;
+  readonly onShare: () => void;
   readonly onSyncIntoPage: () => void;
   readonly onUnsync: () => void;
   readonly isSynced: boolean;
@@ -81,6 +82,7 @@ export const PagesEditorBlockMenu = ({
   onDelete,
   onDuplicate,
   onMoveToPage,
+  onShare,
   onSyncIntoPage,
   onUnsync,
   isSynced,
@@ -198,6 +200,7 @@ export const PagesEditorBlockMenu = ({
           {isSynced && <DropdownMenuItem onSelect={onUnsync}>{t('unsync')}</DropdownMenuItem>}
           {isButton && <DropdownMenuItem onSelect={onChooseCollection}>{t('buttonCollection')}</DropdownMenuItem>}
           {canBecomePage && <DropdownMenuItem onSelect={onBecomePage}>{t('blockToPage')}</DropdownMenuItem>}
+          {hasIdentity && <DropdownMenuItem onSelect={onShare}>{t('sharing.restrictBlock')}</DropdownMenuItem>}
           <DropdownMenuItem onSelect={onComment}>{t('commentBlock')}</DropdownMenuItem>
           <DropdownMenuItem onSelect={onDelete}>{t('deleteBlock')}</DropdownMenuItem>
         </DropdownMenuContent>

@@ -7,7 +7,7 @@ export interface AttachmentSummary {
 }
 
 export interface AttachmentDownload {
-  readonly body: readonly number[];
+  readonly base64: string;
   readonly mimeType: string;
   readonly originalFilename: string;
 }

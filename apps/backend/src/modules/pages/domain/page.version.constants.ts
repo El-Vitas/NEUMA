@@ -1,0 +1,1 @@
+export const PAGE_VERSION_GROUPING_WINDOW_MS = 5 * 60 * 1000;

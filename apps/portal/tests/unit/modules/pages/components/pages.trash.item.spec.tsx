@@ -39,18 +39,20 @@ const page: TrashedPage = {
   deletedAt: new Date('2026-01-01T10:00:00.000Z'),
   deletedBy: { id: 'user-a', name: 'Ada Lovelace' },
   id: 'page-a',
+  isTemplate: false,
   parentId: null,
+  purgeAfter: null,
   spaceId: 'space-a',
   title: 'Roadmap',
   trashedChildCount: 0,
 };
 
-const renderItem = (item: TrashedPage = page) =>
+const renderItem = (item: TrashedPage = page, canDeleteForever = true) =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>
       <Toaster />
       <ul>
-        <PagesTrashItem locale="en" page={item} />
+        <PagesTrashItem canDeleteForever={canDeleteForever} locale="en" page={item} />
       </ul>
     </NextIntlClientProvider>,
   );
@@ -66,6 +68,15 @@ describe('PagesTrashItem', () => {
 
     expect(screen.getByText('Untitled')).toBeDefined();
     expect(screen.getByText(/Deleted by: Ada Lovelace/)).toBeDefined();
+  });
+
+  it('labels a trashed template as a template of its collection, and a page as nothing', () => {
+    const template = renderItem({ ...page, isTemplate: true, title: 'Weekly' });
+    expect(screen.getByTestId('trash-template-badge').textContent).toBe('Template of a collection');
+    template.unmount();
+
+    renderItem();
+    expect(screen.queryByTestId('trash-template-badge')).toBeNull();
   });
 
   it('restores a page right away when it has no trashed children', async () => {
@@ -141,5 +152,19 @@ describe('PagesTrashItem', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete forever' }));
 
     expect(await screen.findByText('Delete this page forever?')).toBeDefined();
+  });
+
+  it('offers no delete-forever button to someone who is not an administrator', () => {
+    renderItem(page, false);
+
+    expect(screen.queryByRole('button', { name: 'Delete forever' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Restore page' })).toBeDefined();
+  });
+
+  it('shows the day a scheduled page goes and does not offer to schedule it again', () => {
+    renderItem({ ...page, purgeAfter: new Date('2026-02-01T12:00:00.000Z') });
+
+    expect(screen.getByText(/Erased on/)).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Delete forever' })).toBeNull();
   });
 });

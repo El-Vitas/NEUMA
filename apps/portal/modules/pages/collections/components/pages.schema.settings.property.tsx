@@ -1,37 +1,36 @@
 'use client';
 
-import { isTitlePageProperty, pagePropertyRequiresOptions } from '@neuma/shared';
-import { Plus, Trash2 } from 'lucide-react';
+import { canPagePropertyBeRequired, isTitlePageProperty, pagePropertyRequiresOptions } from '@neuma/shared';
+import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
 import { Button } from '@/shared/components/ui/button';
+import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Input } from '@/shared/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { PAGE_ADDABLE_PROPERTY_TYPES } from '../constants/pages.schema-editing.constants';
-import { readPageOptionColorClass } from '../lib/pages.option-color.lib';
-import { readAddablePropertyType } from '../lib/pages.schema-editing.lib';
-import type { PageSchemaProperty } from '../types/pages.schema.types';
+import { canSchemaPropertyChangeType, readAddablePropertyType } from '../lib/pages.schema-editing.lib';
+import type { PageRelatedRow, PageSchemaProperty } from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
 import type { PagesSchemaSettingsRoute } from '../types/pages.schema-settings.types';
-import { PagesSchemaSettingsRow } from './pages.schema.settings-row';
+import { PagesSchemaSettingsConfig } from './pages.schema.settings.config';
+import { PagesSchemaSettingsOptions } from './pages.schema.settings.options';
 
 interface IProps {
+  readonly collections: readonly PageRelatedRow[];
   readonly editor: PagesSchemaEditor;
   readonly onGo: (route: PagesSchemaSettingsRoute) => void;
   readonly property: PageSchemaProperty;
 }
 
 /** The title property can neither change type nor be assigned to another property: it opens each row. */
-export const PagesSchemaSettingsProperty = ({ editor, onGo, property }: IProps) => {
+export const PagesSchemaSettingsProperty = ({ collections, editor, onGo, property }: IProps) => {
   const t = useTranslations('pages.collection');
-  const [newOption, setNewOption] = useState('');
   const isTitle = isTitlePageProperty(property.type);
-
-  const addAndClear = (): void => {
-    editor.addOption(property.key, newOption);
-    setNewOption('');
-  };
+  const typesToChooseFrom = PAGE_ADDABLE_PROPERTY_TYPES.filter(
+    (type) => type === property.type || canSchemaPropertyChangeType(property.type, type),
+  );
+  const canChangeType = typesToChooseFrom.length > 1;
+  const requiredId = `property-required-${property.key}`;
 
   const changeTypeTo = (chosen: string): void => {
     const type = readAddablePropertyType(chosen);
@@ -49,63 +48,44 @@ export const PagesSchemaSettingsProperty = ({ editor, onGo, property }: IProps) 
       />
       <div className="flex items-center justify-between gap-2 px-2 text-sm">
         <span className="shrink-0 text-muted-foreground">{t('propertyType')}</span>
-        {isTitle ? (
-          <span className="text-foreground">{t(`types.${property.type}`)}</span>
-        ) : (
+        {canChangeType ? (
           <Select disabled={editor.isSaving} onValueChange={(chosen) => changeTypeTo(chosen)} value={property.type}>
             <SelectTrigger aria-label={t('propertyType')} className="w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {PAGE_ADDABLE_PROPERTY_TYPES.map((type) => (
+              {typesToChooseFrom.map((type) => (
                 <SelectItem key={type} value={type}>
                   {t(`types.${type}`)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+        ) : (
+          <span className="text-foreground">{t(`types.${property.type}`)}</span>
         )}
       </div>
-      {!isTitle && <p className="px-2 text-muted-foreground text-xs">{t('changeTypeWarning')}</p>}
+      {canChangeType && <p className="px-2 text-muted-foreground text-xs">{t('changeTypeWarning')}</p>}
+
+      <PagesSchemaSettingsConfig collections={collections} editor={editor} property={property} />
+
+      {canPagePropertyBeRequired(property.type) && (
+        <div>
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 px-2 text-sm" htmlFor={requiredId}>
+            <Checkbox
+              checked={property.required}
+              disabled={editor.isSaving}
+              id={requiredId}
+              onCheckedChange={(checked) => editor.setPropertyRequired(property.key, checked === true)}
+            />
+            {t('propertyRequired')}
+          </label>
+          <p className="px-2 text-muted-foreground text-xs">{t('propertyRequiredHint')}</p>
+        </div>
+      )}
 
       {pagePropertyRequiresOptions(property.type) && (
-        <div className="space-y-1 border-border border-t pt-3">
-          <p className="px-2 pb-1 text-muted-foreground text-xs uppercase tracking-wide">{t('optionsLabel')}</p>
-          {(property.options ?? []).map((option) => (
-            <PagesSchemaSettingsRow
-              key={option.value}
-              label={option.value}
-              onClick={() => onGo({ level: 'OPTION', optionValue: option.value, propertyKey: property.key })}
-              value={
-                <span
-                  aria-hidden="true"
-                  className={cn('inline-block size-3 rounded-full', readPageOptionColorClass(option.color))}
-                />
-              }
-            />
-          ))}
-          <div className="flex items-center gap-2 pt-1">
-            <Input
-              aria-label={t('newOptionPlaceholder')}
-              disabled={editor.isSaving}
-              onChange={(event) => setNewOption(event.target.value)}
-              placeholder={t('newOptionPlaceholder')}
-              value={newOption}
-            />
-            <Button
-              aria-label={t('addOption')}
-              className="size-11 shrink-0"
-              disabled={editor.isSaving || newOption.trim() === ''}
-              onClick={addAndClear}
-              size="icon"
-              type="button"
-              variant="outline"
-            >
-              <Plus aria-hidden="true" className="size-4" />
-            </Button>
-          </div>
-          <p className="px-2 pt-1 text-muted-foreground text-xs">{t('renameOptionHint')}</p>
-        </div>
+        <PagesSchemaSettingsOptions editor={editor} onGo={onGo} property={property} />
       )}
 
       <div className="border-border border-t pt-3">

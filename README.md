@@ -1,22 +1,30 @@
 # Neuma
 
-Neuma es la base de conocimiento interna de una organización: espacios con páginas que se editan en vivo entre varias personas, colecciones con vistas, búsqueda de texto completo y retroenlaces. Los agentes de IA trabajan en ella como una persona más, a través de un servidor MCP con los mismos permisos que la aplicación.
+**Neural Enterprise Unified Memory & Agents.** El cerebro de la empresa: cada bloque es una neurona, cada enlace una sinapsis, y los agentes piensan con él.
+
+Neuma es la memoria interna de una organización. Todo es un bloque, incluso la página: espacios con páginas que se editan en vivo entre varias personas, colecciones con vistas, búsqueda de texto completo y retroenlaces. Los agentes de IA trabajan en ella como una persona más, a través de un servidor MCP con los mismos permisos que la aplicación.
+
+**Primero los agentes.** Neuma se diseña antes para agentes de IA que para personas. No basta con que un agente pueda hacer lo mismo que una persona: Neuma inventa herramientas, algoritmos y estructuras pensadas para cómo trabaja un agente, con contexto preciso y citable, cambios desde su última visita y acciones que se pueden previsualizar. El portal existe y se usa, pero el producto es una memoria con la que los agentes piensan (ver «Product Principle: Agent First» en `AGENTS.md`).
+
+Para los agentes, Neuma es una arquitectura de memoria unificada (*Neural Enterprise Unified Memory Architecture*): cada conocimiento tiene un id estable que se puede citar, se enlaza con otros y se encuentra con una búsqueda, y cada agente solo ve lo que puede leer la persona dueña de su token.
+
+El nombre también viene de los neumas, la primera notación musical: signos pequeños que, juntos, forman el canto. Aquí cada bloque es un neuma.
 
 Cada despliegue atiende a una sola organización, y solo entran las personas a las que un administrador les crea una cuenta.
 
 ## Qué hace
 
 - **Páginas y espacios.** Jerarquía de páginas con historial de versiones, papelera, favoritas, íconos y exportación. Los espacios pueden ser internos, restringidos o privados.
-- **Editor en vivo.** Editor ProseMirror sobre Yjs y Hocuspocus, con diagramas Mermaid, fórmulas, tablas, adjuntos y menciones entre páginas.
+- **Editor en vivo.** Editor ProseMirror sobre bloques, con un canal en vivo y Yjs para el texto de cada bloque, con diagramas Mermaid, fórmulas, tablas, adjuntos y menciones entre páginas.
 - **Colecciones.** Una página puede llevar un esquema de propiedades, y sus páginas hijas se ven como tabla, tablero, lista, galería o calendario.
-- **Búsqueda y retroenlaces.** Búsqueda de texto completo en PostgreSQL por página y por bloque, y la sección «Vinculado desde». Las dos se proyectan desde un outbox en procesos aparte.
+- **Búsqueda y retroenlaces.** Búsqueda de texto completo en PostgreSQL por página y por bloque, y la sección «Vinculado desde». Las dos salen de los bloques y están al día apenas se confirma el cambio.
 - **Agentes.** Servidor MCP en `/api/v1/mcp` con tokens de acceso de alcance limitado. Cada acción de un agente queda auditada.
 
 ## Estructura
 
 | Workspace | Qué es | Puerto |
 |---|---|---|
-| `apps/backend` | API NestJS 11 sobre Fastify y Bun, el servidor MCP, la colaboración en vivo y los workers de búsqueda y retroenlaces | 3000 |
+| `apps/backend` | API NestJS 11 sobre Fastify y Bun, el servidor MCP y el canal en vivo del editor | 3000 |
 | `apps/portal` | Next.js 16 (App Router), React 19 y Tailwind 4 | 3010 |
 | `packages/db` | Contrato de Prisma ORM 8, migraciones y seed para PostgreSQL 18 | — |
 | `packages/shared` | Tipos, esquemas y lógica compartida entre backend y portal | — |
@@ -36,12 +44,7 @@ cd packages/db && bun run db:migrate:deploy && bun run db:seed && cd ../..
 bun run dev
 ```
 
-`bun run dev` levanta el backend y el portal. La búsqueda y los retroenlaces necesitan además sus workers, cada uno en su terminal:
-
-```bash
-cd apps/backend && bun run search:worker
-cd apps/backend && bun run links:worker
-```
+`bun run dev` levanta el backend y el portal; no hace falta ningún otro proceso.
 
 El seed crea tres usuarios, `admin@example.com`, `worker@example.com` y `client@example.com`, con la contraseña definida en `packages/db/prisma/seed/users.seed.ts`.
 
@@ -55,15 +58,15 @@ bun run test:ramless  # pruebas de todos los workspaces
 bun run rules:query  # consultar las reglas de negocio
 ```
 
-## Despliegue
+## Con Docker
 
-`docker-compose.yml` levanta PostgreSQL, las migraciones (una vez), el backend, los dos workers y el portal.
+`docker-compose.yml` levanta PostgreSQL, las migraciones (una vez), el backend y el portal.
 
 No hay registro abierto. En una instalación nueva, el primer administrador se crea una sola vez desde el servidor, y después los administradores crean las cuentas desde «Usuarios»:
 
 ```bash
 read -rs CLAVE && printf '%s' "$CLAVE" | docker compose exec -T backend \
-  bun run admin:create --email tu@empresa.cl --name "Tu Nombre"; unset CLAVE
+  bun run admin:create --email tu@example.com --name "Tu Nombre"; unset CLAVE
 ```
 
 ## Documentación

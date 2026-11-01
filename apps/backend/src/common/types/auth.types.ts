@@ -1,8 +1,6 @@
 import type { User, UserRole } from '@neuma/shared';
 import type { Action, Resource } from '../constants/permission.constants';
 
-export type Role = UserRole;
-
 export interface PermissionEntry {
   action: Action;
   resource: Resource;
@@ -15,6 +13,7 @@ export interface AuthUserRow {
   name: string;
   password: string;
   role: UserRole;
+  tokenVersion: number;
 }
 
 export interface RequestUser {
@@ -26,16 +25,14 @@ export interface TokenPayload {
   readonly email: string;
   readonly name: string;
   readonly role: UserRole;
+  /** The refresh-token family of the login this access token came from. */
+  readonly sid: string;
   readonly sub: string;
 }
 
-export interface CollaborationTokenPayload {
-  readonly [claim: string]: unknown;
-  readonly aud: string;
-  readonly mode: 'read' | 'write';
-  readonly pageId: string;
-  readonly purpose: string;
-  readonly role: UserRole;
-  readonly sub: string;
-  readonly workspaceId: string;
+/** A refresh token renews only while its version matches the account's `tokenVersion` and its row is unspent. */
+export interface RefreshTokenPayload extends Omit<TokenPayload, 'sid'> {
+  /** Id of the `RefreshSession` row. */
+  readonly jti: string;
+  readonly ver: number;
 }

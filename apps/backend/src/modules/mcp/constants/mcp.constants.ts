@@ -22,26 +22,34 @@ export const MCP_SERVER_INFO = { name: 'neuma', version: '0.1.0' } as const;
 /** Renaming one breaks the configuration of anyone already using it. */
 export const MCP_TOOL_NAMES = {
   commentOnBlock: 'comment_on_block',
+  collectionChanges: 'collection_changes',
   createCollection: 'create_collection',
   createPage: 'create_page',
   createRow: 'create_row',
   createView: 'create_view',
   deleteBlocks: 'delete_blocks',
   deleteComment: 'delete_comment',
+  deleteTemplate: 'delete_template',
   duplicatePage: 'duplicate_page',
   deleteView: 'delete_view',
   fetch: 'fetch',
   getCollection: 'get_collection',
   insertBlocks: 'insert_blocks',
+  listDiscussions: 'list_discussions',
   listPages: 'list_pages',
   listSpaces: 'list_spaces',
+  listTemplates: 'list_templates',
   listTrash: 'list_trash',
   moveBlocks: 'move_blocks',
   movePage: 'move_page',
+  moveRow: 'move_row',
   queryCollection: 'query_collection',
+  replyToDiscussion: 'reply_to_discussion',
   restorePage: 'restore_page',
+  saveTemplate: 'save_template',
   search: 'search',
   searchDiagramIcons: 'search_diagram_icons',
+  testFormula: 'test_formula',
   trashPage: 'trash_page',
   updateBlock: 'update_block',
   updateCollectionColumns: 'update_collection_columns',
@@ -49,7 +57,11 @@ export const MCP_TOOL_NAMES = {
   updateRow: 'update_row',
   updateTable: 'update_table',
   updateView: 'update_view',
+  uploadFile: 'upload_file',
 } as const;
+
+export const MCP_TEMPLATE_TITLE_NEEDED_MESSAGE =
+  'A new template needs a title: give title, or name the template to change in template.';
 
 export const MCP_HARD_BREAK_NODE = { type: 'hard_break' } as const;
 
@@ -74,8 +86,8 @@ export const MCP_INLINE_OBJECT_PLACEHOLDER = '￼';
 
 export const MCP_BLOCK_COLOR_NAMES = ['backgroundColor', 'textColor'] as const;
 
-/** Attributes carried over to a replacement block: comments and colors. */
-export const MCP_BLOCK_KEPT_ATTRIBUTES = ['comments', ...MCP_BLOCK_COLOR_NAMES] as const;
+/** Attributes carried over to a replacement block: its colors. Its discussions stay with its id. */
+export const MCP_BLOCK_KEPT_ATTRIBUTES = MCP_BLOCK_COLOR_NAMES;
 
 /** Message the diagram worker posts once Mermaid is loaded. */
 export const MCP_DIAGRAM_WORKER_READY = 'ready';
@@ -137,6 +149,14 @@ export const MCP_OFFSET_CURSOR_PATTERN = /^\d{1,6}$/;
 export const MCP_NOT_A_COLLECTION_MESSAGE =
   'This page is not a collection: it has no columns. To find the collections, list the spaces with list_spaces and the pages at their top with list_pages: collections are marked as such.';
 
+/** Base64 may arrive wrapped in lines; the breaks carry no bytes. */
+export const MCP_UPLOAD_LINE_BREAKS = /[\r\n]/g;
+
+export const MCP_UPLOAD_NOT_BASE64_MESSAGE =
+  'The file is not valid base64. Send the bytes of the file encoded as standard base64, with padding.';
+
+export const MCP_UPLOAD_TOO_LARGE_MESSAGE = 'The file is larger than the 10 MB the portal accepts.';
+
 export const MCP_NOT_A_ROW_MESSAGE =
   'This page is not a row of a collection. A row is a page right under a collection; list_pages or query_collection give their ids.';
 
@@ -156,7 +176,13 @@ export const MCP_CREATE_PAGE_PLACE_MESSAGE =
 export const MCP_NOTHING_TO_CHANGE_MESSAGE = 'Nothing to change: say what should change.';
 
 /** Refusals answered as "not found": saying more would confirm the resource exists. */
-export const MCP_INACCESSIBLE_REFUSAL_CODES: readonly string[] = ['PAGE_ACCESS_DENIED', 'PAGE_SCHEMA_NOT_FOUND'];
+export const MCP_INACCESSIBLE_REFUSAL_CODES: readonly string[] = [
+  'COMMENT_NOT_FOUND',
+  'DISCUSSION_NOT_FOUND',
+  'FILE_ACCESS_DENIED',
+  'PAGE_ACCESS_DENIED',
+  'PAGE_SCHEMA_NOT_FOUND',
+];
 
 export const MCP_LOCKED_REFUSAL_CODE = 'PAGE_LOCKED';
 
@@ -168,6 +194,16 @@ export const MCP_PAGE_MANAGE_REFUSED_MESSAGE =
 export const MCP_PAGE_ICON_INVALID_MESSAGE = 'The icon must be one emoji.';
 
 export const MCP_REFUSAL_EXPLANATIONS: ReadonlyMap<string, string> = new Map([
+  ['BLOCK_EDIT_FORBIDDEN', 'The owner of this token cannot edit that row, so its links were not changed.'],
+  [
+    'RELATION_MIRROR_FORBIDDEN',
+    'The other side of this two-way relation is a row the owner of this token cannot edit, so no link was added or removed. Ask for edit access to that row.',
+  ],
+  [
+    'COMMENT_FORBIDDEN',
+    'Only the author of a comment can change it, and only an admin can delete one of someone else.',
+  ],
+  ['COMMENT_NOT_ALLOWED', 'The owner of this token can read that block but cannot comment on it.'],
   ['PAGE_CYCLE', 'A page cannot go under itself or under a page that hangs from it.'],
   ['PAGE_ICON_INVALID', MCP_PAGE_ICON_INVALID_MESSAGE],
   [
@@ -183,15 +219,22 @@ export const MCP_REFUSAL_EXPLANATIONS: ReadonlyMap<string, string> = new Map([
 
 /** Only these refusals pass their detail to the agent, since it helps correct what it wrote. */
 export const MCP_DETAILED_REFUSAL_CODES: readonly string[] = [
+  'COMMENT_BODY_INVALID',
+  'FILE_VALIDATION_FAILED',
   'PAGE_BLOCK_EDIT_INVALID',
   'PAGE_CONTENT_INVALID',
   'PAGE_COVER_INVALID',
   'PAGE_PROPERTY_CONFORMANCE',
   'PAGE_PROPERTY_INVALID',
   'PAGE_SCHEMA_DEFINITION_INVALID',
+  'PAGE_TEMPLATE_INVALID',
+  'PAGE_TEMPLATE_LIMIT',
+  'RELATION_LIMIT_EXCEEDED',
   'SCHEMA_PROPERTY_DEFINITION_INVALID',
   'SCHEMA_PROPERTY_VALUE_INVALID',
   'SCHEMA_VIEW_INVALID',
+  'VIEW_QUERY_COMPUTED_TOO_LARGE',
+  'VIEW_QUERY_INVALID',
 ];
 
 export const MCP_REQUEST_ALREADY_DONE_MESSAGE = 'This request id was already carried out, so nothing was done again.';
@@ -248,6 +291,22 @@ export const MCP_REDACTED_REFERENCE_WORD = { text: MCP_REDACTED_REFERENCE_LABEL,
 
 export const MCP_VALUELESS_FILTER_OPERATORS: readonly string[] = ['IS_EMPTY', 'IS_NOT_EMPTY'];
 
+/** What a date condition understands besides a day, said the same way wherever it refuses a value. */
+export const MCP_RELATIVE_DATES_HINT =
+  'a relative date: @today, @yesterday, @tomorrow, @this_week, @last_week, @next_week, @this_month, @last_month, @next_month, @past_days:N or @next_days:N (N from 1 to 365)';
+
+/** These compare a status with the name of one of its three groups, not with an option. */
+export const MCP_STATUS_GROUP_OPERATORS: readonly string[] = ['IS_IN_GROUP', 'IS_NOT_IN_GROUP'];
+
+/** A row read where no other rows or files were looked up has nothing to name them with. */
+export const MCP_NO_ROW_LOOKUPS: {
+  readonly files: ReadonlyMap<string, string>;
+  readonly rows: ReadonlyMap<string, string>;
+} = {
+  files: new Map(),
+  rows: new Map(),
+};
+
 /** Combining accent marks, stripped when matching agent input against names. */
 export const MCP_ACCENT_MARKS = /\p{M}/gu;
 
@@ -278,7 +337,7 @@ export const MCP_UNEXPECTED_MESSAGE = 'Something went wrong on the Neuma side. T
  * It names tasks explicitly: a coding agent otherwise thinks of its own task list.
  */
 export const MCP_SERVER_INSTRUCTION_LINES: readonly string[] = [
-  "Neuma is the team's knowledge base: its documentation, notes, processes, projects, and its tasks and boards.",
+  "Neuma (Neural Enterprise Unified Memory Architecture) is the company's memory, built for agents first: its documentation, notes, processes, projects, and its tasks and boards. Everything in it is a block with a stable id you can cite.",
   'When the person asks about the company, the team, its work or its tasks, look in Neuma before saying there is nothing.',
   'When the person names a page, manual, gallery or document without a link, search for it by name here before asking them for more.',
   'Content lives in spaces; a space holds a tree of pages, and a page is made of blocks.',
@@ -289,8 +348,8 @@ export const MCP_SERVER_INSTRUCTION_LINES: readonly string[] = [
   'If your token can write pages, read the page with fetch first to get its block ids, then write with insert_blocks, update_block, move_blocks or delete_blocks; create_page makes a new page. Write each block by what it means: a table as a table, code or a diagram drawn with spaces as a code_block.',
   'Diagrams are Mermaid, any kind, and can show product logos and icons (never emojis in their place): find their names with search_diagram_icons before drawing.',
   'Besides text, a page holds columns side by side, link cards, videos from YouTube, Vimeo, Loom or Figma, and blocks synced from another page: write them as blocks too.',
-  'A remark or a question about a block is a comment (comment_on_block), not text written into the page. Words can be underlined, coloured or highlighted, and a whole block painted with update_block; a table is changed cell by cell with update_table. update_page, move_page, duplicate_page, trash_page and restore_page change a page as a whole; list_trash shows what is in the trash, which search does not find. fetch says whether a page is verified, locked and who owns it.',
-  'To work with a collection, read its columns and views with get_collection and find rows with query_collection. If your token can write, create_row adds a row and update_row changes one: moving a task on a board is changing its status.',
+  'A remark or a question about a block is a comment (comment_on_block), not text written into the page. Comments live in discussions: list_discussions shows the conversations of a page and reply_to_discussion answers one, so before commenting on something look whether it already has a discussion. Words can be underlined, coloured or highlighted, and a whole block painted with update_block; a table is changed cell by cell with update_table. update_page, move_page, duplicate_page, trash_page and restore_page change a page as a whole; list_trash shows what is in the trash, which search does not find. fetch says whether a page is verified, locked and who owns it.',
+  'To work with a collection, read its columns and views with get_collection and find rows with query_collection. If your token can write, create_row adds a row and update_row changes one: moving a task on a board is changing its status. move_row also places the row in the order of a view, beside another row, in the same write. To ask little, query_collection can return only counts (limit 0), only the groups with their sizes (groupBy), only one group (group) or a page of rows with only the columns you need (columns). To follow a collection without reading it again, keep the changesCursor of query_collection and call collection_changes with it as since: it returns only the rows that changed, with waitSeconds to wait for the next change. To find what is yours or what is due soon, put "@me" or a relative date such as @today, @this_week or @next_days:7 in where, and name your time zone in timeZone. A collection may have formula columns (a value computed from the other columns of the row) and rollup columns (a summary of the rows a relation links, such as their sum or count); they are computed when read, never written, and can be filtered, ordered and totalled like any column. Before adding one, try it on real rows with test_formula, which explains the formula language and its errors; add it with update_collection_columns. After collection_changes, rows in possiblyChanged may have a new rollup value although the row was not edited. A collection may have templates, the starting points of a row (text, values and, for a date or a person column, "today" or "you"): list_templates shows them, create_row copies one when you name it in template or the default one when you name none (template null starts blank), and save_template and delete_template manage them. Templates are never rows: queries, counts and search do not return them.',
   'When the person asks to add, note or change a task of the team or of "our board", do it on a Neuma collection, never in your own session\'s task list.',
   'A board may be named in another language than the request (a task board may be called Tasks). If searching by name finds no collection, list the spaces and the pages at their top: collections are marked as such.',
   'You act as the person who created your access token, limited to what the token allows: anything out of its reach answers as not accessible, the same as something that does not exist.',

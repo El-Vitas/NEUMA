@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { and } from '@neuma/db';
 import type { UserRole } from '@neuma/shared';
-import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
+import { BlockAccessRepository } from '../../../../common/infrastructure/persistence/block-access.repository';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { PageViewEntry, PageViewRepositoryContract } from '../../types/page-view.types';
 
 @Injectable()
 export class PageViewRepository implements PageViewRepositoryContract {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly blockAccess: BlockAccessRepository,
+  ) {}
 
   async countViews(pageId: string): Promise<number> {
     const { total } = await this.prisma.models.PageView.where({ pageId }).aggregate((agg) => ({ total: agg.count() }));
@@ -24,14 +26,8 @@ export class PageViewRepository implements PageViewRepositoryContract {
     userId: string,
     role: UserRole,
   ): Promise<null | string> {
-    const isVisibleSpace = buildSpaceVisibilityFilter(userId, role);
-    const page = await this.prisma.models.Page.where({ id: pageId })
-      .where((candidate) =>
-        candidate.space.some((space) => and(space.workspaceId.eq(workspaceId), isVisibleSpace(space))),
-      )
-      .select('id')
-      .first();
-    return page?.id ?? null;
+    const pages = await this.blockAccess.findReadablePages([pageId], { role, userId, workspaceId });
+    return pages.at(0)?.id ?? null;
   }
 
   async findLastViewedAt(pageId: string, userId: string): Promise<Date | null> {

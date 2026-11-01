@@ -1,7 +1,10 @@
 import type { EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { readPageEditorBlockColors } from '../../blocks/lib/pages.editor.block-color.lib';
-import { readPageEditorBlockComments } from '../../blocks/lib/pages.editor.block-comment.lib';
+import {
+  readPageEditorFragmentText,
+  readPageEditorRequestedBlockId,
+} from '../../blocks/lib/pages.editor.block-comment.lib';
 import { isPageEditorBlockDragActive } from '../../blocks/lib/pages.editor.block-drag.lib';
 import { readPageEditorBlockId } from '../../blocks/lib/pages.editor.block-link.lib';
 import { readPageEditorBlockRequest } from '../../blocks/lib/pages.editor.block-menu.lib';
@@ -89,12 +92,26 @@ export const keepPageEditorSurfaceIfSame = (
   next: PageEditorSurfaceState,
 ): PageEditorSurfaceState => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
 
+const readCommentBlockId = (state: EditorState): string | null => {
+  const request = readPageEditorBlockRequest(state);
+  return request?.kind === 'comments' ? readPageEditorRequestedBlockId(state, request.blockStart) : null;
+};
+
+const readCommentQuote = (state: EditorState): string | null => {
+  const request = readPageEditorBlockRequest(state);
+  return request?.kind === 'comments' && request.fragment !== undefined
+    ? readPageEditorFragmentText(state, request.fragment)
+    : null;
+};
+
 export const readPageEditorSurface = (
   view: EditorView,
   state: EditorState,
   surfaceRect: PageEditorSurfaceRect | null,
 ): PageEditorSurfaceState => ({
   blockId: readPageEditorBlockId(state),
+  commentBlockId: readCommentBlockId(state),
+  commentQuote: readCommentQuote(state),
   calloutIcon: readCalloutIconChoice(state),
   colors: readPageEditorBlockColors(state),
   blockAlign: readPageBlockAlignment(state),
@@ -106,7 +123,6 @@ export const readPageEditorSurface = (
   textColors: readPageTextColors(state),
   marksInUse: readMarksInUse(state),
   isInTable: isPageEditorInTable(state),
-  comments: readPageEditorBlockComments(state),
   conversions: listPageEditorBlockConversions(state),
   foldState: readFoldStateOfRequestedBlock(state),
   menuPosition: surfaceRect === null ? null : readMenuPosition(view, state, surfaceRect),

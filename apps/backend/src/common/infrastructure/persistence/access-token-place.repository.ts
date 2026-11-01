@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { AccessTokenPlace } from '@neuma/shared';
+import { type AccessTokenPlace, BLOCK_TYPE } from '@neuma/shared';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { buildSqlTextList } from '../../../prisma/prisma.sql.lib';
 import { ACCESS_TOKEN_EMPTY_PAGE_REACH } from '../../constants/access-token.constants';
@@ -41,16 +41,16 @@ export class AccessTokenPlaceRepository implements AccessTokenPlaceReader {
   constructor(private readonly prisma: PrismaService) {}
 
   async readPlace(pageId: string, workspaceId: string): Promise<AccessTokenPlace | null> {
-    const { columns } = this.prisma.tables.Page;
+    const { columns } = this.prisma.tables.Block;
     const statement = this.prisma.sql`
       WITH RECURSIVE "line" AS (
         SELECT "page"."id", "page"."parentId", "page"."spaceId", 0 AS "depth", ARRAY["page"."id"] AS "path"
-        FROM "Page" AS "page"
+        FROM "Block" AS "page"
         INNER JOIN "Space" AS "space" ON "space"."id" = "page"."spaceId"
         WHERE "page"."id" = ${pageId} AND "space"."workspaceId" = ${workspaceId}
         UNION ALL
         SELECT "parent"."id", "parent"."parentId", "parent"."spaceId", "line"."depth" + 1, "line"."path" || "parent"."id"
-        FROM "Page" AS "parent"
+        FROM "Block" AS "parent"
         INNER JOIN "line" ON "parent"."id" = "line"."parentId"
         WHERE NOT "parent"."id" = ANY("line"."path")
       )
@@ -64,18 +64,18 @@ export class AccessTokenPlaceRepository implements AccessTokenPlaceReader {
 
   async readPlaces(pageIds: readonly string[], workspaceId: string): Promise<ReadonlyMap<string, AccessTokenPlace>> {
     if (pageIds.length === 0) return new Map();
-    const { columns } = this.prisma.tables.Page;
+    const { columns } = this.prisma.tables.Block;
     const statement = this.prisma.sql`
       WITH RECURSIVE "line" AS (
         SELECT "page"."id" AS "originId", "page"."id", "page"."parentId", "page"."spaceId", 0 AS "depth",
           ARRAY["page"."id"] AS "path"
-        FROM "Page" AS "page"
+        FROM "Block" AS "page"
         INNER JOIN "Space" AS "space" ON "space"."id" = "page"."spaceId"
         WHERE "page"."id" = ANY(${buildSqlTextList(this.prisma.sql, pageIds)}) AND "space"."workspaceId" = ${workspaceId}
         UNION ALL
         SELECT "line"."originId", "parent"."id", "parent"."parentId", "parent"."spaceId", "line"."depth" + 1,
           "line"."path" || "parent"."id"
-        FROM "Page" AS "parent"
+        FROM "Block" AS "parent"
         INNER JOIN "line" ON "parent"."id" = "line"."parentId"
         WHERE NOT "parent"."id" = ANY("line"."path")
       )
@@ -91,26 +91,29 @@ export class AccessTokenPlaceRepository implements AccessTokenPlaceReader {
     workspaceId: string,
   ): Promise<AccessTokenPageReach> {
     if (rules.length === 0) return ACCESS_TOKEN_EMPTY_PAGE_REACH;
-    const { columns } = this.prisma.tables.Page;
+    const { columns } = this.prisma.tables.Block;
     const ruleRows = JSON.stringify(rules.map((rule) => ({ allows: rule.allows, pageId: rule.pageId })));
     const statement = this.prisma.sql`
       WITH RECURSIVE "rule" AS (
         SELECT * FROM jsonb_to_recordset(${ruleRows}::jsonb) AS "rule"("pageId" text, "allows" boolean)
       ),
       "reach" AS (
-        SELECT "page"."id", "page"."spaceId", "rule"."allows", 0 AS "distance", ARRAY["page"."id"] AS "path"
-        FROM "Page" AS "page"
+        SELECT "page"."id", "page"."type", "page"."spaceId", "rule"."allows", 0 AS "distance",
+          ARRAY["page"."id"] AS "path"
+        FROM "Block" AS "page"
         INNER JOIN "rule" ON "rule"."pageId" = "page"."id"
         INNER JOIN "Space" AS "space" ON "space"."id" = "page"."spaceId"
-        WHERE "space"."workspaceId" = ${workspaceId}
+        WHERE "space"."workspaceId" = ${workspaceId} AND "page"."type" = ${BLOCK_TYPE.page}
         UNION ALL
-        SELECT "child"."id", "child"."spaceId", "reach"."allows", "reach"."distance" + 1, "reach"."path" || "child"."id"
-        FROM "Page" AS "child"
+        SELECT "child"."id", "child"."type", "child"."spaceId", "reach"."allows", "reach"."distance" + 1,
+          "reach"."path" || "child"."id"
+        FROM "Block" AS "child"
         INNER JOIN "reach" ON "child"."parentId" = "reach"."id"
         WHERE NOT "child"."id" = ANY("reach"."path")
       )
       SELECT DISTINCT ON ("id") "id", "spaceId", "allows"
       FROM "reach"
+      WHERE "type" = ${BLOCK_TYPE.page}
       ORDER BY "id", "distance" ASC
     `.returnsRow({ allows: 'pg/bool@1', id: columns.id, spaceId: columns.spaceId });
     const rows: readonly AccessTokenReachRow[] = await this.prisma.runner.query(statement.build());

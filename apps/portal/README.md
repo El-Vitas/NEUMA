@@ -1,37 +1,23 @@
-# next-template
+# Portal
 
-Plantilla Next.js (App Router) con patrones y utilidades listas para usar.
+La aplicación web de Neuma: Next.js 16 con App Router, React 19 y Tailwind 4. Corre en el puerto 3010 y habla con el backend por HTTP y por el canal en vivo.
 
-Incluye:
-
-- shadcn/ui components
-- lucide-react icons
-- Tailwind CSS utilities y tokens (definidos en `globals.css`)
-- Testing preconfigurado con Jest + React Testing Library
-- Sistema de `AGENTS` / `SKILL.md` bajo `.agents/skills`
-
-Esta plantilla está pensada para arrancar proyectos modernos con React 19 / Next.js 16 (App Router).
-
-## Comandos útiles
-
-- `npm install` — instala dependencias
-- `npm run dev` — servidor de desarrollo
-- `npm run build` — compila para producción
-- `npm run start` — inicia la app compilada
-- `npm run test` — ejecuta los tests (Jest)
-
-## Testing y estructura
-
-Los tests pueden colocarse en una carpeta `tests/` que refleje la estructura de `app/` (por ejemplo `tests/app/page.test.tsx`) o bien colocarse co-localizados junto a los componentes. La configuración de Jest acepta ambos patrones.
-
-Ejemplo rápido para ejecutar tests:
+## Comandos
 
 ```bash
-cd next-template
-npm install
-npm run test
+bun run dev        # servidor de desarrollo en http://localhost:3010
+bun run build      # compila para producción
+bun run check      # dependencias, formato, lint y tipos
+bun run test       # pruebas unitarias con bun test
 ```
 
-## Testing y estructura
+## Estructura
 
-Los tests pueden colocarse en una carpeta `tests/` que refleje la estructura de `app/` (por ejemplo `tests/app/page.test.tsx`) o colocarse co-localizados junto a los componentes. La configuración de Jest acepta ambos patrones.
+- `app/`: rutas del App Router, por idioma.
+- `modules/`: cada área del producto (páginas, editor, colecciones, búsqueda, usuarios) con sus componentes, hooks, tipos y lógica.
+- `shared/`: lo que usan varios módulos.
+- `messages/`: los textos de la interfaz en español e inglés.
+- `content/docs/`: el manual de uso que se muestra dentro del portal.
+- `tests/`: las pruebas, con la misma estructura que el código.
+
+Las convenciones están en `AGENTS.md` y el sistema visual en `DESIGN.md`.

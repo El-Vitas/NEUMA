@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { and, SpaceVisibility } from '@neuma/db';
+import { and, isUniqueViolation, SpaceVisibility } from '@neuma/db';
 import { type PageIcon, type UserRole } from '@neuma/shared';
 import { placeBefore } from '../../../../common/domain/ordering.domain';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { canReadSpace, canRenameSpace, canShareSpace } from '../../../../common/domain/workspace.domain';
-import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
 import { toPageIconInput } from '../../../../common/infrastructure/persistence/page-icon.adapter';
 import {
   buildSpaceVisibilityFilter,
@@ -26,7 +25,6 @@ import { buildPrivateSpaceSlug } from '../../utils/space.utils';
 export class SpaceRepository implements SpaceRepositoryContract {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly outboxRepository: OutboxRepository,
     private readonly workspaceMemberRepository: WorkspaceMemberRepository,
   ) {}
 
@@ -91,27 +89,19 @@ export class SpaceRepository implements SpaceRepositoryContract {
     return this.listAccessible(workspaceId, userId, role);
   }
 
-  async create(input: CreateSpaceInput): Promise<SpaceSummary> {
-    return this.prisma.transaction(async (transaction) => {
-      const space = await transaction.orm.public.Space.select(...SPACE_SUMMARY_FIELDS).create({
+  async create(input: CreateSpaceInput): Promise<SpaceSummary | null> {
+    try {
+      const space = await this.prisma.models.Space.select(...SPACE_SUMMARY_FIELDS).create({
         name: input.name,
         slug: input.slug,
         visibility: input.visibility,
         workspaceId: input.workspaceId,
       });
-      await this.outboxRepository.create(
-        {
-          aggregateId: space.id,
-          aggregateType: 'SPACE',
-          eventType: 'SPACE_CREATED',
-          idempotencyKey: `space:${space.id}:created`,
-          payload: { spaceId: space.id, workspaceId: input.workspaceId },
-          payloadVersion: 1,
-        },
-        transaction,
-      );
       return { ...space, icon: parseStoredPageIcon(space.icon) };
-    });
+    } catch (error) {
+      if (isUniqueViolation(error)) return null;
+      throw error;
+    }
   }
 
   async rename(

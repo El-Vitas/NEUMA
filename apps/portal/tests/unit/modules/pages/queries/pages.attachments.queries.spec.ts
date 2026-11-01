@@ -12,6 +12,7 @@ mock.module('next/cache', () => ({ cacheLife: () => undefined, cacheTag: () => u
 mock.module('next/server', () => ({ connection: async () => undefined }));
 mock.module('next/headers', () => ({
   cookies: async () => ({ get: () => (cookieValue === undefined ? undefined : { value: cookieValue }) }),
+  headers: async () => new Headers(),
 }));
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
 mock.module('@/lib/logger', () => ({ logger: { error: () => undefined, info: () => undefined } }));

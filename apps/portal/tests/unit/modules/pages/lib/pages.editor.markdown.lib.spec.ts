@@ -18,6 +18,17 @@ describe('telling Markdown apart from a plain run of writing', () => {
     expect(looksLikePageEditorMarkdown('a paragraph\n---')).toBe(true);
   });
 
+  it('does not stall on a pasted line of spaces that ends in a Unicode line separator', () => {
+    const spaces = ' '.repeat(40_000);
+    const started = performance.now();
+
+    expect(looksLikePageEditorMarkdown(`#${spaces} x`)).toBe(true);
+    expect(looksLikePageEditorMarkdown(`-${spaces} x`)).toBe(true);
+    expect(looksLikePageEditorMarkdown(`1.${spaces} x`)).toBe(true);
+    expect(looksLikePageEditorMarkdown(`[ ]${spaces} x`)).toBe(true);
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+
   it('leaves an ordinary sentence as writing, not as Markdown', () => {
     expect(looksLikePageEditorMarkdown('Just a sentence about a plan, nothing more.')).toBe(false);
     expect(looksLikePageEditorMarkdown('')).toBe(false);

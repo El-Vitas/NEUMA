@@ -8,12 +8,21 @@ import { PagesMetadataRow } from '../../components/pages.metadata.row';
 import {
   EMPTY_PAGE_ATTACHMENTS,
   EMPTY_PAGE_PERSON_OPTIONS,
+  EMPTY_PAGE_RELATED_ROWS,
   PAGE_PROPERTIES_VISIBLE_LIMIT,
 } from '../../constants/pages.constants';
 import { PagesMoveForm } from '../../navigation/components/pages.move.form';
 import type { PageSummary } from '../../types/pages.types';
+import { buildPanelLookups, withPanelDerivedValues } from '../lib/pages.panel-lookups.lib';
 import { getEditableSchemaProperties } from '../lib/pages.properties.lib';
-import type { PagePersonOption, PagePropertyValue, PagePropertyValues, PageSchema } from '../types/pages.schema.types';
+import type {
+  PagePersonOption,
+  PagePropertyValue,
+  PagePropertyValues,
+  PageRelatedRow,
+  PageSchema,
+} from '../types/pages.schema.types';
+import { PagesCollectionLookupsProvider } from './pages.collection.lookups.provider';
 import { PagesPropertiesRow } from './pages.properties.row';
 
 interface IProps {
@@ -27,6 +36,8 @@ interface IProps {
   readonly parentSchema: PageSchema | null;
   readonly personOptions?: readonly PagePersonOption[];
   readonly propertyValues: PagePropertyValues;
+  /** The rows the relations of the page point to, with their names. */
+  readonly relatedRows?: readonly PageRelatedRow[];
   readonly spaceId?: string;
 }
 
@@ -41,6 +52,7 @@ export const PagesPropertiesPanel = ({
   parentSchema,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   propertyValues,
+  relatedRows = EMPTY_PAGE_RELATED_ROWS,
   spaceId = '',
 }: IProps) => {
   const t = useTranslations('pages');
@@ -56,20 +68,28 @@ export const PagesPropertiesPanel = ({
   const hiddenSectionsCount = (canMove ? 1 : 0) + (hasAttachmentsSection ? 1 : 0);
   const hiddenItemsCount = hiddenPropertiesCount + hiddenSectionsCount;
   const hasHiddenContent = hiddenItemsCount > 0;
+  const shownValues = withPanelDerivedValues(properties, propertyValues, page);
+  const lookups = buildPanelLookups(properties, shownValues, relatedRows, attachments, personOptions);
 
   return (
     <section aria-label={t('properties.title')} className="max-w-336 border-border border-b pb-2">
       <p className="text-muted-foreground text-xs sm:hidden">{t('propertiesPanel.narrowScreenHint')}</p>
-      {visibleProperties.map((property) => (
-        <PagesPropertiesRow
-          disabled={!canEdit}
-          key={property.key}
-          onChange={(value) => onPropertyValueChange(property.key, value)}
-          personOptions={personOptions}
-          property={property}
-          value={propertyValues[property.key]}
-        />
-      ))}
+      <PagesCollectionLookupsProvider lookups={lookups}>
+        {visibleProperties.map((property) => (
+          <PagesPropertiesRow
+            attachments={attachments}
+            computedError={page?.computedErrors?.[property.key]}
+            disabled={!canEdit}
+            key={property.key}
+            onChange={(value) => onPropertyValueChange(property.key, value)}
+            personOptions={personOptions}
+            property={property}
+            rowId={pageId ?? undefined}
+            spaceId={spaceId}
+            value={shownValues[property.key]}
+          />
+        ))}
+      </PagesCollectionLookupsProvider>
       {isExpanded && canMove && page !== null && (
         <PagesMetadataRow label={t('location')} labelId="page-location-label">
           <PagesMoveForm ariaLabelledBy="page-location-label" page={page} spaceId={spaceId} />

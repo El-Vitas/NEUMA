@@ -1,3 +1,4 @@
+import type { PageFilter } from '@neuma/shared';
 import { readPageViewConfiguration } from '@neuma/shared';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
@@ -8,6 +9,10 @@ import type { PageSchemaView } from '../types/pages.schema.types';
 interface IProps {
   readonly activeViewName: string;
   readonly label: string;
+  /** The quick filter, carried like the words: it narrows the rows whichever way they are drawn. */
+  readonly quickFilter?: null | PageFilter;
+  /** The words searched, carried to every view: what a reader looks for does not change with the way it is drawn. */
+  readonly search?: string;
   readonly views: readonly PageSchemaView[];
 }
 
@@ -15,7 +20,7 @@ interface IProps {
  * Links rather than buttons, so a view opens in another tab, can be shared, and works before scripts load.
  * Switching views does not scroll the page.
  */
-export const PagesCollectionTabs = ({ activeViewName, label, views }: IProps) => (
+export const PagesCollectionTabs = ({ activeViewName, label, quickFilter = null, search = '', views }: IProps) => (
   <nav aria-label={label}>
     <ul className="-mb-px flex items-center gap-1 overflow-x-auto">
       {views.map((view) => {
@@ -31,7 +36,7 @@ export const PagesCollectionTabs = ({ activeViewName, label, views }: IProps) =>
                   ? 'bg-muted font-medium text-foreground'
                   : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
               )}
-              href={buildCollectionViewHref(view.name)}
+              href={buildCollectionViewHref(view.name, { quickFilter, search })}
               scroll={false}
             >
               {icon !== null && (

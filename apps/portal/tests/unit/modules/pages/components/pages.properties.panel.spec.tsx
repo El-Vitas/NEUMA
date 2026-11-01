@@ -4,12 +4,17 @@ import { NextIntlClientProvider } from 'next-intl';
 import type { PageSchema, PageSchemaProperty } from '@/modules/pages/collections/types/pages.schema.types';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import en from '../../../../../messages/en.json';
-import { asPropertyOptions } from '../lib/pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   setPageLockAction: async () => ({ data: undefined }),
   listPageMoveDestinationsAction: async () => ({ data: { pages: [], spaces: [] } }),
   movePageAction: async () => ({ data: undefined }),
+}));
+mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
+  updatePageRowPropertiesAction: async () => ({ data: undefined }),
 }));
 mock.module('@/modules/pages/attachments/server/actions/pages.attachments.actions', () => ({
   deletePageAttachmentAction: async () => ({ data: undefined }),
@@ -28,6 +33,7 @@ mock.module('@/modules/pages/navigation/components/pages.move.form', () => ({
 const { PagesPropertiesPanel } = await import('@/modules/pages/collections/components/pages.properties.panel');
 
 const buildPage = (overrides: Partial<PageSummary> = {}): PageSummary => ({
+  canEdit: true,
   content: { content: [], schemaVersion: 1, type: 'doc' },
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
@@ -45,6 +51,7 @@ const buildPage = (overrides: Partial<PageSummary> = {}): PageSummary => ({
 });
 
 const titleProperty: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'title',
   label: 'Title',
   options: null,
@@ -52,6 +59,7 @@ const titleProperty: PageSchemaProperty = {
   type: 'TITLE',
 };
 const statusProperty: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'status',
   label: 'Status',
   options: asPropertyOptions('todo', 'done'),
@@ -59,6 +67,7 @@ const statusProperty: PageSchemaProperty = {
   type: 'SELECT',
 };
 const blockedProperty: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'blocked',
   label: 'Blocked',
   options: null,
@@ -103,7 +112,7 @@ describe('PagesPropertiesPanel', () => {
   it('renders a control for every non-TITLE property and never a TITLE input', () => {
     renderPanel(buildSchema([titleProperty, statusProperty, blockedProperty]));
 
-    expect(screen.getByText('Status')).toBeDefined();
+    expect(screen.getByText('Status *')).toBeDefined();
     expect(screen.getByText('Blocked')).toBeDefined();
     expect(screen.queryByText('Title')).toBeNull();
     expect(screen.queryByLabelText('Title')).toBeNull();
@@ -112,12 +121,20 @@ describe('PagesPropertiesPanel', () => {
   it('gives every property control an accessible name', () => {
     renderPanel(buildSchema([titleProperty, statusProperty, blockedProperty]));
 
-    expect(screen.getByRole('combobox', { name: 'Status' })).toBeDefined();
+    expect(screen.getByRole('combobox', { name: 'Status *' })).toBeDefined();
     expect(screen.getByRole('checkbox', { name: 'Blocked' })).toBeDefined();
+  });
+
+  it('marks a required property with an asterisk and leaves the others plain', () => {
+    renderPanel(buildSchema([titleProperty, statusProperty, blockedProperty]));
+
+    expect(screen.queryByText('Blocked *')).toBeNull();
+    expect(screen.getByText('Status *')).toBeDefined();
   });
 
   it('collapses beyond the visible limit and reveals the rest on demand', () => {
     const overflowProperties: PageSchemaProperty[] = Array.from({ length: 6 }, (_, index) => ({
+      config: defaultConfig,
       key: `field-${index}`,
       label: `Field ${index}`,
       options: null,

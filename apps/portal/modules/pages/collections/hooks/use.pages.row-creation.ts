@@ -2,12 +2,11 @@
 
 import { isTitlePageProperty } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
-import { useTransition } from 'react';
+import { useContext, useTransition } from 'react';
 import { toast } from 'sonner';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { ACTION_LOCKED_REASON } from '@/shared/constants/action-failure.constants';
 import { createEmptyPageContent } from '../../editor/lib/pages.editor.lib';
-import { createPageAction } from '../../server/actions/pages.actions';
-import type { PageSummary } from '../../types/pages.types';
+import { PAGE_VIEW_WRITES_CONTEXT } from '../constants/pages.view-writes.context.constants';
 import { buildNewRowPropertyValues } from '../lib/pages.board-drag.lib';
 import { buildRowPropertyValues } from '../lib/pages.properties.lib';
 import type { PagesRowCreation, PagesRowCreationInput } from '../types/pages.row-creation.types';
@@ -25,28 +24,34 @@ export const usePagesRowCreation = ({
 }: PagesRowCreationInput): PagesRowCreation => {
   const t = useTranslations('pages.collection');
   const tErrors = useTranslations('errors');
+  const writes = useContext(PAGE_VIEW_WRITES_CONTEXT);
   const [isCreating, startCreating] = useTransition();
 
   return {
     createRowIn: (placedValue: string, title: string, bandValue = '') =>
       startCreating(async () => {
-        const created = await createPageAction({
-          content: createEmptyPageContent(),
-          parentId: collectionPageId,
-          propertyValues: {
-            // The title is sent separately, not as a property value.
-            ...buildRowPropertyValues(properties.filter((property) => !isTitlePageProperty(property.type))),
-            ...buildNewRowPropertyValues(placedByKey, placedValue),
-            ...(bandedByKey === '' ? {} : buildNewRowPropertyValues(bandedByKey, bandValue)),
+        const settled = await writes.write(
+          {
+            content: createEmptyPageContent(),
+            // The title is sent separately, not as a property value. Under the default template of the collection.
+            defaultValues: buildRowPropertyValues(properties.filter((property) => !isTitlePageProperty(property.type))),
+            id: crypto.randomUUID(),
+            kind: 'create',
+            parentId: collectionPageId,
+            propertyValues: {
+              ...buildNewRowPropertyValues(properties, placedByKey, placedValue),
+              ...(bandedByKey === '' ? {} : buildNewRowPropertyValues(properties, bandedByKey, bandValue)),
+            },
+            spaceId,
+            title: title.trim(),
           },
-          spaceId,
-          title: title.trim(),
-        });
-        if (!isActionSuccess<PageSummary>(created)) {
-          toast.error(tErrors('generic'));
+          title.trim(),
+        );
+        if (settled.kind === 'rejected') {
+          toast.error(settled.message === ACTION_LOCKED_REASON ? tErrors('reasons.locked') : tErrors('generic'));
           return;
         }
-        toast.success(t('rowCreated'));
+        toast.success(t(settled.kind === 'queued' ? 'rowQueued' : 'rowCreated'));
       }),
     isCreating,
   };

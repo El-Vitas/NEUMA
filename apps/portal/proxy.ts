@@ -6,6 +6,7 @@ import { isAccessTokenSpent } from '@/modules/auth/lib/auth.token.expiry.lib';
 import type { AuthSession } from '@/modules/auth/types/auth.types';
 import { config as appConfig } from '@/shared/config';
 import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from '@/shared/constants/auth.constants';
+import { readClientIp } from '@/shared/lib/client-ip.lib';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { routing } from './i18n/routing';
 
@@ -45,9 +46,7 @@ const storeSessionOnResponse = (response: NextResponse, session: AuthSession): N
 
 const redirectToLogin = (request: NextRequest, locale: string): NextResponse => {
   const loginPath = locale === routing.defaultLocale ? ROUTES.LOGIN : `/${locale}${ROUTES.LOGIN}`;
-  const loginUrl = new URL(loginPath, request.url);
-  loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
-  return NextResponse.redirect(loginUrl);
+  return NextResponse.redirect(new URL(loginPath, request.url));
 };
 
 /** Renews here because routing is the last point where a new cookie can still reach the browser. */
@@ -79,12 +78,15 @@ export const proxy = async (request: NextRequest) => {
     return redirectToLogin(request, locale);
   }
 
-  const session = await refreshSession(refreshToken);
-  if (session === null) {
-    return redirectToLogin(request, locale);
+  const outcome = await refreshSession(refreshToken, readClientIp(request.headers, appConfig.clientIpTrust));
+  switch (outcome.status) {
+    case 'renewed':
+      return storeSessionOnResponse(localeResponse, outcome.session);
+    case 'rejected':
+      return redirectToLogin(request, locale);
+    default:
+      return localeResponse;
   }
-
-  return storeSessionOnResponse(localeResponse, session);
 };
 
 /** Next reads the matcher statically and accepts only a plain string literal; any other form also matches assets. */

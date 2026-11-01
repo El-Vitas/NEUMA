@@ -10,6 +10,8 @@ const CALCULATIONS_FOR_EVERY_PROPERTY = [
   PAGE_VIEW_CALCULATION.COUNT_ALL,
   PAGE_VIEW_CALCULATION.COUNT_FILLED,
   PAGE_VIEW_CALCULATION.COUNT_EMPTY,
+  PAGE_VIEW_CALCULATION.PERCENT_FILLED,
+  PAGE_VIEW_CALCULATION.PERCENT_EMPTY,
 ] as const;
 
 const CALCULATIONS_FOR_NUMBERS = [
@@ -83,10 +85,20 @@ export const computePageCalculation = (
       return values.length - countFilled(type, values);
     case PAGE_VIEW_CALCULATION.PERCENT_CHECKED:
       return values.length === 0 ? null : values.filter((value) => value === true).length / values.length;
+    case PAGE_VIEW_CALCULATION.PERCENT_FILLED:
+      return values.length === 0 ? null : countFilled(type, values) / values.length;
+    case PAGE_VIEW_CALCULATION.PERCENT_EMPTY:
+      return values.length === 0 ? null : (values.length - countFilled(type, values)) / values.length;
     default:
       return overNumbers(calculation, readNumbers(values));
   }
 };
 
+const PORTION_CALCULATIONS: readonly PageViewCalculation[] = [
+  PAGE_VIEW_CALCULATION.PERCENT_CHECKED,
+  PAGE_VIEW_CALCULATION.PERCENT_EMPTY,
+  PAGE_VIEW_CALCULATION.PERCENT_FILLED,
+];
+
 export const isPageCalculationAPortion = (calculation: PageViewCalculation): boolean =>
-  calculation === PAGE_VIEW_CALCULATION.PERCENT_CHECKED;
+  PORTION_CALCULATIONS.includes(calculation);

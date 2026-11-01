@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, type JsonObject, type JsonValue, PageLifecycle } from '@neuma/db';
-import { type PageContent, pageContentSchema, Result, USER_ROLE } from '@neuma/shared';
+import {
+  DEFAULT_PAGE_PROPERTY_CONFIG,
+  type PageContent,
+  pageContentSchema,
+  Result,
+  USER_ROLE,
+  type UserRole,
+} from '@neuma/shared';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '@/common/domain/schema.domain.types';
 import type { IStorageProvider } from '@/common/types/storage.types';
 import { REDACTED_MENTION_LABEL } from '@/modules/pages/constants/pages.constants';
@@ -9,7 +16,9 @@ import type {
   PageAttachmentsCleanupRepositoryContract,
   PageContentWriter,
   PageLogger,
+  PagePurgeRepositoryContract,
   PageRepositoryContract,
+  PageVersionRetentionRepositoryContract,
   UpdatePagePropertyValuesInput,
 } from '@/modules/pages/types/page.types';
 import type { PageSchemaRepositoryContract } from '@/modules/pages/types/page-schema.types';
@@ -21,9 +30,11 @@ const validPageContent: PageContent = {
 };
 
 const page = {
+  canEdit: true,
   content: {},
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
+  hasOwnPermissions: false,
   id: 'page-a',
   lifecycle: PageLifecycle.ACTIVE,
   lockedAt: null,
@@ -52,12 +63,12 @@ const contentWriter: PageContentWriter = {
 const createRepository = (): PageRepositoryContract => ({
   countDescendantsByLifecycle: () => Promise.resolve(0),
   create: () => Promise.resolve(page),
-  deleteForever: () => Promise.resolve('DELETED'),
+  deleteForever: () => Promise.resolve('SCHEDULED'),
   duplicate: () => Promise.resolve(page),
   emptyTrash: () => Promise.resolve([]),
-  findAccessState: () => Promise.resolve({ lifecycle: page.lifecycle, lockedAt: page.lockedAt }),
   findReadablePageIds: (pageIds) => Promise.resolve(pageIds),
   getAccessible: () => Promise.resolve(page),
+  getEditable: () => Promise.resolve(page),
   findMoveContext: () =>
     Promise.resolve({
       pageId: 'page-a',
@@ -69,17 +80,21 @@ const createRepository = (): PageRepositoryContract => ({
       spaceId: 'space-a',
       title: 'Page A',
     }),
-  listMoveDestinations: () => Promise.resolve({ pages: [], spaces: [] }),
-  listTrashed: () => Promise.resolve([]),
+  readMoveOrigin: () => Promise.resolve({ parentId: null, spaces: [] }),
+  listTrashed: () => Promise.resolve({ items: [], total: 0 }),
   listWithProperties: () => Promise.resolve([]),
   move: () => Promise.resolve(page),
   parentBelongsToSpace: () => Promise.resolve(true),
   listAccessible: () => Promise.resolve([page]),
+  listAccessibleAmong: () => Promise.resolve([page]),
   restoreCascade: () =>
     Promise.resolve({ parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null }),
   trashCascade: () => Promise.resolve(true),
-  findStoredContent: () => Promise.resolve(null),
-  storeContent: () => Promise.resolve('UNCHANGED'),
+  findVersion: () => Promise.resolve(null),
+  listVersions: () => Promise.resolve({ items: [], nextCursor: null }),
+  recordVersion: () => Promise.resolve(),
+  restoreVersion: () => Promise.resolve(null),
+  writeContent: () => Promise.resolve(null),
   updatePropertyValues: (_input, merge) => {
     const merged = merge(null);
     return Promise.resolve(merged.isOk() ? Result.ok(page) : Result.fail(merged.getError()));
@@ -87,6 +102,8 @@ const createRepository = (): PageRepositoryContract => ({
   rename: () => Promise.resolve(page),
   reorderAmongSiblings: () => Promise.resolve([page]),
   setLocked: () => Promise.resolve(page),
+  readRowTemplate: () => Promise.resolve(null),
+  setDefaultTemplate: () => Promise.resolve(page),
   setOwner: () => Promise.resolve(page),
   setVerification: () => Promise.resolve(page),
   updateCover: () => Promise.resolve(page),
@@ -94,14 +111,17 @@ const createRepository = (): PageRepositoryContract => ({
 });
 
 const createSchemaRepository = (): PageSchemaRepositoryContract => ({
+  attachFilesToPage: () => Promise.resolve(),
   defineSchema: (pageId, shape) => Promise.resolve({ pageId, ...shape }),
+  findAttachableFileIds: () => Promise.resolve(new Set<string>()),
+  listCollectionIdsInSpace: () => Promise.resolve([]),
   getSchema: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
-  rewriteOption: (pageId, _propertyKey, _rename, properties) => Promise.resolve({ pageId, properties, views: [] }),
+  listRollupDependents: () => Promise.resolve([]),
+  rewriteOption: (pageId, _propertyKey, _change, properties) => Promise.resolve({ pageId, properties, views: [] }),
   listPersonPropertyKeys: () => Promise.resolve(new Map()),
   resolveSchemaProperties: () => Promise.resolve([]),
-  setViewConfiguration: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
-  listRows: () => Promise.resolve({ hasMore: false, rows: [] }),
   listWorkspaceMemberIds: () => Promise.resolve([]),
+  readRowsById: () => Promise.resolve({ attachedFiles: [], hasMore: false, relatedRows: [], rows: [] }),
 });
 
 const createAttachmentsCleanupRepository = (): PageAttachmentsCleanupRepositoryContract => ({
@@ -118,6 +138,18 @@ const createStorageProvider = (): IStorageProvider => ({
 
 const createLogger = (): PageLogger => ({ warn: () => undefined });
 
+const createPurgeRepository = (dueBatches: readonly (readonly string[])[] = []): PagePurgeRepositoryContract => {
+  const remaining = [...dueBatches];
+  return { purgeDue: () => Promise.resolve(remaining.shift() ?? []) };
+};
+
+const createVersionRetentionRepository = (seenCutoffs: Date[] = []): PageVersionRetentionRepositoryContract => ({
+  thin: (olderThan: Date) => {
+    seenCutoffs.push(olderThan);
+    return Promise.resolve(0);
+  },
+});
+
 describe('pages service', () => {
   it('lets an editor write content in a page they can open', async () => {
     const service = new PagesService(
@@ -126,6 +158,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.authorizeContentWrite(contentWriter, validPageContent);
 
@@ -140,6 +174,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.authorizeContentWrite({ ...contentWriter, role: USER_ROLE.CLIENT }, validPageContent);
 
@@ -153,6 +189,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.authorizeContentWrite({ ...contentWriter, spaceId: 'space-b' }, validPageContent);
 
@@ -199,6 +237,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.authorizeContentWrite(contentWriter, content);
@@ -222,6 +262,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.create(
@@ -259,6 +301,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.create(
@@ -304,6 +348,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -319,6 +365,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -334,6 +382,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.getAccessible('private-page', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -348,18 +398,54 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
-    const result = await service.move(
-      'page-a',
-      'page-b',
-      null,
-      'user-a',
-      'workspace-a',
-      'mutation-a',
-      USER_ROLE.WORKER,
-    );
+    const result = await service.move({
+      expectedVersion: null,
+      mutationId: 'mutation-a',
+      pageId: 'page-a',
+      parentId: 'page-b',
+      role: USER_ROLE.WORKER,
+      targetSpaceId: null,
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
 
     expect(result.isOk()).toBe(true);
+  });
+
+  it('hands the version the caller saw to the move, which checks it while it holds the page', async () => {
+    const received: (null | number)[] = [];
+    const service = new PagesService(
+      {
+        ...createRepository(),
+        move: ({ expectedVersion }) => {
+          received.push(expectedVersion);
+          return Promise.resolve(page);
+        },
+      },
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
+    );
+
+    const result = await service.move({
+      expectedVersion: 9,
+      mutationId: 'mutation-a',
+      pageId: 'page-a',
+      parentId: 'page-b',
+      role: USER_ROLE.WORKER,
+      targetSpaceId: null,
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(received).toEqual([9]);
   });
 
   it('rejects creating a page under a parent from another space', async () => {
@@ -370,6 +456,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.create(
       {
@@ -411,16 +499,19 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
-    const result = await service.move(
-      'page-a',
-      'page-b',
-      null,
-      'user-a',
-      'workspace-a',
-      'mutation-c',
-      USER_ROLE.WORKER,
-    );
+    const result = await service.move({
+      expectedVersion: null,
+      mutationId: 'mutation-c',
+      pageId: 'page-a',
+      parentId: 'page-b',
+      role: USER_ROLE.WORKER,
+      targetSpaceId: null,
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_CYCLE');
@@ -433,6 +524,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const trashed = await service.trash('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
@@ -457,6 +550,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.trash('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.CLIENT);
@@ -474,6 +569,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.previewTrashCascade('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -490,6 +587,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.previewRestoreCascade('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -525,6 +624,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER, true);
@@ -550,6 +651,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
@@ -563,36 +666,118 @@ describe('pages service', () => {
       deletedAt: new Date('2026-01-01T00:00:00.000Z'),
       deletedBy: { id: 'user-a', name: 'Ada Lovelace' },
       id: 'page-a',
+      isTemplate: false,
       parentId: null,
+      purgeAfter: null,
       spaceId: 'space-a',
       title: 'Page A',
       trashedChildCount: 0,
     };
-    const repository = { ...createRepository(), listTrashed: () => Promise.resolve([trashedSummary]) };
+    const repository = {
+      ...createRepository(),
+      listTrashed: () => Promise.resolve({ items: [trashedSummary], total: 1 }),
+    };
     const service = new PagesService(
       repository,
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
-    const result = await service.listTrashed('workspace-a', 'user-a', USER_ROLE.WORKER, null, null);
+    const result = await service.listTrashed('workspace-a', 'user-a', USER_ROLE.WORKER, null, null, null);
 
-    expect(result).toEqual([trashedSummary]);
+    expect(result).toEqual({ items: [trashedSummary], total: 1 });
   });
 
-  it('deletes a trashed page forever and cleans up its attachments', async () => {
+  it('schedules a trashed page for deletion in 30 days and leaves its attachments alone for now', async () => {
     let cleanedUpPageIds: readonly string[] = [];
+    let scheduledFor: Date | undefined;
+    const repository = {
+      ...createRepository(),
+      deleteForever: (_pageId: string, _workspaceId: string, _userId: string, _role: UserRole, purgeAfter: Date) => {
+        scheduledFor = purgeAfter;
+        return Promise.resolve('SCHEDULED' as const);
+      },
+    };
     const attachmentsRepository = {
       ...createAttachmentsCleanupRepository(),
       deleteForPages: (pageIds: readonly string[]) => {
         cleanedUpPageIds = pageIds;
         return Promise.resolve();
       },
-      listStorageKeysForPages: () => Promise.resolve(['storage-key-a']),
     };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      attachmentsRepository,
+      createStorageProvider(),
+      createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
+    );
+    const before = Date.now();
+
+    const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.ADMIN);
+
+    expect(result.isOk()).toBe(true);
+    expect(cleanedUpPageIds).toEqual([]);
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    expect((scheduledFor?.getTime() ?? 0) - before).toBeGreaterThanOrEqual(thirtyDays);
+    expect(result.getValue().purgeAfter).toEqual(scheduledFor ?? new Date(0));
+  });
+
+  it('thins only the history older than thirty days', async () => {
+    const seenCutoffs: Date[] = [];
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(seenCutoffs),
+    );
+    const now = new Date('2026-10-31T12:00:00.000Z');
+
+    await service.thinOldVersions(now);
+
+    expect(seenCutoffs).toEqual([new Date('2026-10-01T12:00:00.000Z')]);
+  });
+
+  it('lets only an administrator delete forever', async () => {
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
+    );
+
+    const fromWorker = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+    const emptyFromWorker = await service.emptyTrash('workspace-a', 'user-a', USER_ROLE.WORKER, null);
+
+    expect(fromWorker.isFail()).toBe(true);
+    expect(emptyFromWorker.isFail()).toBe(true);
+  });
+
+  it('purges what is past its deadline in batches and only then removes the attachment files', async () => {
+    const batches = [Array.from({ length: 100 }, (_, index) => `page-${String(index)}`), ['page-last']];
+    const cleanedUp: string[] = [];
     let deletedStorageKeys: readonly string[] = [];
+    const attachmentsRepository = {
+      ...createAttachmentsCleanupRepository(),
+      deleteForPages: (pageIds: readonly string[]) => {
+        cleanedUp.push(...pageIds);
+        return Promise.resolve();
+      },
+      listStorageKeysForPages: (pageIds: readonly string[]) =>
+        Promise.resolve(pageIds.includes('page-last') ? ['storage-key-last'] : []),
+    };
     const storageProvider = {
       ...createStorageProvider(),
       delete: (storageKey: string) => {
@@ -606,13 +791,15 @@ describe('pages service', () => {
       attachmentsRepository,
       storageProvider,
       createLogger(),
+      createPurgeRepository(batches),
+      createVersionRetentionRepository(),
     );
 
-    const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+    const purgedCount = await service.purgeDuePages(new Date());
 
-    expect(result.isOk()).toBe(true);
-    expect(cleanedUpPageIds).toEqual(['page-a']);
-    expect(deletedStorageKeys).toEqual(['storage-key-a']);
+    expect(purgedCount).toBe(101);
+    expect(cleanedUp).toHaveLength(101);
+    expect(deletedStorageKeys).toEqual(['storage-key-last']);
   });
 
   it('rejects deleting forever a page that is not in the trash', async () => {
@@ -626,15 +813,17 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
-    const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+    const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.ADMIN);
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_INVALID_LIFECYCLE');
   });
 
-  it('empties the trash and cleans up every deleted page attachment', async () => {
+  it('empties the trash by scheduling every trashed page, deleting nothing yet', async () => {
     const repository = { ...createRepository(), emptyTrash: () => Promise.resolve(['page-a', 'page-b']) };
     let cleanedUpPageIds: readonly string[] = [];
     const attachmentsRepository = {
@@ -650,12 +839,14 @@ describe('pages service', () => {
       attachmentsRepository,
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
-    const result = await service.emptyTrash('workspace-a', 'user-a', USER_ROLE.WORKER, null);
+    const result = await service.emptyTrash('workspace-a', 'user-a', USER_ROLE.ADMIN, null);
 
-    expect(result.getValue()).toEqual({ deletedCount: 2 });
-    expect(cleanedUpPageIds).toEqual(['page-a', 'page-b']);
+    expect(result.getValue().scheduledCount).toBe(2);
+    expect(cleanedUpPageIds).toEqual([]);
   });
 
   it('refuses to write in a page somebody locked', async () => {
@@ -669,6 +860,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.authorizeContentWrite(contentWriter, validPageContent);
@@ -688,6 +881,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.rename('page-a', 'Another name', 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -711,6 +906,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     await service.setLocked('page-a', true, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -726,6 +923,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setLocked('page-a', true, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
@@ -749,6 +948,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateCover(
@@ -778,6 +979,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateCover(
@@ -800,6 +1003,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateCover('page-a', null, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
@@ -823,6 +1028,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateIcon(
@@ -852,6 +1059,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateIcon('page-a', null, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -875,6 +1084,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateIcon('page-a', { kind: 'sticker' }, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -891,6 +1102,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateIcon(
@@ -925,6 +1138,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setVerification(
@@ -957,6 +1172,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setVerification('page-a', false, undefined, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -972,6 +1189,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setVerification('page-a', true, undefined, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
@@ -996,6 +1215,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setOwner('page-a', 'user-b', 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -1020,6 +1241,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setOwner('page-a', 'stranger', 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -1044,6 +1267,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setOwner('page-a', null, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -1082,6 +1307,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1103,6 +1330,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1124,6 +1353,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1148,6 +1379,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1179,6 +1412,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1207,6 +1442,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1227,6 +1464,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1247,17 +1486,20 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
-    const result = await service.move(
-      'page-a',
-      'page-b',
-      null,
-      'user-a',
-      'workspace-a',
-      'mutation-a',
-      USER_ROLE.WORKER,
-    );
+    const result = await service.move({
+      expectedVersion: null,
+      mutationId: 'mutation-a',
+      pageId: 'page-a',
+      parentId: 'page-b',
+      role: USER_ROLE.WORKER,
+      targetSpaceId: null,
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
     const serialized = JSON.stringify(result.getValue().content);
 
     expect(result.isOk()).toBe(true);
@@ -1285,6 +1527,8 @@ describe('markdown export', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.exportAsMarkdown(
@@ -1310,6 +1554,8 @@ describe('markdown export', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.exportAsMarkdown(
@@ -1323,10 +1569,103 @@ describe('markdown export', () => {
 
     expect(result.isFail()).toBe(true);
   });
+
+  it('carries only the files the exported pages name, not the ones of blocks the reader cannot see', async () => {
+    const withImage: JsonValue = {
+      content: [{ attrs: { assetId: 'asset-seen' }, type: 'image' }],
+      schemaVersion: 1,
+      type: 'doc',
+    };
+    const readKeys: string[] = [];
+    const service = new PagesService(
+      { ...createRepository(), listAccessible: () => Promise.resolve([buildPageWithContent(withImage)]) },
+      createSchemaRepository(),
+      {
+        ...createAttachmentsCleanupRepository(),
+        listAssetsForPages: () =>
+          Promise.resolve([
+            { id: 'asset-seen', originalFilename: 'seen.png', size: 1, storageKey: 'key-seen' },
+            { id: 'asset-hidden', originalFilename: 'hidden.png', size: 1, storageKey: 'key-hidden' },
+          ]),
+      },
+      {
+        ...createStorageProvider(),
+        read: (key: string) => {
+          readKeys.push(key);
+          return Promise.resolve(Buffer.from(''));
+        },
+      },
+      createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
+    );
+
+    const result = await service.exportAsMarkdown(
+      'space-a',
+      { kind: 'space' },
+      'workspace-a',
+      'user-a',
+      USER_ROLE.WORKER,
+      'Sin nombre',
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(readKeys).toEqual(['key-seen']);
+    expect(
+      result
+        .getValue()
+        .map((file) => file.path)
+        .filter((path) => path.includes('hidden')),
+    ).toEqual([]);
+  });
+
+  it('refuses an export whose attachments pass the cap, before reading any of them', async () => {
+    let reads = 0;
+    const attachmentsRepository = {
+      ...createAttachmentsCleanupRepository(),
+      listAssetsForPages: () =>
+        Promise.resolve([{ id: 'asset-a', originalFilename: 'big.zip', size: 257 * 1024 * 1024, storageKey: 'key-a' }]),
+    };
+    const storageProvider = {
+      ...createStorageProvider(),
+      read: () => {
+        reads += 1;
+        return Promise.resolve(Buffer.from(''));
+      },
+    };
+    const namingTheFile: JsonValue = {
+      content: [{ attrs: { assetId: 'asset-a' }, type: 'image' }],
+      schemaVersion: 1,
+      type: 'doc',
+    };
+    const service = new PagesService(
+      { ...createRepository(), listAccessible: () => Promise.resolve([buildPageWithContent(namingTheFile)]) },
+      createSchemaRepository(),
+      attachmentsRepository,
+      storageProvider,
+      createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
+    );
+
+    const result = await service.exportAsMarkdown(
+      'space-a',
+      { kind: 'page', pageId: 'page-a' },
+      'workspace-a',
+      'user-a',
+      USER_ROLE.WORKER,
+      'Sin nombre',
+    );
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_EXPORT_TOO_LARGE');
+    expect(reads).toBe(0);
+  });
 });
 
 describe('pages service — updating what a row holds', () => {
   const titleProperty = {
+    config: DEFAULT_PAGE_PROPERTY_CONFIG,
     key: 'title',
     label: 'Title',
     options: null,
@@ -1335,11 +1674,12 @@ describe('pages service — updating what a row holds', () => {
   };
 
   const statusProperty = {
+    config: DEFAULT_PAGE_PROPERTY_CONFIG,
     key: 'status',
     label: 'Status',
     options: [
-      { color: null, value: 'todo' },
-      { color: null, value: 'done' },
+      { color: null, group: null, id: 'todo0001', value: 'todo' },
+      { color: null, group: null, id: 'done0001', value: 'done' },
     ],
     required: false,
     type: DatabasePropertyType.SELECT,
@@ -1358,9 +1698,12 @@ describe('pages service — updating what a row holds', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
   const notesProperty = {
+    config: DEFAULT_PAGE_PROPERTY_CONFIG,
     key: 'notes',
     label: 'Notes',
     options: null,
@@ -1388,11 +1731,13 @@ describe('pages service — updating what a row holds', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
   it('writes only what was named, leaving the rest of the row as it was', async () => {
     const written: Record<string, unknown>[] = [];
-    const service = buildServiceRecordingWrites(written, { notes: 'Sigue igual', status: 'todo' }, [
+    const service = buildServiceRecordingWrites(written, { notes: 'Sigue igual', status: 'todo0001' }, [
       titleProperty,
       statusProperty,
       notesProperty,
@@ -1400,7 +1745,7 @@ describe('pages service — updating what a row holds', () => {
 
     const result = await service.updateProperties({
       pageId: 'page-a',
-      propertyValues: { status: 'done' },
+      propertyValues: { status: 'done0001' },
       role: USER_ROLE.WORKER,
       updatedById: 'user-a',
       userId: 'user-a',
@@ -1408,7 +1753,57 @@ describe('pages service — updating what a row holds', () => {
     });
 
     expect(result.isOk()).toBe(true);
-    expect(written[0]).toEqual({ notes: 'Sigue igual', status: 'done' });
+    expect(written[0]).toEqual({ notes: 'Sigue igual', status: 'done0001' });
+  });
+
+  describe('when the caller names the version of the row it saw', () => {
+    const edit = (expectedVersion?: number) => ({
+      ...(expectedVersion === undefined ? {} : { expectedVersion }),
+      pageId: 'page-a',
+      propertyValues: { status: 'done0001' },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    const receivedBy = async (expectedVersion?: number): Promise<UpdatePagePropertyValuesInput[]> => {
+      const received: UpdatePagePropertyValuesInput[] = [];
+      const service = new PagesService(
+        {
+          ...createRepository(),
+          getAccessible: () => Promise.resolve({ ...page, propertyValues: { status: 'todo0001' } }),
+          updatePropertyValues: (input, merge) => {
+            received.push(input);
+            const merged = merge({ status: 'todo0001' });
+            return Promise.resolve(merged.isFail() ? Result.fail(merged.getError()) : Result.ok(page));
+          },
+        },
+        {
+          ...createSchemaRepository(),
+          resolveSchemaProperties: () => Promise.resolve([titleProperty, statusProperty]),
+        },
+        createAttachmentsCleanupRepository(),
+        createStorageProvider(),
+        createLogger(),
+        createPurgeRepository(),
+        createVersionRetentionRepository(),
+      );
+      await service.updateProperties(edit(expectedVersion));
+      return received;
+    };
+
+    it('hands the version to the write, which checks it while it holds the row', async () => {
+      const received = await receivedBy(7);
+
+      expect(received[0]?.expectedVersion).toBe(7);
+    });
+
+    it('names no version to the write when the caller named none', async () => {
+      const received = await receivedBy();
+
+      expect(received[0]).not.toHaveProperty('expectedVersion');
+    });
   });
 
   it('renames the row in the same write as its properties, so both land or neither does', async () => {
@@ -1416,10 +1811,10 @@ describe('pages service — updating what a row holds', () => {
     const service = new PagesService(
       {
         ...createRepository(),
-        getAccessible: () => Promise.resolve({ ...page, propertyValues: { status: 'todo' } }),
+        getAccessible: () => Promise.resolve({ ...page, propertyValues: { status: 'todo0001' } }),
         updatePropertyValues: (input, merge) => {
           received.push(input);
-          const merged = merge({ status: 'todo' });
+          const merged = merge({ status: 'todo0001' });
           return Promise.resolve(merged.isFail() ? Result.fail(merged.getError()) : Result.ok(page));
         },
       },
@@ -1427,11 +1822,13 @@ describe('pages service — updating what a row holds', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateProperties({
       pageId: 'page-a',
-      propertyValues: { status: 'done' },
+      propertyValues: { status: 'done0001' },
       role: USER_ROLE.WORKER,
       title: 'Informe entregado',
       updatedById: 'user-a',
@@ -1440,21 +1837,29 @@ describe('pages service — updating what a row holds', () => {
     });
 
     expect(result.isOk()).toBe(true);
-    expect(received).toEqual([{ pageId: 'page-a', title: 'Informe entregado', updatedById: 'user-a' }]);
+    expect(received).toEqual([
+      {
+        pageId: 'page-a',
+        role: USER_ROLE.WORKER,
+        title: 'Informe entregado',
+        updatedById: 'user-a',
+        workspaceId: 'workspace-a',
+      },
+    ]);
   });
 
   // A row keeps values under a property later removed from the shape; carrying them back would be refused and block
   // every later save, so they are dropped on the first write.
   it('leaves behind a value the shape no longer knows, instead of locking the row', async () => {
     const written: Record<string, unknown>[] = [];
-    const service = buildServiceRecordingWrites(written, { removed: 'Quedó huérfano', status: 'todo' }, [
+    const service = buildServiceRecordingWrites(written, { removed: 'Quedó huérfano', status: 'todo0001' }, [
       titleProperty,
       statusProperty,
     ]);
 
     const result = await service.updateProperties({
       pageId: 'page-a',
-      propertyValues: { status: 'done' },
+      propertyValues: { status: 'done0001' },
       role: USER_ROLE.WORKER,
       updatedById: 'user-a',
       userId: 'user-a',
@@ -1462,12 +1867,12 @@ describe('pages service — updating what a row holds', () => {
     });
 
     expect(result.isOk()).toBe(true);
-    expect(written[0]).toEqual({ status: 'done' });
+    expect(written[0]).toEqual({ status: 'done0001' });
   });
 
   it('clears a property when what arrives for it is nothing', async () => {
     const written: Record<string, unknown>[] = [];
-    const service = buildServiceRecordingWrites(written, { notes: 'Sigue', status: 'todo' }, [
+    const service = buildServiceRecordingWrites(written, { notes: 'Sigue', status: 'todo0001' }, [
       titleProperty,
       statusProperty,
       notesProperty,
@@ -1511,11 +1916,13 @@ describe('pages service — updating what a row holds', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateProperties({
       pageId: 'page-a',
-      propertyValues: { status: 'done' },
+      propertyValues: { status: 'done0001' },
       role: USER_ROLE.WORKER,
       updatedById: 'user-a',
       userId: 'user-a',
@@ -1532,11 +1939,13 @@ describe('pages service — updating what a row holds', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateProperties({
       pageId: 'somebody-elses-page',
-      propertyValues: { status: 'done' },
+      propertyValues: { status: 'done0001' },
       role: USER_ROLE.WORKER,
       updatedById: 'user-a',
       userId: 'user-a',
@@ -1544,5 +1953,109 @@ describe('pages service — updating what a row holds', () => {
     });
 
     expect(result.isFail()).toBe(true);
+  });
+});
+
+describe('pages service: the history and the content of a page', () => {
+  const buildService = (repository: Partial<PageRepositoryContract>, purge = createPurgeRepository()) =>
+    new PagesService(
+      { ...createRepository(), ...repository },
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+      purge,
+      createVersionRetentionRepository(),
+    );
+
+  it('restores a page to a version and answers with the page', async () => {
+    const service = buildService({ restoreVersion: () => Promise.resolve({ page }) });
+
+    const result = await service.restoreVersion('page-a', 1, 'user-a', 'workspace-a', USER_ROLE.WORKER);
+
+    expect(result.getValue()).toBe(page);
+  });
+
+  it('says that a version that is not there is not there', async () => {
+    const service = buildService({ restoreVersion: () => Promise.resolve('MISSING_VERSION') });
+
+    const result = await service.restoreVersion('page-a', 9, 'user-a', 'workspace-a', USER_ROLE.WORKER);
+
+    expect(result.getError().code).toBe('PAGE_VERSION_NOT_FOUND');
+  });
+
+  it('lists the versions of a page the reader can reach, and nothing for one who may not', async () => {
+    const listing = {
+      items: [{ author: { id: 'user-a', name: 'Ana' }, createdAt: new Date(0), title: 'Page A', version: 2 }],
+      nextCursor: null,
+    };
+    const service = buildService({ listVersions: () => Promise.resolve(listing) });
+    const unreachable = buildService({ listVersions: () => Promise.resolve(null) });
+
+    expect((await service.listVersions('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER, null, 20)).getValue()).toBe(
+      listing,
+    );
+    expect(
+      (await service.listVersions('page-a', 'workspace-a', 'user-a', USER_ROLE.CLIENT, null, 20)).getError().code,
+    ).toBe('PAGE_ACCESS_DENIED');
+    expect(
+      (await unreachable.listVersions('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER, null, 20)).getError().code,
+    ).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  it('reads one version, and tells a version that is not there from a page that cannot be reached', async () => {
+    const snapshot = { content: validPageContent, title: 'Page A', version: 1 };
+    const service = buildService({ findVersion: () => Promise.resolve(snapshot) });
+    const missing = buildService({});
+    const unreachable = buildService({ getAccessible: () => Promise.resolve(null) });
+
+    expect((await service.readVersion('page-a', 1, 'workspace-a', 'user-a', USER_ROLE.WORKER)).getValue()).toBe(
+      snapshot,
+    );
+    expect((await missing.readVersion('page-a', 9, 'workspace-a', 'user-a', USER_ROLE.WORKER)).getError().code).toBe(
+      'PAGE_VERSION_NOT_FOUND',
+    );
+    expect(
+      (await unreachable.readVersion('page-a', 1, 'workspace-a', 'user-a', USER_ROLE.WORKER)).getError().code,
+    ).toBe('PAGE_ACCESS_DENIED');
+    expect((await service.readVersion('page-a', 1, 'workspace-a', 'user-a', USER_ROLE.CLIENT)).getError().code).toBe(
+      'PAGE_ACCESS_DENIED',
+    );
+  });
+
+  it('never restores a version for someone who may only read, or into a page in the trash or locked', async () => {
+    const trashed = buildService({
+      getAccessible: () => Promise.resolve({ ...page, lifecycle: PageLifecycle.TRASHED }),
+    });
+    const locked = buildService({ getAccessible: () => Promise.resolve({ ...page, lockedAt: new Date() }) });
+    const reader = buildService({});
+
+    expect((await reader.restoreVersion('page-a', 1, 'user-a', 'workspace-a', USER_ROLE.CLIENT)).getError().code).toBe(
+      'PAGE_ACCESS_DENIED',
+    );
+    expect((await trashed.restoreVersion('page-a', 1, 'user-a', 'workspace-a', USER_ROLE.WORKER)).getError().code).toBe(
+      'PAGE_INVALID_LIFECYCLE',
+    );
+    expect((await locked.restoreVersion('page-a', 1, 'user-a', 'workspace-a', USER_ROLE.WORKER)).getError().code).toBe(
+      'PAGE_LOCKED',
+    );
+  });
+
+  it('writes the content through the repository and says the page is out of reach when it could not', async () => {
+    const written = validPageContent;
+    const accepted = buildService({ writeContent: () => Promise.resolve(written) });
+    const refused = buildService({ writeContent: () => Promise.resolve(null) });
+
+    expect((await accepted.writeContent(contentWriter, (current) => current)).getValue()).toBe(written);
+    expect((await refused.writeContent(contentWriter, (current) => current)).getError().code).toBe(
+      'PAGE_ACCESS_DENIED',
+    );
+  });
+
+  it('keeps purging while a batch comes back full, even when the pages below the due ones make it longer', async () => {
+    const full = Array.from({ length: 101 }, (_unused, position) => `page-${String(position)}`);
+    const service = buildService({}, createPurgeRepository([full, ['last']]));
+
+    expect(await service.purgeDuePages(new Date())).toBe(102);
   });
 });

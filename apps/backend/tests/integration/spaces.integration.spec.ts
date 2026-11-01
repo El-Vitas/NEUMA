@@ -123,6 +123,18 @@ describe('Space Members (Integration)', () => {
     expect(emails).toContain(editorEmail);
   });
 
+  it('answers a conflict, not a server error, when the slug is already taken', async () => {
+    const slug = `taken-slug-${String(Date.now())}`;
+    await createSpace(testApp, adminToken, 'First', slug, SpaceVisibility.PUBLIC_INTERNAL);
+
+    const response = await request(testApp.getServer())
+      .post('/api/v1/spaces')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'Second', slug, visibility: SpaceVisibility.PUBLIC_INTERNAL });
+
+    expect(response.status).toBe(409);
+  });
+
   it('returns only id, name and email per member — nothing an admin-only picker would need to hide', async () => {
     const response = await listMembers(testApp, adminToken, publicSpaceId).expect(200);
 

@@ -6,7 +6,9 @@ import {
   type PageChartMeasure,
   type PageDateBucket,
   type PageOptionColor,
+  type PagePropertyConfig,
   type PagePropertyType,
+  type PageStatusGroup,
   type PageViewType,
   removeSchemaView,
 } from '@neuma/shared';
@@ -22,9 +24,13 @@ import {
   moveSchemaView,
   removeSchemaOption,
   removeSchemaProperty,
+  renameSchemaOption,
   renameSchemaView,
+  setSchemaRelationTwoWay,
   updateSchemaOptionColor,
   updateSchemaProperty,
+  updateSchemaPropertyComputed,
+  updateSchemaPropertyConfig,
 } from '../lib/pages.schema-editing.lib';
 import {
   setViewChartKind,
@@ -37,14 +43,19 @@ import {
   toggleViewProperty,
 } from '../lib/pages.view-editing.lib';
 import { toggleViewHidesEmptyGroups } from '../lib/pages.view-filtering.lib';
-import type { PageSchema, PageSchemaProperty, PageSchemaView } from '../types/pages.schema.types';
+import type {
+  PageComputedDraft,
+  PageSchema,
+  PageSchemaProperty,
+  PageSchemaViewDraft,
+} from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
 import { usePagesShapeSaving } from './use.pages.shape-saving';
 
 /** Nothing is sent until saved: a multi-step change (add a property, then name its options) must not land half done. */
 export const usePagesSchemaEditor = (schema: PageSchema, spaceId: string): PagesSchemaEditor => {
   const [properties, setProperties] = useState<readonly PageSchemaProperty[]>(schema.properties);
-  const [views, setViews] = useState<readonly PageSchemaView[]>(schema.views);
+  const [views, setViews] = useState<readonly PageSchemaViewDraft[]>(schema.views);
   const shape = usePagesShapeSaving(schema, spaceId);
   // Compared by identity: each operation returns the same list when nothing changed.
   const [saved, setSaved] = useState({ properties: schema.properties, views: schema.views });
@@ -58,13 +69,24 @@ export const usePagesSchemaEditor = (schema: PageSchema, spaceId: string): Pages
   };
 
   return {
-    addOption: (key: string, value: string) => setProperties((current) => addSchemaOption(current, key, value)),
+    addOption: (key: string, name: string, group?: PageStatusGroup) =>
+      setProperties((current) => addSchemaOption(current, key, name, group)),
     addProperty: (label: string, type: PagePropertyType) =>
       setProperties((current) => addSchemaProperty(current, { label, type })),
     addView: (name: string, type: PageViewType) =>
       setViews((current) => addSchemaView(current, { name, type }, properties)),
-    changeOptionColor: (key: string, value: string, color: PageOptionColor) =>
-      setProperties((current) => updateSchemaOptionColor(current, key, value, color)),
+    changeOptionColor: (key: string, optionId: string, color: PageOptionColor) =>
+      setProperties((current) => updateSchemaOptionColor(current, key, optionId, color)),
+    changePropertyComputed: (key: string, draft: PageComputedDraft) =>
+      setProperties((current) => updateSchemaPropertyComputed(current, key, draft)),
+    changePropertyConfig: (key: string, changes: Partial<PagePropertyConfig>) =>
+      setProperties((current) => updateSchemaPropertyConfig(current, key, changes)),
+    renameOption: (key: string, optionId: string, name: string) =>
+      setProperties((current) => renameSchemaOption(current, key, optionId, name)),
+    setPropertyRequired: (key: string, isRequired: boolean) =>
+      setProperties((current) => updateSchemaProperty(current, key, { required: isRequired })),
+    setRelationTwoWay: (key: string, isTwoWay: boolean) =>
+      setProperties((current) => setSchemaRelationTwoWay(current, key, isTwoWay)),
     changePropertyType: (key: string, type: PagePropertyType) =>
       setProperties((current) => changeSchemaPropertyType(current, key, type)),
     convertView: (viewName: string, type: PageViewType) =>
@@ -88,13 +110,15 @@ export const usePagesSchemaEditor = (schema: PageSchema, spaceId: string): Pages
     measureViewBy: (viewName: string, measure: PageChartMeasure, propertyKey: null | string) =>
       setViews((current) => setViewChartMeasure(current, viewName, measure, propertyKey)),
     properties,
-    removeOption: (key: string, value: string) => setProperties((current) => removeSchemaOption(current, key, value)),
+    removeOption: (key: string, optionId: string) =>
+      setProperties((current) => removeSchemaOption(current, key, optionId)),
     removeProperty: (key: string) => setProperties((current) => removeSchemaProperty(current, key)),
     removeView: (name: string) => setViews((current) => removeSchemaView(current, name)),
     renameProperty: (key: string, label: string) =>
       setProperties((current) => updateSchemaProperty(current, key, { label })),
     renameView: (viewName: string, name: string) => setViews((current) => renameSchemaView(current, viewName, name)),
     save,
+    spaceId,
     setViewIcon: (viewName: string, icon: null | string) => setViews((current) => setViewIcon(current, viewName, icon)),
     subGroupViewBy: (viewName: string, propertyKey: null | string) =>
       setViews((current) => setViewSubGroupBy(current, viewName, propertyKey)),

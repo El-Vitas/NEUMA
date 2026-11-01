@@ -1,5 +1,6 @@
 import { PAGE_LIFECYCLE_VALUES } from '@neuma/shared';
 import { z } from 'zod';
+import { pathSegmentSchema } from '@/shared/schemas/path-segment.schemas';
 import { FAVORITE_MOVE_DIRECTIONS } from '../constants/favorites.constants';
 
 export const favoritePageSchema = z.object({
@@ -14,10 +15,10 @@ export const favoritePageSchema = z.object({
 export const favoritePagesListSchema = z.array(favoritePageSchema);
 
 export const favoriteMutationSchema = z.object({
-  pageId: z.string().min(1),
+  pageId: pathSegmentSchema,
 });
 
 export const favoriteMoveSchema = z.object({
   direction: z.enum(FAVORITE_MOVE_DIRECTIONS),
-  pageId: z.string().min(1),
+  pageId: pathSegmentSchema,
 });

@@ -35,7 +35,7 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 
 ## PG-04 · Debe permitir ponerle un ícono a la página
 
-**Cómo debe sentirse la interacción:** el botón aparece al pasar el cursor sobre la cabecera y no ocupa lugar cuando la página no tiene ícono.
+**Cómo debe sentirse:** el botón aparece al pasar el cursor sobre la cabecera y no ocupa lugar cuando la página no tiene ícono.
 
 - [x] Hay un botón para agregar un ícono sobre el título
 - [x] Se puede elegir un emoji

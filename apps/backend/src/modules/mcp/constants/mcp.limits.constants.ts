@@ -5,7 +5,9 @@ import {
   maximumTableColumns,
   maximumTableRows,
   maximumToggleSummaryLength,
+  PAGE_TITLE_MAX_LENGTH,
 } from '@neuma/shared';
+import { MAX_FILE_SIZE } from '../../../common/domain/file.constants';
 
 /** Fine matching is left to the blocks. */
 export const MCP_SEARCH_PAGE_TITLE_LIMIT = 5;
@@ -27,6 +29,39 @@ export const MCP_LISTED_PAGE_PART_DEFAULT = 50;
 export const MCP_LISTED_PAGE_PART_MAX = 200;
 
 export const MCP_COLLECTION_CHANGE_LIMIT = 50;
+
+/** Rows one query answers with; the server carries at most this many per reducer. */
+export const MCP_QUERY_ROWS_DEFAULT = 25;
+export const MCP_QUERY_ROWS_MAX = 100;
+/** The most a group of a grouped answer carries rows for. */
+export const MCP_QUERY_ROWS_PER_GROUP_MAX = 50;
+export const MCP_QUERY_COLUMN_LIMIT = 50;
+export const MCP_QUERY_CURSOR_MAX_LENGTH = 2000;
+/** Changed rows one `collection_changes` answer carries. */
+export const MCP_CHANGES_ROWS_DEFAULT = 50;
+export const MCP_CHANGES_ROWS_MAX = 100;
+/** The longest a call waits for a change, kept under what a client usually allows a tool call to take. */
+export const MCP_CHANGES_WAIT_MAX_SECONDS = 25;
+export const MCP_CHANGES_POLL_INTERVAL_MS = 1000;
+export const MCP_MILLISECONDS_PER_SECOND = 1000;
+export const MCP_QUERY_SEARCH_MAX_LENGTH = 200;
+
+/** The longest IANA zone name in use is well under this; the shared query schema allows the same. */
+export const MCP_TIME_ZONE_MAX_LENGTH = 64;
+export const MCP_AGGREGATE_LIMIT = 10;
+export const MCP_AGGREGATE_CALCULATIONS = [
+  'COUNT_ALL',
+  'COUNT_EMPTY',
+  'COUNT_FILLED',
+  'SUM',
+  'AVERAGE',
+  'MINIMUM',
+  'MAXIMUM',
+  'MEDIAN',
+  'PERCENT_CHECKED',
+  'PERCENT_EMPTY',
+  'PERCENT_FILLED',
+] as const;
 
 export const MCP_WHERE_CONDITION_LIMIT = 20;
 export const MCP_SORT_RULE_LIMIT = 5;
@@ -50,7 +85,7 @@ export const MCP_ADDRESS_MAX_LENGTH = 2048;
 
 export const MCP_REQUEST_ID_MAX_LENGTH = 128;
 
-export const MCP_TITLE_MAX_LENGTH = 200;
+export const MCP_TITLE_MAX_LENGTH = PAGE_TITLE_MAX_LENGTH;
 
 export const MCP_BOOKMARK_TEXT_MAX_LENGTH = maximumBookmarkTextLength;
 
@@ -86,6 +121,19 @@ export const MCP_TABLE_COLUMNS_MAX = maximumTableColumns;
 export const MCP_TOGGLE_SUMMARY_MAX_LENGTH = maximumToggleSummaryLength;
 
 export const MCP_ID_MAX_LENGTH = 128;
+
+/** What the portal's upload accepts, as base64 text: four characters carry three bytes. */
+export const MCP_UPLOAD_BASE64_MAX_LENGTH = Math.ceil(MAX_FILE_SIZE / 3) * 4;
+
+/** Fastify refuses bodies over 1 MiB by default: the MCP route takes a file in base64 plus the rest of the call. */
+export const MCP_REQUEST_BODY_LIMIT_BYTES = MCP_UPLOAD_BASE64_MAX_LENGTH + 64 * 1024;
+
+/** What a caller without anything shaped like a token may send: a tool call without a file fits well inside it. */
+export const MCP_ANONYMOUS_BODY_LIMIT_BYTES = 1024 * 1024;
+
+export const MCP_UPLOAD_NAME_MAX_LENGTH = 255;
+
+export const MCP_UPLOAD_CONTENT_TYPE_MAX_LENGTH = 255;
 
 export const MCP_COMMENT_DATE_MAX_LENGTH = 64;
 

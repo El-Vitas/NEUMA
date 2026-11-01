@@ -1,6 +1,8 @@
+export type FormMessageKey = 'invalidCredentials' | 'offline' | 'rateLimited' | 'unexpected' | 'validationError';
+
 export type FormState = {
   readonly message: string;
-  readonly messageKey?: 'validationError';
+  readonly messageKey?: FormMessageKey;
 };
 
 export type ActionResult = {

@@ -19,6 +19,15 @@ describe('buildPagePropertyKey', () => {
     expect(buildPagePropertyKey('Status', [{ key: 'title' }, { key: 'status' }])).toBe('status_2');
   });
 
+  it('stays fast on a hostile label made of separators', () => {
+    const hostile = `a${'_ '.repeat(64 * 1024)}b`;
+    const startedAt = performance.now();
+
+    buildPagePropertyKey(hostile, []);
+
+    expect(performance.now() - startedAt).toBeLessThan(100);
+  });
+
   it('falls back to a readable name when nothing usable was typed', () => {
     expect(buildPagePropertyKey('«»', [])).toBe('property');
   });

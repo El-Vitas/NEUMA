@@ -6,17 +6,22 @@ model User {
   name                 String
   role                 pg.enum(UserRole)          @default("CLIENT")
   isActive             Boolean                    @default(true)
+  /// Every refresh token carries it; logging out or changing the password raises it, so older tokens stop renewing.
+  tokenVersion         Int                        @default(0)
   createdAt            TimestamptzJsDate          @default(now())
   updatedAt            temporal.updatedAtJsDate()
 
   workspaceMemberships WorkspaceMember[]
   spaceMemberships     SpaceMember[]
   favorites            PageFavorite[]
-  verifiedPages        Page[]                     @relation(name: "PageVerifiedBy")
-  ownedPages           Page[]                     @relation(name: "PageOwner")
+  verifiedBlocks       Block[]                    @relation(name: "BlockVerifiedBy")
+  ownedBlocks          Block[]                    @relation(name: "BlockOwner")
+  blockTransactions    BlockTransaction[]
   ownedSpaces          Space[]                    @relation(name: "SpaceOwner")
   pageViews            PageView[]
   accessTokens         AccessToken[]
+  notifications        Notification[]
+  refreshSessions      RefreshSession[]
 
   @@index([email], map: "User_email_idx")
   @@unique([email], map: "User_email_key")

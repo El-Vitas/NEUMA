@@ -1,18 +1,15 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageBlockComment, PageContent, PageContentNode } from '@neuma/shared';
+import type { PageContent, PageContentNode } from '@neuma/shared';
 import { EditorView } from 'prosemirror-view';
+import { summarizePageEditorDiscussions } from '@/modules/pages/editor/blocks/lib/pages.editor.block-comment.lib';
 import { readPageEditorBlockRequest } from '@/modules/pages/editor/blocks/lib/pages.editor.block-menu.lib';
 import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
-const remark = (id: string): PageBlockComment => ({
-  author: 'Admin User',
-  body: 'Revisar',
-  createdAt: '2026-08-12T10:00:00.000Z',
-  id,
-});
+const FIRST = '11111111-1111-4111-8111-111111111111';
+const SECOND = '22222222-2222-4222-8222-222222222222';
 
-const paragraph = (text: string, comments?: readonly PageBlockComment[]): PageContentNode => ({
-  attrs: comments === undefined ? {} : { comments },
+const paragraph = (id: string, text: string): PageContentNode => ({
+  attrs: { id },
   content: [{ text, type: 'text' }],
   type: 'paragraph',
 });
@@ -30,10 +27,16 @@ const mountEditor = (content: PageContentNode[]): { readonly container: HTMLElem
 const findCommentMarks = (container: HTMLElement): readonly HTMLElement[] =>
   Array.from(container.querySelectorAll<HTMLElement>('[data-block-comments]'));
 
-describe('the mark a commented block wears', () => {
-  it('is drawn only on the blocks that have been talked about', () => {
-    const { container, view } = mountEditor([paragraph('Uno', [remark('c1')]), paragraph('Dos')]);
+const summary = (counts: readonly (readonly [string, number])[]) => ({
+  openCounts: new Map(counts),
+  openMarkIds: new Set<string>(),
+});
 
+describe('the mark a block with open discussions wears', () => {
+  it('is drawn only on the blocks that have open discussions', () => {
+    const { container, view } = mountEditor([paragraph(FIRST, 'Uno'), paragraph(SECOND, 'Dos')]);
+
+    view.dispatch(summarizePageEditorDiscussions(view.state, summary([[FIRST, 1]])));
     const marks = findCommentMarks(container);
 
     expect(marks.length).toBe(1);
@@ -43,8 +46,10 @@ describe('the mark a commented block wears', () => {
     container.remove();
   });
 
-  it('says how many remarks the block carries', () => {
-    const { container, view } = mountEditor([paragraph('Uno', [remark('c1'), remark('c2')])]);
+  it('says how many open discussions the block carries', () => {
+    const { container, view } = mountEditor([paragraph(FIRST, 'Uno')]);
+
+    view.dispatch(summarizePageEditorDiscussions(view.state, summary([[FIRST, 2]])));
 
     expect(findCommentMarks(container)[0]?.getAttribute('data-block-comments')).toBe('2');
 
@@ -52,9 +57,10 @@ describe('the mark a commented block wears', () => {
     container.remove();
   });
 
-  it('opens what was said about that block when pressed', () => {
-    const { container, view } = mountEditor([paragraph('Uno'), paragraph('Dos', [remark('c1')])]);
+  it('opens the discussions of that block when pressed', () => {
+    const { container, view } = mountEditor([paragraph(FIRST, 'Uno'), paragraph(SECOND, 'Dos')]);
     const secondBlock = view.state.doc.child(0).nodeSize;
+    view.dispatch(summarizePageEditorDiscussions(view.state, summary([[SECOND, 1]])));
 
     findCommentMarks(container)[0]?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
 
@@ -64,10 +70,11 @@ describe('the mark a commented block wears', () => {
     container.remove();
   });
 
-  it('goes away when the last remark is taken back', () => {
-    const { container, view } = mountEditor([paragraph('Uno', [remark('c1')])]);
+  it('goes away when the last open discussion is resolved', () => {
+    const { container, view } = mountEditor([paragraph(FIRST, 'Uno')]);
+    view.dispatch(summarizePageEditorDiscussions(view.state, summary([[FIRST, 1]])));
 
-    view.dispatch(view.state.tr.setNodeAttribute(0, 'comments', null));
+    view.dispatch(summarizePageEditorDiscussions(view.state, summary([])));
 
     expect(findCommentMarks(container).length).toBe(0);
 

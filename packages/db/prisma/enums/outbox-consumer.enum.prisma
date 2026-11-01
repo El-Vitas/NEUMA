@@ -1,7 +1,0 @@
-// use prisma-8
-
-/// A process that projects outbox events; each gets its own delivery of every event.
-native_enum OutboxConsumer {
-  SEARCH = "SEARCH"
-  LINKS = "LINKS"
-}

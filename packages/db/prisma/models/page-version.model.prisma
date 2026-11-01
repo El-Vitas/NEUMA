@@ -7,7 +7,7 @@ model PageVersion {
   content     Jsonb
   createdById String
   createdAt   TimestamptzJsDate @default(now())
-  page        Page              @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageVersion_pageId_fkey", index: "PageVersion_pageId_createdAt_idx")
+  page        Block             @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageVersion_pageId_fkey", index: "PageVersion_pageId_createdAt_idx")
 
   @@unique([pageId, version], map: "PageVersion_pageId_version_key")
   @@index([pageId, createdAt], map: "PageVersion_pageId_createdAt_idx")

@@ -289,23 +289,6 @@ describe('what a block keeps when it changes type', () => {
     }
   });
 
-  it('keeps what was said about it', () => {
-    const commented: PageContentNode = {
-      attrs: {
-        comments: [{ author: 'Admin User', body: 'Revisar', createdAt: '2026-08-12T10:00:00.000Z', id: 'c1' }],
-      },
-      content: [{ text: 'Aviso', type: 'text' }],
-      type: 'paragraph',
-    };
-    const state = putCursorIn(createState([commented]), 'Aviso');
-
-    const converted = convert(state, 'callout');
-
-    expect(converted.doc.child(0).attrs.comments).toEqual([
-      { author: 'Admin User', body: 'Revisar', createdAt: '2026-08-12T10:00:00.000Z', id: 'c1' },
-    ]);
-  });
-
   it('keeps its identity, so a link to it still opens it', () => {
     const identified: PageContentNode = {
       attrs: { id: 'block-1' },

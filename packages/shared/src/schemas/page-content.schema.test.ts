@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import {
-  PAGE_CONTENT_SCHEMA_VERSION,
-  PAGE_DIAGRAM_FRAME_HEIGHT_LEAST,
-  PAGE_DIAGRAM_FRAME_HEIGHT_MOST,
   isPageLinkTarget,
   isPageWebAddress,
   maximumPageTextLength,
+  PAGE_CONTENT_SCHEMA_VERSION,
+  PAGE_DIAGRAM_FRAME_HEIGHT_LEAST,
+  PAGE_DIAGRAM_FRAME_HEIGHT_MOST,
   pageContentSchema,
 } from './page-content.schema.js';
 

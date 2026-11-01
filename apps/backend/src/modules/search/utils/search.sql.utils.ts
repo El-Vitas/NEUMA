@@ -5,7 +5,9 @@ export const asBoolean = (template: SqlTemplate): SqlFragment => template.return
 
 export const asText = (template: SqlTemplate): SqlFragment => template.returns('pg/text@1');
 
-export const asReal = (template: SqlTemplate): SqlFragment => template.returns('pg/float4@1');
+export const asDouble = (template: SqlTemplate): SqlFragment => template.returns('pg/float8@1');
+
+export const asJson = (template: SqlTemplate): SqlFragment => template.returns('pg/jsonb@1');
 
 /** Optional filters are plain conditions: an absent one is simply not in the list, and none at all means TRUE. */
 export const allOf = (sql: NeumaSqlTag, conditions: readonly SqlFragment[]): SqlFragment =>

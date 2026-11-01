@@ -9,10 +9,12 @@ import { TableBody, TableCell, TableRow } from '@/shared/components/ui/table';
 import { usePagesGroupCollapsing } from '../hooks/use.pages.group-collapsing';
 import { usePagesGroupOrdering } from '../hooks/use.pages.group-ordering';
 import { readPageOptionDotClass } from '../lib/pages.option-color.lib';
-import type { PageSchema, PageTableGroup } from '../types/pages.schema.types';
+import type { PageSchema, PageTableGroup, PageViewAggregates } from '../types/pages.schema.types';
+import { PagesCollectionGroupCount } from './pages.collection.group-count';
 
 interface IProps {
   readonly activeViewName: string;
+  readonly aggregates: Promise<PageViewAggregates | null>;
   readonly canEdit: boolean;
   readonly columnCount: number;
   readonly groupByKey: string;
@@ -26,6 +28,7 @@ interface IProps {
 /** One component owns every group: collapsed state is a single list, and per-band copies would overwrite each other. */
 export const PagesCollectionTableGroups = ({
   activeViewName,
+  aggregates,
   canEdit,
   columnCount,
   groupByKey,
@@ -69,7 +72,9 @@ export const PagesCollectionTableGroups = ({
                 className={cn('size-2 shrink-0 rounded-full', readPageOptionDotClass(group.color))}
               />
               <span className="truncate font-medium text-foreground">{labelOf(group)}</span>
-              <span className="text-muted-foreground tabular-nums">{group.rowCount}</span>
+              <span className="text-muted-foreground tabular-nums">
+                <PagesCollectionGroupCount aggregates={aggregates} drawn={group.rowCount} groupKey={group.key} />
+              </span>
             </button>
             {/* Buttons instead of dragging the band: it spans the table and is already the collapse target. */}
             {canEdit && ordering.canMove(group.key) && (

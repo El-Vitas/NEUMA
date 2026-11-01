@@ -1,5 +1,5 @@
-import { canEditContent } from '../types/workspace.types.js';
 import type { UserRole } from '../types/user-role.types.js';
+import { canEditContent } from '../types/workspace.types.js';
 import { isOneOf } from '../value-list.lib.js';
 import {
   ACCESS_TOKEN_LEVEL_PERMISSIONS,

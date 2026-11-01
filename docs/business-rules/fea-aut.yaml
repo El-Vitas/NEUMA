@@ -72,3 +72,42 @@ rules:
         given: Un usuario con un token de edición en vivo vigente
         when: Lo usa para llamar a la API
         then: La API responde que no está autenticado
+  - id: BR-f22be9d
+    status: active
+    title: Cada renovación cambia el token, y reutilizar uno gastado corta ese dispositivo
+    rule: >-
+      Cada vez que se renueva una sesión, el token de renovación presentado se gasta y se entrega uno nuevo. Un token ya
+      gastado que vuelve a presentarse después de 10 segundos corta la sesión de ese dispositivo, con todos los tokens
+      que había emitido, y los demás dispositivos siguen abiertos. Cerrar sesión corta solo el dispositivo donde se
+      cierra. Cambiar la contraseña corta todos los dispositivos de la cuenta, salvo el navegador donde se cambió, que
+      inicia sesión de nuevo.
+    why: >-
+      Un token de renovación robado deja de servir en cuanto el dueño legítimo se renueva, y un cierre de sesión en un
+      equipo no debería sacar a la persona de los demás.
+    context: >-
+      Durante los 10 segundos posteriores al gasto, el mismo token vuelve a recibir el mismo token nuevo, porque dos
+      peticiones de un mismo navegador pueden cruzarse antes de que llegue la cookie. El token de acceso que ya está en
+      uso vale hasta que vence, unos minutos. Los tokens de renovación anteriores a este cambio no sirven y hay que
+      iniciar sesión una vez.
+    supersedes: BR-99902bf
+  - id: BR-99902bf
+    status: superseded
+    title: Cerrar sesión o cambiar la contraseña corta todas las sesiones de la cuenta
+    rule: >-
+      Al cerrar sesión o cambiar la contraseña, ningún token de renovación emitido antes vuelve a servir, en ningún
+      dispositivo. Quien cambia su contraseña sigue con la sesión abierta en el navegador donde la cambió; los demás
+      dispositivos deben iniciar sesión otra vez.
+    why: >-
+      Una sesión que no se puede cortar sigue abierta siete días aunque la contraseña se haya filtrado o el equipo se
+      haya perdido. Cambiar la contraseña tiene que dejar afuera a quien la usaba.
+    context: El token de acceso que ya está en uso vale hasta que vence, unos minutos. Lo que se corta es la renovación.
+    superseded_by: BR-f22be9d
+    scenarios:
+      - title: Cierre de sesión
+        given: Una persona con sesión abierta en dos equipos
+        when: Cierra sesión en uno
+        then: En los dos equipos la sesión deja de renovarse
+      - title: Cambio de contraseña
+        given: Una persona con sesión abierta
+        when: Cambia su contraseña
+        then: Los tokens de renovación anteriores se rechazan y el navegador donde la cambió sigue con sesión

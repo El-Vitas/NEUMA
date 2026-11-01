@@ -1,5 +1,4 @@
 import {
-  isPageBlockComment,
   isPageDocumentNode,
   listPageDocumentChildren,
   PAGE_BLOCK_ITEM_TYPES,
@@ -7,7 +6,7 @@ import {
   readPageDocumentBlockId,
   writeBlocksAsAnchoredMarkdown,
 } from '@neuma/shared';
-import type { McpBlockComment, McpHeldBlock, McpPagePart } from '../types/mcp.types';
+import type { McpHeldBlock, McpPagePart } from '../types/mcp.types';
 
 const findHeldBlock = (
   nodes: readonly unknown[],
@@ -31,24 +30,6 @@ export const readMcpBlockInContext = (nodes: readonly unknown[], blockId: string
   const { id: _holderId, ...holderAttrs } = holder.attrs ?? {};
   return { ...holder, attrs: holderAttrs, content: [node] };
 };
-
-const readComments = (node: PageDocumentNodeShape): readonly McpBlockComment[] => {
-  const blockId = readPageDocumentBlockId(node);
-  const comments = node.attrs?.comments;
-  if (blockId === null || !Array.isArray(comments)) return [];
-  return comments.filter(isPageBlockComment).map((comment) => ({
-    author: comment.author,
-    blockId,
-    body: comment.body,
-    createdAt: comment.createdAt,
-    id: comment.id,
-  }));
-};
-
-export const listMcpBlockComments = (nodes: readonly unknown[]): readonly McpBlockComment[] =>
-  nodes
-    .filter(isPageDocumentNode)
-    .flatMap((node) => [...readComments(node), ...listMcpBlockComments(listPageDocumentChildren(node))]);
 
 /** Cuts between blocks and always takes at least one, even oversized, so the next part advances. */
 export const takeMcpPagePart = (nodes: readonly unknown[], start: number, maxCharacters: number): McpPagePart => {

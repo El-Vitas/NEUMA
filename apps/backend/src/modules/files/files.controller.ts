@@ -2,6 +2,7 @@ import { Controller, Delete, Get, Headers, Param, Post, Query, Res, UseGuards, U
 import type { FastifyReply } from 'fastify';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
+import { UploadThrottlerGuard } from '../../common/infrastructure/guards/upload-throttler.guard';
 import {
   FastifyFileInterceptor,
   UploadedFastifyFile,
@@ -25,6 +26,7 @@ export class FilesController {
   ) {}
 
   @Post()
+  @UseGuards(UploadThrottlerGuard)
   @UseInterceptors(FastifyFileInterceptor)
   async create(
     @Query() query: FileAssetQueryDto,

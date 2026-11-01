@@ -7,12 +7,12 @@ import { Button } from '@/shared/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { listFilterOperatorsFor, readFilterOperatorFor } from '../lib/pages.view-filtering.lib';
 import type { PageSchemaProperty } from '../types/pages.schema.types';
-import type { PageFilterPath, PagesViewFiltering } from '../types/pages.view-filtering.types';
+import type { PageFilterPath, PagesFilterEditing } from '../types/pages.view-filtering.types';
 import { PagesCollectionFilterValue } from './pages.collection.filter-value';
 
 interface IProps {
   readonly condition: PageFilterCondition;
-  readonly filtering: PagesViewFiltering;
+  readonly filtering: PagesFilterEditing;
   readonly path: PageFilterPath;
   readonly property: PageSchemaProperty;
 }

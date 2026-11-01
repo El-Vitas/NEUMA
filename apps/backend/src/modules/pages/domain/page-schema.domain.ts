@@ -1,11 +1,14 @@
 import { DatabasePropertyType } from '@neuma/db';
-import { Result } from '@neuma/shared';
+import type { PagePropertyOption, PagePropertyOptionDraft } from '@neuma/shared';
+import { assignPageOptionIds, createDefaultStatusOptions, pagePropertyRequiresOptions, Result } from '@neuma/shared';
 import type {
   SchemaPropertyDefinition,
   SchemaPropertyValues,
+  SchemaValuesCheck,
   SchemaViewDefinition,
 } from '../../../common/domain/schema.domain.types';
 import {
+  fillStatusDefaults,
   keepWhatTheSchemaKnows,
   mergePropertyValues,
   validateSchemaProperties,
@@ -13,9 +16,41 @@ import {
 } from '../../../common/domain/schema-property.domain';
 import { validateSchemaView } from '../../../common/domain/schema-view.domain';
 import { PagePropertyValidationError, PageSchemaDefinitionError } from './page.error';
+import type { SchemaPropertyDraft } from './page-schema.domain.types';
 
 export const pageCarriesSchema = (schemaProperties: readonly SchemaPropertyDefinition[]): boolean =>
   schemaProperties.length > 0;
+
+const toOptions = (
+  draft: SchemaPropertyDraft,
+  stored: SchemaPropertyDefinition | undefined,
+  generate: () => string,
+): readonly PagePropertyOption[] | null => {
+  const drafts: readonly PagePropertyOptionDraft[] = draft.options ?? [];
+  if (!pagePropertyRequiresOptions(draft.type) && drafts.length === 0) return null;
+  if (draft.type === DatabasePropertyType.STATUS && drafts.length === 0) {
+    return stored?.options?.length ? stored.options : createDefaultStatusOptions(generate);
+  }
+  return assignPageOptionIds(drafts, stored?.options ?? [], generate);
+};
+
+/**
+ * What a caller sends becomes definitions: an option that is new gets the id of the server, one that exists keeps its
+ * own, and a new status starts with an option in each group.
+ */
+export const resolveSchemaDrafts = (
+  drafts: readonly SchemaPropertyDraft[],
+  stored: readonly SchemaPropertyDefinition[],
+  generate: () => string,
+): readonly SchemaPropertyDefinition[] =>
+  drafts.map(({ computedDraft: _computedDraft, twoWay: _twoWay, ...draft }) => ({
+    ...draft,
+    options: toOptions(
+      { ...draft, twoWay: false },
+      stored.find((property) => property.key === draft.key),
+      generate,
+    ),
+  }));
 
 export const validatePageSchemaDefinition = (
   properties: readonly SchemaPropertyDefinition[],
@@ -63,7 +98,7 @@ const validateRowPropertyValues = (
   schemaProperties: readonly SchemaPropertyDefinition[],
   title: string,
   propertyValues: Readonly<Record<string, unknown>>,
-  personIds: ReadonlySet<string> | undefined,
+  check: SchemaValuesCheck,
 ): Result<SchemaPropertyValues, PagePropertyValidationError> => {
   const titleProperty = findTitleProperty(schemaProperties);
   if (titleProperty === undefined) {
@@ -73,20 +108,66 @@ const validateRowPropertyValues = (
     return Result.fail(new PagePropertyValidationError(`${titleProperty.key} must be set through the page title`));
   }
   const combinedValues = { ...propertyValues, [titleProperty.key]: title };
-  const validated = validateSchemaPropertyValues(schemaProperties, combinedValues, personIds);
+  const validated = validateSchemaPropertyValues(schemaProperties, combinedValues, check);
   return validated.isFail()
     ? Result.fail(new PagePropertyValidationError(validated.getError().message))
     : Result.ok(stripTitleValue(validated.getValue(), titleProperty.key));
 };
 
+/** A relation changes one row at a time, so two people editing the same cell never overwrite each other. */
+export const checkValuesAreWritableHere = (
+  schemaProperties: readonly SchemaPropertyDefinition[],
+  propertyValues: Readonly<Record<string, unknown>>,
+): Result<void, PagePropertyValidationError> => {
+  const relation = schemaProperties.find(
+    (property) => property.type === DatabasePropertyType.RELATION && Object.hasOwn(propertyValues, property.key),
+  );
+  return relation === undefined
+    ? Result.ok(undefined)
+    : Result.fail(new PagePropertyValidationError(`${relation.key} is a relation: add or remove its rows one by one`));
+};
+
+/** The files a write attaches to a row, so their existence and ownership can be checked before the write. */
+export const listFileIds = (
+  schemaProperties: readonly SchemaPropertyDefinition[],
+  propertyValues: Readonly<Record<string, unknown>>,
+): readonly string[] => [
+  ...new Set(
+    schemaProperties
+      .filter((property) => property.type === DatabasePropertyType.FILES)
+      .flatMap((property) => {
+        const cell = propertyValues[property.key];
+        return Array.isArray(cell) ? cell.filter((entry): entry is string => typeof entry === 'string') : [];
+      }),
+  ),
+];
+
+/**
+ * A row names files by id, and an id alone grants nothing: what a read says about a file (its name, its size) is for
+ * whoever owns it or for the rows it was attached to, not for any viewer of a row that happens to name it.
+ */
+export const keepFilesTheViewerMayName = <
+  TFile extends { readonly ownerId: null | string; readonly pageId: null | string },
+>(
+  files: readonly TFile[],
+  rowIds: readonly string[],
+  viewerId: string,
+): TFile[] =>
+  files.filter((file) => file.ownerId === viewerId || (file.pageId !== null && rowIds.includes(file.pageId)));
+
 export const keepWhatThePageSchemaKnows = keepWhatTheSchemaKnows;
 export const mergePagePropertyValues = mergePropertyValues;
 
+/**
+ * A row created in a collection is checked against all of it and starts on the default of each status. A row that
+ * is edited names the keys written (`check.written`): only those are asked to be filled, so a property made
+ * required later does not lock an old row.
+ */
 export const validatePageProperties = (
   schemaProperties: readonly SchemaPropertyDefinition[],
   title: string,
   propertyValues: Readonly<Record<string, unknown>> | null,
-  personIds?: ReadonlySet<string>,
+  check: SchemaValuesCheck = {},
 ): Result<SchemaPropertyValues | null, PagePropertyValidationError> => {
   if (!pageCarriesSchema(schemaProperties)) {
     return hasPropertyValues(propertyValues)
@@ -95,5 +176,7 @@ export const validatePageProperties = (
         )
       : Result.ok(null);
   }
-  return validateRowPropertyValues(schemaProperties, title, propertyValues ?? {}, personIds);
+  const isCreation = check.written === undefined;
+  const values = isCreation ? fillStatusDefaults(schemaProperties, propertyValues ?? {}) : (propertyValues ?? {});
+  return validateRowPropertyValues(schemaProperties, title, values, check);
 };

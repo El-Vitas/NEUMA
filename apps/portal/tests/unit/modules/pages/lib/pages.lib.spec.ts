@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'bun:test';
 import { PAGE_API_ROUTES } from '@/modules/pages/constants/pages.constants';
-import { buildPageDocumentTitle, buildPageTree, canEditPage, extractPageText } from '@/modules/pages/lib/pages.lib';
+import {
+  buildPageDocumentTitle,
+  canEditPage,
+  extractPageText,
+  resolveReadOnlyMessage,
+} from '@/modules/pages/lib/pages.lib';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 
 const page = (id: string, parentId: string | null, order: number): PageSummary => ({
+  canEdit: true,
   content: {
     content: [{ content: [{ text: id, type: 'text' }], type: 'paragraph' }],
     schemaVersion: 1,
@@ -30,16 +36,9 @@ describe('pages.lib', () => {
   });
 
   it('keeps trashed pages read-only while allowing active pages to be edited', () => {
-    expect(canEditPage(true, 'ACTIVE')).toBe(true);
-    expect(canEditPage(true, 'TRASHED')).toBe(false);
-    expect(canEditPage(false, 'ACTIVE')).toBe(false);
-  });
-
-  it('builds an ordered hierarchy from flat page summaries', () => {
-    const tree = buildPageTree([page('child', 'root', 1), page('root', null, 2), page('first', null, 1)]);
-
-    expect(tree.map((item) => item.page.id)).toEqual(['first', 'root']);
-    expect(tree[1]?.children.map((item) => item.page.id)).toEqual(['child']);
+    expect(canEditPage({ canEdit: true, lifecycle: 'ACTIVE' })).toBe(true);
+    expect(canEditPage({ canEdit: true, lifecycle: 'TRASHED' })).toBe(false);
+    expect(canEditPage({ canEdit: false, lifecycle: 'ACTIVE' })).toBe(false);
   });
 
   it('extracts searchable text from structured page content', () => {
@@ -60,6 +59,21 @@ describe('pages.lib', () => {
     };
 
     expect(extractPageText(content)).toBe('First\n\nSecond');
+  });
+});
+
+describe('what the editor says when it cannot be written in', () => {
+  const say = (key: string): string => key;
+
+  it('says the live channel is unavailable, whatever else holds', () => {
+    expect(resolveReadOnlyMessage('ACTIVE', true, say, true)).toBe('blockSyncUnavailable');
+    expect(resolveReadOnlyMessage('TRASHED', false, say, true)).toBe('blockSyncUnavailable');
+  });
+
+  it('keeps the other messages when the live channel works', () => {
+    expect(resolveReadOnlyMessage('TRASHED', false, say)).toBe('trashReadOnly');
+    expect(resolveReadOnlyMessage('ACTIVE', true, say)).toBe('lock.banner');
+    expect(resolveReadOnlyMessage('ACTIVE', false, say)).toBe('readOnly');
   });
 });
 

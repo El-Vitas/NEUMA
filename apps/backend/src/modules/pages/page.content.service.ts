@@ -1,26 +1,24 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PAGE_CONTENT_SCHEMA_VERSION, type PageContent, Result } from '@neuma/shared';
 import { ZodError } from 'zod';
-import { PAGE_LIVE_DOCUMENT } from './constants/pages.constants';
 import { PageAccessDeniedError, PageBlockEditError, PageContentValidationError } from './domain/page.error';
-import { PageLiveDocumentForbiddenError } from './infrastructure/errors/page.live-document.error';
 import { PagesService } from './pages.service';
 import type {
   PageContentEdit,
   PageContentRewrite,
   PageContentWriteError,
   PageContentWriter,
-  PageLiveDocument,
   PageWriteAuthorizer,
 } from './types/page.types';
 
-/** Writes through the live document so open editors see changes immediately and stored content has a single source. */
+/**
+ * Writes page content from outside the editor. The page keeps its blocks: the new document is compared with them by
+ * id and only what differs is written, so open editors see the change like any other and a block nobody touched
+ * keeps its history and its links.
+ */
 @Injectable()
 export class PageContentService {
-  constructor(
-    @Inject(PagesService) private readonly pagesService: PageWriteAuthorizer,
-    @Inject(PAGE_LIVE_DOCUMENT) private readonly liveDocument: PageLiveDocument,
-  ) {}
+  constructor(@Inject(PagesService) private readonly pagesService: PageWriteAuthorizer) {}
 
   async replace(writer: PageContentWriter, content: unknown): Promise<Result<PageContent, PageContentWriteError>> {
     const allowed = await this.pagesService.authorizeContentWrite(writer, content);
@@ -58,7 +56,7 @@ export class PageContentService {
     });
   }
 
-  /** The live document only takes a rewrite, so a failed edit is thrown from it and turned back into a Result. */
+  /** The rewrite only takes a document back, so a failed edit is thrown from it and turned back into a Result. */
   private async writeEdit(
     writer: PageContentWriter,
     rewrite: PageContentRewrite,
@@ -71,16 +69,15 @@ export class PageContentService {
     }
   }
 
-  /** Maps live-document rejections to content-validation or access-denied failures. */
+  /** Maps a document the schema refuses to a content-validation failure. */
   private async write(
     writer: PageContentWriter,
     rewrite: PageContentRewrite,
   ): Promise<Result<PageContent, PageAccessDeniedError | PageContentValidationError>> {
     try {
-      return Result.ok(await this.liveDocument.writePageContent(writer, rewrite));
+      return await this.pagesService.writeContent(writer, rewrite);
     } catch (error) {
       if (error instanceof ZodError) return Result.fail(new PageContentValidationError(error.issues));
-      if (error instanceof PageLiveDocumentForbiddenError) return Result.fail(new PageAccessDeniedError());
       throw error;
     }
   }

@@ -3,6 +3,7 @@
 import type { ColumnFiltersState, OnChangeFn, PaginationState, RowData, SortingState } from '@tanstack/react-table';
 import { useTable } from '@tanstack/react-table';
 import { useCallback } from 'react';
+import { DATA_TABLE_NO_ROWS } from '@/shared/constants/data-table.constants';
 import { dataTableFeatures } from '@/shared/lib/data-table.features.lib';
 import type { UseDataTableOptions } from './types/use-data-table.types';
 
@@ -42,7 +43,7 @@ export const useDataTable = <TData extends RowData>({
 
   const table = useTable({
     features: dataTableFeatures,
-    data: data ?? [],
+    data: data ?? DATA_TABLE_NO_ROWS,
     columns,
     pageCount,
     manualPagination,

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { type PageContent, Result, USER_ROLE } from '@neuma/shared';
 import { PageAccessDeniedError, PageBlockEditError, PageLockedError } from '@/modules/pages/domain/page.error';
 import { PageContentService } from '@/modules/pages/page.content.service';
-import type { PageContentWriter, PageLiveDocument, PageWriteAuthorizer } from '@/modules/pages/types/page.types';
+import type { PageContentWriter, PageWriteAuthorizer } from '@/modules/pages/types/page.types';
 
 const writer: PageContentWriter = {
   pageId: 'page-a',
@@ -20,50 +20,47 @@ const pageSaying = (...texts: readonly string[]): PageContent => ({
   type: 'doc',
 });
 
-const createLiveDocument = (holding: PageContent) => {
+/** A page that keeps what it says, standing in for the blocks the real one writes to. */
+const createPage = (holding: PageContent, refusal: PageAccessDeniedError | PageLockedError | null = null) => {
   let current = holding;
-  const liveDocument: PageLiveDocument = {
-    readLoadedPageContent: () => current,
-    writePageContent: (_writer, rewrite) => {
+  const authorizer: PageWriteAuthorizer = {
+    authorizeContentWrite: () => Promise.resolve(Result.ok(pageSaying())),
+    authorizeWrite: () => Promise.resolve(refusal === null ? Result.ok(writer) : Result.fail(refusal)),
+    writeContent: (_writer, rewrite) => {
       current = rewrite(current);
-      return Promise.resolve(current);
+      return Promise.resolve(Result.ok(current));
     },
   };
-  return { liveDocument, read: () => current };
+  return { authorizer, read: () => current };
 };
-
-const allowing = (refusal: PageAccessDeniedError | PageLockedError | null = null): PageWriteAuthorizer => ({
-  authorizeContentWrite: () => Promise.resolve(Result.ok(pageSaying())),
-  authorizeWrite: () => Promise.resolve(refusal === null ? Result.ok(writer) : Result.fail(refusal)),
-});
 
 describe('PageContentService.edit', () => {
   it('edits what the page says at the moment of writing', async () => {
-    const live = createLiveDocument(pageSaying('Lo que alguien acaba de escribir'));
-    const service = new PageContentService(allowing(), live.liveDocument);
+    const page = createPage(pageSaying('Lo que alguien acaba de escribir'));
+    const service = new PageContentService(page.authorizer);
 
     const result = await service.edit(writer, (current) =>
       Result.ok({ ...current, content: [...current.content, paragraph('Lo del agente')] }),
     );
 
     expect(result.getValue()).toEqual(pageSaying('Lo que alguien acaba de escribir', 'Lo del agente'));
-    expect(live.read()).toEqual(pageSaying('Lo que alguien acaba de escribir', 'Lo del agente'));
+    expect(page.read()).toEqual(pageSaying('Lo que alguien acaba de escribir', 'Lo del agente'));
   });
 
   it('writes nothing when the edit cannot be done, and says why', async () => {
-    const live = createLiveDocument(pageSaying('Intacta'));
-    const service = new PageContentService(allowing(), live.liveDocument);
+    const page = createPage(pageSaying('Intacta'));
+    const service = new PageContentService(page.authorizer);
 
     const result = await service.edit(writer, () => Result.fail('The page has no block x.'));
 
     expect(result.getError()).toBeInstanceOf(PageBlockEditError);
     expect(result.getError().details).toBe('The page has no block x.');
-    expect(live.read()).toEqual(pageSaying('Intacta'));
+    expect(page.read()).toEqual(pageSaying('Intacta'));
   });
 
   it('never tries an edit on a page it may not write', async () => {
-    const live = createLiveDocument(pageSaying('Intacta'));
-    const service = new PageContentService(allowing(new PageLockedError()), live.liveDocument);
+    const page = createPage(pageSaying('Intacta'), new PageLockedError());
+    const service = new PageContentService(page.authorizer);
     let wasTried = false;
 
     const result = await service.edit(writer, (current) => {
@@ -73,5 +70,31 @@ describe('PageContentService.edit', () => {
 
     expect(result.getError()).toBeInstanceOf(PageLockedError);
     expect(wasTried).toBe(false);
+  });
+});
+
+describe('PageContentService.append', () => {
+  it('adds the blocks after what the page says at the moment of writing', async () => {
+    const page = createPage(pageSaying('Primero'));
+    const service = new PageContentService({
+      ...page.authorizer,
+      authorizeContentWrite: () => Promise.resolve(Result.ok(pageSaying('Agregado'))),
+    });
+
+    const result = await service.append(writer, [paragraph('Agregado')]);
+
+    expect(result.getValue()).toEqual(pageSaying('Primero', 'Agregado'));
+  });
+
+  it('says the page is out of reach when nothing could be written to it', async () => {
+    const page = createPage(pageSaying('Intacta'));
+    const service = new PageContentService({
+      ...page.authorizer,
+      writeContent: () => Promise.resolve(Result.fail(new PageAccessDeniedError())),
+    });
+
+    const result = await service.replace(writer, pageSaying('Otra'));
+
+    expect(result.getError()).toBeInstanceOf(PageAccessDeniedError);
   });
 });

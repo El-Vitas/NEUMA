@@ -1,4 +1,4 @@
-import type { PageEmbedProvider } from '@neuma/shared';
+import { isPageWebAddress, type PageEmbedProvider } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import {
@@ -14,17 +14,21 @@ import type { PageEditorEmbedLabels } from '../types/pages.editor.embed.types';
 import { readPageEmbedFrameUrl } from './pages.editor.embed.lib';
 
 /** Shows the link as text when it has nothing to embed (channel, home page), not an empty frame that looks loading. */
-const createRefusedEmbed = (node: EditorNode, labels: PageEditorEmbedLabels): NodeView => {
+export const createRefusedEmbed = (node: EditorNode, labels: PageEditorEmbedLabels): NodeView => {
   const said = document.createElement('div');
-  const link = document.createElement('a');
   said.className = PAGE_EDITOR_EMBED_REFUSED_STYLE_CLASS;
   said.dataset.pageEmbedRefused = 'true';
   said.contentEditable = 'false';
-  link.href = node.attrs.url;
-  link.rel = 'noopener noreferrer';
-  link.target = '_blank';
-  link.textContent = node.attrs.url;
-  said.append(labels.refused, ' ', link);
+  if (isPageWebAddress(node.attrs.url)) {
+    const link = document.createElement('a');
+    link.href = node.attrs.url;
+    link.rel = 'noopener noreferrer';
+    link.target = '_blank';
+    link.textContent = node.attrs.url;
+    said.append(labels.refused, ' ', link);
+  } else {
+    said.append(labels.refused, ' ', String(node.attrs.url));
+  }
   return { dom: said, ignoreMutation: () => true, stopEvent: () => true };
 };
 

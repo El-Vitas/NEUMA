@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { usePagesMentionSearch } from '../../../hooks/use.pages.mention-search';
-import type { PageSummary } from '../../../types/pages.types';
+import type { PageReference } from '../../../types/pages.types';
 import {
   PAGE_EDITOR_LINK_CANDIDATE_STYLE_CLASS,
   PAGE_EDITOR_LINK_FAULT_STYLE_CLASS,
@@ -15,7 +15,7 @@ import {
 
 interface IProps {
   readonly href: string | null;
-  readonly pagesAtHand: readonly PageSummary[];
+  readonly pagesAtHand: readonly PageReference[];
   readonly onCancel: () => void;
   readonly onChoose: (href: string | null) => void;
 }

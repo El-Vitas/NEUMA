@@ -2,12 +2,23 @@ import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import { act, renderHook } from '@testing-library/react';
 import type { PageSchema, PageSchemaView } from '@/modules/pages/collections/types/pages.schema.types';
 
-const updatePageViewConfigurationAction = mock((_input: unknown) =>
-  Promise.resolve({ data: { pageId: 'page-a', properties: [], spaceId: 'space-a', views: [] } }),
+interface SentOperations {
+  readonly operations: readonly {
+    readonly args: unknown;
+    readonly command: string;
+    readonly path: readonly string[];
+  }[];
+  readonly viewId: string;
+}
+
+const applyPageViewOperationsAction = mock((_input: unknown) =>
+  Promise.resolve({ data: { configuration: {}, id: 'view-table', version: 1 } }),
 );
 
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
-  updatePageViewConfigurationAction,
+  applyPageViewOperationsAction,
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
 }));
 
 mock.module('next-intl', () => ({ useTranslations: () => (key: string) => key }));
@@ -16,9 +27,11 @@ const { usePagesViewSaving } = await import('@/modules/pages/collections/hooks/u
 
 const viewNamed = (name: string, configuration: Record<string, unknown>): PageSchemaView => ({
   configuration,
+  id: `view-${name.toLowerCase()}`,
   isDefault: true,
   name,
   type: 'TABLE',
+  version: 0,
 });
 
 const schemaWith = (views: readonly PageSchemaView[]): PageSchema => ({
@@ -28,14 +41,19 @@ const schemaWith = (views: readonly PageSchemaView[]): PageSchema => ({
   views,
 });
 
+const lastSent = (): SentOperations => {
+  const [sent] = applyPageViewOperationsAction.mock.calls.at(-1) as [SentOperations];
+  return sent;
+};
+
 describe('lo que una vista dice de sí misma, al guardarlo', () => {
   beforeEach(() => {
-    updatePageViewConfigurationAction.mockClear();
+    applyPageViewOperationsAction.mockClear();
   });
 
-  // The collection settings open beside the page and change the same views: saving a filter from the opening snapshot
-  // would wipe a grouping just set.
-  it('keeps what the collection says now, not what it said when it opened', () => {
+  // The collection settings open beside the page and change the same views: a change must not carry the old value
+  // of a key someone else just set, so only what changed travels.
+  it('sends only the key that changed, and not what the collection said when it opened', () => {
     const { rerender, result } = renderHook(({ schema }) => usePagesViewSaving(schema, 'Table', 'space-a'), {
       initialProps: { schema: schemaWith([viewNamed('Table', {})]) },
     });
@@ -43,21 +61,31 @@ describe('lo que una vista dice de sí misma, al guardarlo', () => {
     rerender({ schema: schemaWith([viewNamed('Table', { groupBy: 'status' })]) });
     act(() => {
       result.current.apply((current) =>
-        current.map((view) => ({ ...view, configuration: { ...view.configuration, filter: null } })),
+        current.map((view) => ({ ...view, configuration: { ...view.configuration, rowHeight: 'TALL' } })),
       );
     });
 
-    expect(updatePageViewConfigurationAction).toHaveBeenCalledTimes(1);
-    const [sent] = updatePageViewConfigurationAction.mock.calls[0] as [{ configuration: Record<string, unknown> }];
-    expect(sent.configuration.groupBy).toBe('status');
+    expect(applyPageViewOperationsAction).toHaveBeenCalledTimes(1);
+    expect(lastSent().viewId).toBe('view-table');
+    expect(lastSent().operations).toEqual([{ args: 'TALL', command: 'set', path: ['configuration', 'rowHeight'] }]);
+  });
+
+  it('sends nothing when nothing changed', () => {
+    const { result } = renderHook(() => usePagesViewSaving(schemaWith([viewNamed('Table', {})]), 'Table', 'space-a'));
+
+    act(() => {
+      result.current.apply((current) => current);
+    });
+
+    expect(applyPageViewOperationsAction).not.toHaveBeenCalled();
   });
 
   it('leaves what is still travelling alone', () => {
     let settle = (): void => undefined;
-    updatePageViewConfigurationAction.mockImplementationOnce(
+    applyPageViewOperationsAction.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
-          settle = () => resolve({ data: { pageId: 'page-a', properties: [], spaceId: 'space-a', views: [] } });
+          settle = () => resolve({ data: { configuration: {}, id: 'view-table', version: 1 } });
         }),
     );
     const { rerender, result } = renderHook(({ schema }) => usePagesViewSaving(schema, 'Table', 'space-a'), {

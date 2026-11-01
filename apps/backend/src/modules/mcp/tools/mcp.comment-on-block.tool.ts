@@ -1,20 +1,16 @@
-import { randomUUID } from 'node:crypto';
-import { ACCESS_TOKEN_PERMISSIONS, type PageBlockComment } from '@neuma/shared';
+import { ACCESS_TOKEN_PERMISSIONS, describeMissingPageBlock, findPageBlock, type PageContent } from '@neuma/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
+import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { runMcpWrite } from '../lib/mcp.actions.lib';
-import { addMcpBlockComment } from '../lib/mcp.comments.lib';
-import { openMcpPage, readMcpPageId } from '../lib/mcp.page-access.lib';
+import { checkMcpQuote, markMcpQuote, readMcpStoredContent } from '../lib/mcp.comments.lib';
+import { openMcpPage, readMcpPageId, requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { describeMcpWrittenBlocks, formatMcpWrittenBlocksText, writeMcpContent } from '../lib/mcp.page-writes.lib';
 import { commentedBlockOutputSchema, commentOnBlockInputSchema } from '../schemas/mcp.pages.schemas';
 import type { McpCommentedBlockOutput, McpCommentOnBlockInput } from '../types/mcp.pages.types';
-import type { McpCall, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+import type { McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
-/** A token holder is always a workspace member, so a missing name is a real failure and is not masked. */
-const readAuthorName = async (dependencies: McpServerDependencies, call: McpCall): Promise<string> => {
-  const members = await dependencies.people.listAssignableMembers(call.workspace.id);
-  const author = members.find((member) => member.id === call.principal.userId);
-  if (author === undefined) throw new Error('The owner of the token is not a member of its workspace');
-  return author.name;
+const requireBlock = (content: PageContent, blockId: string): void => {
+  if (findPageBlock(content.content, blockId) === null) throw new McpToolError(describeMissingPageBlock(blockId));
 };
 
 const commentOnBlock = async (
@@ -22,27 +18,47 @@ const commentOnBlock = async (
   input: McpCommentOnBlockInput,
   { call, record }: McpWriteSession,
 ): Promise<McpCommentedBlockOutput> => {
-  const [opened, author] = await Promise.all([
-    openMcpPage(dependencies, call, readMcpPageId(input.page), ACCESS_TOKEN_PERMISSIONS.pagesWrite),
-    readAuthorName(dependencies, call),
-  ]);
-  const comment: PageBlockComment = {
-    author,
-    body: input.text,
-    createdAt: new Date().toISOString(),
-    id: randomUUID(),
-  };
+  const opened = await openMcpPage(dependencies, call, readMcpPageId(input.page), ACCESS_TOKEN_PERMISSIONS.pagesWrite);
+  const current = readMcpStoredContent(opened.page.content);
+  requireBlock(current, input.block);
+  if (input.quote !== undefined) requireMcpInput(checkMcpQuote(current, input.block, input.quote));
   const request = {
     blockIds: [input.block],
-    detail: { comment: comment.id },
+    detail: { quoted: input.quote !== undefined },
     pageId: opened.page.id,
     tool: MCP_TOOL_NAMES.commentOnBlock,
   };
-  const content = await record(request, () =>
-    writeMcpContent(dependencies, call, opened.page, addMcpBlockComment(input.block, comment, input.quote)),
-  );
+  const { content, discussion } = await record(request, async () => {
+    const created = requireMcpSuccess(
+      await dependencies.discussions.openDiscussion(call.viewer, input.block, {
+        body: [{ insert: input.text }],
+        quote: input.quote,
+      }),
+    );
+    if (input.quote === undefined) return { content: current, discussion: created };
+    const marked = await writeMcpContent(
+      dependencies,
+      call,
+      opened.page,
+      markMcpQuote(input.block, input.quote, created.id),
+    );
+    return { content: marked, discussion: created };
+  });
   const written = await describeMcpWrittenBlocks(dependencies, call, { ...opened, content }, [input.block]);
-  return { ...written, comment: { ...comment, blockId: input.block } };
+  const [first] = discussion.comments;
+  if (first === undefined) throw new Error(`Discussion ${discussion.id} was created without a comment`);
+  return {
+    ...written,
+    comment: {
+      author: first.authorName,
+      blockId: input.block,
+      createdAt: first.createdAt,
+      discussionId: discussion.id,
+      id: first.id,
+      isDeleted: false,
+      text: input.text,
+    },
+  };
 };
 
 export const commentOnBlockTool: McpToolDefinition = {
@@ -52,7 +68,7 @@ export const commentOnBlockTool: McpToolDefinition = {
       MCP_TOOL_NAMES.commentOnBlock,
       {
         description:
-          'Leave a comment on one block of a page, signed as the person who owns this token, the way a person comments from the block menu: on the whole block, or on some of its words given in quote, which get marked. Comments are for remarks and questions about a block; they do not change what it says. Returns the block with its comment id.',
+          'Start a discussion on one block of a page, signed as the person who owns this token, the way a person comments from the block menu: on the whole block, or on some of its words given in quote, which get marked. Comments are for remarks and questions about a block; they do not change what it says. People continue the discussion by replying, and so can you with reply_to_discussion. Returns the block with the comment id and the discussion id.',
         inputSchema: commentOnBlockInputSchema,
         outputSchema: commentedBlockOutputSchema,
       },

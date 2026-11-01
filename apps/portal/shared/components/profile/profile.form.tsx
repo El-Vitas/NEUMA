@@ -1,10 +1,11 @@
 'use client';
 
+import { PASSWORD_MIN_LENGTH, type UserRole } from '@neuma/shared';
 import { Pencil } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useRouter } from '@/i18n/navigation';
 import { updatePasswordAction, updateProfileNameAction } from '@/modules/account/server/actions/profile.actions';
 import { DetailRow } from '@/shared/components/ui/detail-row';
 import {
@@ -16,15 +17,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/components/ui/dialog';
-import { PASSWORD_MIN_LENGTH } from '@/shared/constants/password.constants';
+import { callAction, isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
+import { ROUTES } from '@/shared/routes/constants/routes.constants';
 
 interface IProps {
-  readonly user: { id: string; name: string; email: string; role: string };
+  readonly user: { id: string; name: string; email: string; role: UserRole };
 }
 
 export const ProfileForm = ({ user }: IProps) => {
   const router = useRouter();
   const t = useTranslations('account');
+  const tErrors = useTranslations('errors');
   const roleTranslations = useTranslations('users.roles');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(user.name);
@@ -38,7 +41,7 @@ export const ProfileForm = ({ user }: IProps) => {
   }
 
   const handleUpdateName = async () => {
-    const result = await updateProfileNameAction({ name });
+    const result = await callAction(() => updateProfileNameAction({ name }));
     if (result?.serverError) {
       toast.error(t('nameUpdateError'));
     } else {
@@ -48,14 +51,19 @@ export const ProfileForm = ({ user }: IProps) => {
   };
 
   const handleUpdatePassword = async () => {
-    const result = await updatePasswordAction({ currentPassword, newPassword });
-    if (result?.serverError) {
-      toast.error(result.serverError);
-    } else {
-      toast.success(t('passwordUpdated'));
-      setCurrentPassword('');
-      setNewPassword('');
+    const result = await callAction(() => updatePasswordAction({ currentPassword, newPassword }));
+    if (!isActionSuccess<{ readonly status: string }>(result)) {
+      toast.error(tErrors(`reasons.${readActionFailureReason(result)}`));
+      return;
     }
+    setCurrentPassword('');
+    setNewPassword('');
+    if (result.data.status === 'signInRequired') {
+      toast.warning(t('passwordChangedSignIn'));
+      router.push(ROUTES.LOGIN);
+      return;
+    }
+    toast.success(t('passwordUpdated'));
   };
 
   return (
@@ -154,7 +162,7 @@ export const ProfileForm = ({ user }: IProps) => {
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <DetailRow label={t('name')} value={user.name} />
         <DetailRow label={t('email')} value={user.email} />
-        <DetailRow label={t('role')} value={roleTranslations(user.role as 'ADMIN' | 'WORKER' | 'CLIENT')} />
+        <DetailRow label={t('role')} value={roleTranslations(user.role)} />
       </div>
     </div>
   );

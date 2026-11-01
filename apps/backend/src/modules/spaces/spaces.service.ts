@@ -9,6 +9,7 @@ import {
   SpaceIconValidationError,
   SpaceMemberNotAssignableError,
   SpaceShareForbiddenError,
+  SpaceSlugTakenError,
 } from './domain/space.error';
 import { validateSpaceIcon } from './domain/space-icon.domain';
 import type { CreateSpaceInput, SpaceRepositoryContract, SpaceSummary } from './types/space.types';
@@ -22,11 +23,15 @@ export class SpacesService {
     return this.spaceRepository.listAccessible(workspaceId, userId, role);
   }
 
-  async create(input: CreateSpaceInput, role: UserRole): Promise<Result<SpaceSummary, SpaceAccessDeniedError>> {
+  async create(
+    input: CreateSpaceInput,
+    role: UserRole,
+  ): Promise<Result<SpaceSummary, SpaceAccessDeniedError | SpaceSlugTakenError>> {
     if (!canCreateSpace(role) || !isSpaceSlugAvailableToAsk(input.slug)) {
       return Result.fail(new SpaceAccessDeniedError());
     }
-    return Result.ok(await this.spaceRepository.create(input));
+    const created = await this.spaceRepository.create(input);
+    return created === null ? Result.fail(new SpaceSlugTakenError()) : Result.ok(created);
   }
 
   async rename(

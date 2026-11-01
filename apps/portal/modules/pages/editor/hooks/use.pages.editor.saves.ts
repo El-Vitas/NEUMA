@@ -4,19 +4,22 @@ import { useRef } from 'react';
 import { callAction, hasActionError } from '@/shared/lib/action-result';
 import { updatePageRowPropertiesAction } from '../../collections/server/actions/pages.collections.actions';
 import type { PagePropertyValue, PagePropertyValues } from '../../collections/types/pages.schema.types';
-import { renamePageAction, replacePageContentAction } from '../../server/actions/pages.actions';
+import { renamePageAction } from '../../server/actions/pages.actions';
 import type { PagesEditorSaves, PagesEditorSavesOptions } from '../types/pages.editor.saves.types';
 
 /** A request that never reached the server counts as not arrived, like one the server refused. */
 const didArrive = async (send: () => Promise<unknown>): Promise<boolean> => !hasActionError(await callAction(send));
 
+/** An emptied field is sent as a removal: the server reads an empty text as an answer, and a date cannot be one. */
+const withEmptiesAsRemovals = (values: PagePropertyValues): Record<string, PagePropertyValue | null> =>
+  Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value === '' ? null : value]));
+
 /**
- * Content is sent from here only when no live document keeps it. Title and each property travel separately,
+ * Content travels through the block channel, not from here. Title and each property travel separately,
  * so one property's change is never sent back stale. A part that fails stays pending for the next save.
  */
 export const usePagesEditorSaves = (options: PagesEditorSavesOptions): PagesEditorSaves => {
   const isTitlePendingRef = useRef(false);
-  const isContentPendingRef = useRef(false);
   const pendingPropertyValuesRef = useRef<PagePropertyValues>({});
   const hasStoredPropertyValuesRef = useRef(options.storedPropertyValues !== null || !options.hasEditableProperties);
 
@@ -30,16 +33,6 @@ export const usePagesEditorSaves = (options: PagesEditorSavesOptions): PagesEdit
     return arrived;
   };
 
-  const saveContent = async (): Promise<boolean> => {
-    if (!isContentPendingRef.current) return true;
-    isContentPendingRef.current = false;
-    const arrived = await didArrive(() =>
-      replacePageContentAction({ content: options.readContent(), pageId: options.pageId, spaceId: options.spaceId }),
-    );
-    if (!arrived) isContentPendingRef.current = true;
-    return arrived;
-  };
-
   const saveProperties = async (): Promise<boolean> => {
     const changed = hasStoredPropertyValuesRef.current
       ? pendingPropertyValuesRef.current
@@ -47,7 +40,11 @@ export const usePagesEditorSaves = (options: PagesEditorSavesOptions): PagesEdit
     if (Object.keys(changed).length === 0) return true;
     pendingPropertyValuesRef.current = {};
     const arrived = await didArrive(() =>
-      updatePageRowPropertiesAction({ pageId: options.pageId, propertyValues: changed, spaceId: options.spaceId }),
+      updatePageRowPropertiesAction({
+        pageId: options.pageId,
+        propertyValues: withEmptiesAsRemovals(changed),
+        spaceId: options.spaceId,
+      }),
     );
     if (!arrived) {
       pendingPropertyValuesRef.current = { ...changed, ...pendingPropertyValuesRef.current };
@@ -58,9 +55,6 @@ export const usePagesEditorSaves = (options: PagesEditorSavesOptions): PagesEdit
   };
 
   return {
-    markContentChanged: () => {
-      isContentPendingRef.current = true;
-    },
     markPropertyChanged: (key: string, value: PagePropertyValue) => {
       pendingPropertyValuesRef.current = { ...pendingPropertyValuesRef.current, [key]: value };
     },
@@ -68,7 +62,7 @@ export const usePagesEditorSaves = (options: PagesEditorSavesOptions): PagesEdit
       isTitlePendingRef.current = true;
     },
     saveWhatIsPending: async () => {
-      const outcomes = await Promise.all([saveTitle(), saveContent(), saveProperties()]);
+      const outcomes = await Promise.all([saveTitle(), saveProperties()]);
       return outcomes.every(Boolean);
     },
   };

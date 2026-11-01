@@ -40,10 +40,11 @@ describe('PagesTrashDeleteForeverDialog', () => {
     expect(container.textContent).toBe('');
   });
 
-  it('warns that attachments are deleted forever alongside the page', () => {
+  it('says the page goes in 30 days, attachments included', () => {
     renderDialog();
 
-    expect(screen.getByText("The page's attachments are also deleted forever.")).toBeDefined();
+    expect(screen.getByText(/erased in 30 days/)).toBeDefined();
+    expect(screen.getByText('Its attachments are erased along with the page.')).toBeDefined();
   });
 
   it('deletes the page forever and reports success once confirmed', async () => {

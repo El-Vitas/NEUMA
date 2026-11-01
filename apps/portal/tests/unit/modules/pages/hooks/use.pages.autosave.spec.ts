@@ -265,7 +265,7 @@ describe('usePagesAutosave', () => {
     expect(savedEvent.defaultPrevented).toBe(false);
   });
 
-  it('does not save after unmount and does not schedule when disabled', () => {
+  it('saves a pending edit once when the page is left, and does not schedule when disabled', () => {
     const save = mock(() => Promise.resolve(true));
     const { result, unmount } = renderHook(() => usePagesAutosave({ enabled: true, onSave: save }));
 
@@ -275,6 +275,11 @@ describe('usePagesAutosave', () => {
     unmount();
     jest.runOnlyPendingTimers();
 
+    expect(save).toHaveBeenCalledTimes(1);
+
+    save.mockClear();
+    const quiet = renderHook(() => usePagesAutosave({ enabled: true, onSave: save }));
+    quiet.unmount();
     expect(save).not.toHaveBeenCalled();
 
     const disabled = renderHook(() => usePagesAutosave({ enabled: false, onSave: save }));

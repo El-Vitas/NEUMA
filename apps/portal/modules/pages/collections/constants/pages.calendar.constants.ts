@@ -1,5 +1,14 @@
+import type { PageDateScale } from '@neuma/shared';
+
 export const PAGE_CALENDAR_DATE_LENGTH = 10;
 export const PAGE_CALENDAR_MONTH_LENGTH = 7;
+
+export const PAGE_CALENDAR_DAYS_IN_A_WEEK = 7;
+
+/** What a calendar can show at once: a week or a month. A day is too little to be a calendar. */
+export const PAGE_CALENDAR_SCALES: readonly PageDateScale[] = ['WEEK', 'MONTH'];
+
+export const PAGE_CALENDAR_MILLISECONDS_IN_A_DAY = 86_400_000;
 
 export const PAGE_CALENDAR_KEYBOARD_STEPS: Readonly<Record<string, number>> = {
   ArrowDown: 7,

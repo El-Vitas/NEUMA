@@ -1,13 +1,7 @@
-import { redo as redoOwnStep, undo as undoOwnStep } from 'prosemirror-history';
-import type { Command, EditorState } from 'prosemirror-state';
-import { redoCommand as redoSharedStep, undoCommand as undoSharedStep, yUndoPluginKey } from 'y-prosemirror';
+import { redo, undo } from 'prosemirror-history';
+import type { Command } from 'prosemirror-state';
 
-/** Collaborative pages use the shared history, which knows who wrote what. */
-const isWrittenTogether = (state: EditorState): boolean => yUndoPluginKey.getState(state) !== undefined;
+/** The editor's own history: changes from others arrive as remote steps and stay outside it, mapped over. */
+export const undoPageEditorStep: Command = undo;
 
-/** Undoes only this person's last change, never another collaborator's. */
-export const undoPageEditorStep: Command = (state, dispatch, view) =>
-  isWrittenTogether(state) ? undoSharedStep(state, dispatch, view) : undoOwnStep(state, dispatch, view);
-
-export const redoPageEditorStep: Command = (state, dispatch, view) =>
-  isWrittenTogether(state) ? redoSharedStep(state, dispatch, view) : redoOwnStep(state, dispatch, view);
+export const redoPageEditorStep: Command = redo;

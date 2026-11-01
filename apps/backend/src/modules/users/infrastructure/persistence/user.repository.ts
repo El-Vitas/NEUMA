@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { or } from '@neuma/db';
+import { isUniqueViolation, or } from '@neuma/db';
 import { USER_ROLE, type UserRole } from '@neuma/shared';
 import type { FilterCondition, ModelFilterScope } from '../../../../common/types/model.filter.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
@@ -43,13 +43,19 @@ export class UserRepository {
     });
   }
 
+  /** `null` when another account already holds the email. */
   async create(data: { email: string; name: string; password: string; role: UserRole }): Promise<{
     email: string;
     id: string;
     name: string;
     role: UserRole;
-  }> {
-    return this.prisma.models.User.select('email', 'id', 'name', 'role').create(data);
+  } | null> {
+    try {
+      return await this.prisma.models.User.select('email', 'id', 'name', 'role').create(data);
+    } catch (error) {
+      if (isUniqueViolation(error)) return null;
+      throw error;
+    }
   }
 
   async countAdmins(): Promise<number> {
@@ -57,6 +63,24 @@ export class UserRepository {
       total: aggregate.count(),
     }));
     return total;
+  }
+
+  /**
+   * The new password and the revocation land together, so no old session outlives the change: the version bump
+   * stops every refresh token and the deleted rows drop every family.
+   */
+  async replacePasswordAndRevokeSessions(id: string, hashedPassword: string): Promise<boolean> {
+    return this.prisma.transaction(async (transaction) => {
+      const { affectedRows } = await transaction.execute(
+        this.prisma.sql`
+          UPDATE "User" SET "password" = ${hashedPassword}, "tokenVersion" = "tokenVersion" + 1 WHERE "id" = ${id}
+        `
+          .affectedCount()
+          .build(),
+      );
+      await transaction.orm.public.RefreshSession.where({ userId: id }).deleteAndCount();
+      return affectedRows > 0;
+    });
   }
 
   async findByEmail(email: string): Promise<{ id: string } | null> {

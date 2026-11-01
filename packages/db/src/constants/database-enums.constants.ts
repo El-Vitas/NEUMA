@@ -18,6 +18,19 @@ export const DatabasePropertyType = {
   DATE: 'DATE',
   CHECKBOX: 'CHECKBOX',
   NUMBER: 'NUMBER',
+  STATUS: 'STATUS',
+  RELATION: 'RELATION',
+  URL: 'URL',
+  EMAIL: 'EMAIL',
+  PHONE: 'PHONE',
+  FILES: 'FILES',
+  CREATED_TIME: 'CREATED_TIME',
+  EDITED_TIME: 'EDITED_TIME',
+  CREATED_BY: 'CREATED_BY',
+  EDITED_BY: 'EDITED_BY',
+  UNIQUE_ID: 'UNIQUE_ID',
+  FORMULA: 'FORMULA',
+  ROLLUP: 'ROLLUP',
 } as const;
 export type DatabasePropertyType = ValueOf<typeof DatabasePropertyType>;
 
@@ -28,6 +41,7 @@ export const DatabaseViewType = {
   GALLERY: 'GALLERY',
   CALENDAR: 'CALENDAR',
   CHART: 'CHART',
+  TIMELINE: 'TIMELINE',
 } as const;
 export type DatabaseViewType = ValueOf<typeof DatabaseViewType>;
 
@@ -37,38 +51,18 @@ export const FileAssetLifecycle = {
 } as const;
 export type FileAssetLifecycle = ValueOf<typeof FileAssetLifecycle>;
 
-export const OutboxConsumer = {
-  SEARCH: 'SEARCH',
-  LINKS: 'LINKS',
+export const NotificationKind = {
+  MENTION: 'MENTION',
+  REPLY: 'REPLY',
+  PAGE_CHANGE: 'PAGE_CHANGE',
 } as const;
-export type OutboxConsumer = ValueOf<typeof OutboxConsumer>;
-
-export const OutboxStatus = {
-  PENDING: 'PENDING',
-  PROCESSING: 'PROCESSING',
-  PROCESSED: 'PROCESSED',
-  FAILED: 'FAILED',
-} as const;
-export type OutboxStatus = ValueOf<typeof OutboxStatus>;
+export type NotificationKind = ValueOf<typeof NotificationKind>;
 
 export const PageLifecycle = {
   ACTIVE: 'ACTIVE',
   TRASHED: 'TRASHED',
 } as const;
 export type PageLifecycle = ValueOf<typeof PageLifecycle>;
-
-export const SearchIndexingState = {
-  PENDING: 'PENDING',
-  PROCESSING: 'PROCESSING',
-  INDEXED: 'INDEXED',
-  FAILED: 'FAILED',
-} as const;
-export type SearchIndexingState = ValueOf<typeof SearchIndexingState>;
-
-export const SearchSourceType = {
-  PAGE: 'PAGE',
-} as const;
-export type SearchSourceType = ValueOf<typeof SearchSourceType>;
 
 export const SpaceVisibility = {
   PUBLIC_INTERNAL: 'PUBLIC_INTERNAL',

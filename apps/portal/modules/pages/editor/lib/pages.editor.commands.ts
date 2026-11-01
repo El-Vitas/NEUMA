@@ -32,6 +32,7 @@ import { createPageEditorBlockDragPlugin } from '../blocks/lib/pages.editor.bloc
 import { createPageEditorBlockHandlePlugin } from '../blocks/lib/pages.editor.block-handle.lib';
 import { createPageEditorBlockIdPlugin } from '../blocks/lib/pages.editor.block-id.lib';
 import { createPageEditorBlockMenuPlugin } from '../blocks/lib/pages.editor.block-menu.lib';
+import { createPageEditorRestrictedBlocksPlugin } from '../blocks/lib/pages.editor.block-restricted.plugin.lib';
 import { createPageEditorColumnResizePlugin } from '../blocks/lib/pages.editor.column-resize.plugin.lib';
 import { readCarriedAttrs } from '../blocks/lib/pages.editor.convert.lib';
 import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from '../blocks/lib/pages.editor.nesting.lib';
@@ -111,7 +112,7 @@ const writePageLink = (schema: Schema): InputRule =>
     return state.tr.replaceRangeWith(start, end, schema.text(label, [schema.marks.link.create({ href: url })]));
   });
 
-/** Keeps the block's identity (id, colours, comments) across the type change, as a manual conversion does. */
+/** Keeps the block's identity (id, colours) across the type change, as a manual conversion does. */
 const turnTheLineInto = (pattern: RegExp, type: NodeType, readAttrs: (match: RegExpMatchArray) => Attrs): InputRule =>
   new InputRule(pattern, (state, match, start, end) => {
     const written = state.doc.resolve(start);
@@ -380,6 +381,7 @@ export const createPageEditorPlugins = (
     createPageEditorBlockHandlePlugin(selectBlockLabel, insertBlockLabel),
     createPageEditorBlockMenuPlugin(),
     createPageEditorBlockCommentPlugin(blockCommentsLabel),
+    createPageEditorRestrictedBlocksPlugin(),
     createPageEditorBlockDragPlugin(),
     createPageEditorColumnCleanupPlugin(),
     createPageEditorContentsPlugin(),

@@ -16,11 +16,12 @@ export interface SearchQueryFilters {
 export interface SearchQuery {
   readonly contentType?: string;
   readonly cursor?: string;
+  /** Leaves out this page and everything under it, before the results are counted. */
+  readonly excludedBranchPageId?: string;
   readonly limit: number;
   readonly query: string;
   readonly sourceType?: SearchSourceType;
   readonly spaceId?: string;
-  readonly tags?: readonly string[];
   /** Narrows results on top of the user's own visibility; absent means visibility alone decides. */
   readonly tokenScope?: SearchTokenScope;
   readonly userId: string;

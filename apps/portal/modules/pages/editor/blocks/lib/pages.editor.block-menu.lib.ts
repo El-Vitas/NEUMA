@@ -53,12 +53,18 @@ export const openPageEditorFragmentComments = (view: EditorView): void => {
 };
 
 /** Also moves the cursor to `place`, so the dialog and the selection refer to the same block. */
-export const openPageEditorBlockCommentsAt = (view: EditorView, place: number): void => {
+export const openPageEditorBlockCommentsAt = (view: EditorView, place: number, discussionId?: string): void => {
   const range = findPageBlockAround(view.state.doc.resolve(place));
   if (range === null) return;
 
   const transaction = view.state.tr.setSelection(TextSelection.create(view.state.doc, place));
-  view.dispatch(transaction.setMeta(pageEditorBlockMenuKey, { blockStart: range.start, kind: 'comments' }));
+  view.dispatch(
+    transaction.setMeta(pageEditorBlockMenuKey, {
+      blockStart: range.start,
+      ...(discussionId === undefined ? {} : { discussionId }),
+      kind: 'comments',
+    }),
+  );
 };
 
 export const openPageEditorBlockMenu: Command = (state, dispatch) => {

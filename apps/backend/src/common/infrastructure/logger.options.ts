@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { formatChileanTime } from '@neuma/shared';
 import { type LoggerOptions, stdSerializers } from 'pino';
 import { LOG_REDACTED_FIELDS } from '../constants/logger.constants';
+import { readPathWithoutQuery } from '../utils/request-path.utils';
 
 /** Logs only message and stack, never the whole error object, which can carry data. */
 const writeLoggedError = (object: Record<string, unknown>): Record<string, unknown> => {
@@ -27,7 +28,7 @@ export const buildLogOptions = (level: string): LoggerOptions => ({
   },
   serializers: {
     err: stdSerializers.err,
-    req: (req: IncomingMessage) => ({ method: req.method, url: req.url }),
+    req: (req: IncomingMessage) => ({ method: req.method, url: readPathWithoutQuery(req.url) }),
     res: (res: ServerResponse) => ({ statusCode: res.statusCode }),
   },
   timestamp: formatChileanTime,

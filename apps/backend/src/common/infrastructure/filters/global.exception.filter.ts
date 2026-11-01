@@ -5,6 +5,7 @@ import { INTERNAL_ERROR_CODE, INTERNAL_ERROR_MESSAGE } from '../../constants/err
 import { HTTP_STATUS_CODE_MAP } from '../../constants/http.status.constants';
 import { DomainError } from '../../domain/domain.error';
 import type { Envelope, EnvelopeBody } from '../../types/http.exception.types';
+import { readPathWithoutQuery } from '../../utils/request-path.utils';
 
 @Catch()
 @Injectable()
@@ -91,7 +92,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         code: envelope.body.code,
         err: exception instanceof Error ? exception : new Error(String(exception)),
         method: request.method,
-        path: request.url,
+        path: readPathWithoutQuery(request.url),
         status: envelope.status,
       },
       'Unhandled error',

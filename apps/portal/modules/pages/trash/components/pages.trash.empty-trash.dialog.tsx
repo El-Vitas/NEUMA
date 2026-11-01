@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/components/ui/dialog';
-import { hasActionError } from '@/shared/lib/action-result';
+import { callAction, hasActionError } from '@/shared/lib/action-result';
 import { emptyTrashAction } from '../server/actions/pages.trash.actions';
 
 interface IProps {
@@ -30,12 +30,12 @@ export const PagesTrashEmptyTrashDialog = ({ disabled = false }: IProps) => {
 
   const confirmEmptyTrash = (): void => {
     startTransition(async () => {
-      const result = await emptyTrashAction({});
+      const result = await callAction(() => emptyTrashAction({}));
       if (hasActionError(result)) {
         toast.error(t('trashScreen.deleteForeverError'));
         return;
       }
-      toast.success(t('trashScreen.emptyTrash'));
+      toast.success(t('trashScreen.emptyTrashScheduledToast'));
       setOpen(false);
       router.refresh();
     });

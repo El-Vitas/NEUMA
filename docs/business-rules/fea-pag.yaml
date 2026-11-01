@@ -26,6 +26,22 @@ rules:
         given: Una página que menciona otra que quien exporta no puede leer
         when: Se exporta esa página
         then: El archivo muestra la mención con la etiqueta tapada, no con el título real
+  - id: BR-058dcbc
+    status: active
+    title: El menú lateral se pone al día con lo que hacen los demás
+    rule: >-
+      Cuando otra persona crea, mueve, renombra, reordena o envía a la papelera una página que el menú muestra, el menú
+      lo refleja sin recargar y sin volver a pedir todo el espacio. Una página que la persona no puede abrir no se
+      nombra ni se cuenta.
+    why: >-
+      Dos personas que trabajan en el mismo espacio no deben ver árboles distintos ni enterarse de un cambio al chocar
+      con él.
+    context: El aviso solo indica qué listas cambiaron; lo que cada persona ve se vuelve a pedir con sus propios permisos.
+    scenarios:
+      - title: Un cambio ajeno
+        given: Dos personas con el mismo espacio abierto
+        when: Una renombra una página
+        then: La otra ve el nuevo nombre en su menú en menos de un segundo
   - id: BR-0d64742
     status: active
     title: La vista previa se puede alcanzar y se puede entrar en ella
@@ -38,6 +54,30 @@ rules:
     context: >-
       El espacio entre el nombre y la tarjeta pertenece a la tarjeta, así que bajar nunca es salir. Por llevar algo
       dentro que se puede alcanzar, la tarjeta no es un rótulo de ayuda.
+  - id: BR-1091b9a
+    status: active
+    title: Compartir no deja a nadie sin quien devuelva el acceso
+    rule: >-
+      Antes de guardar un cambio de permisos, la pantalla avisa lo que le cuesta a quien lo hace. Si se quita su propio
+      acceso, o se baja su rol para que ya no pueda cambiar quién tiene acceso, hay un aviso y se pide confirmar,
+      siempre que otra persona con acceso total siga pudiendo devolverlo. Si después del cambio nadie conservaría acceso
+      total, el cambio no se puede guardar. Un cliente, o alguien que no puede abrir el espacio, no cuenta como esa
+      persona. Lo mismo vale para volver a heredar de lo que está encima.
+    why: >-
+      Quien se queda sin acceso total no puede arreglarlo, y si nadie lo conserva, la página queda cerrada para siempre
+      para quienes podrían haberla arreglado.
+    context: >-
+      El servidor sigue aceptando el cambio de quien tiene acceso total; la protección es de la pantalla, que usa las
+      mismas reglas de rol que el servidor para saber qué quedaría.
+    scenarios:
+      - title: Quitarse a uno mismo teniendo a otra persona con acceso total
+        given: Una página con dos personas con acceso total
+        when: Una de ellas se quita de la lista
+        then: Se avisa que perderá el acceso, se pide confirmar y recién entonces se guarda
+      - title: Quedar sin acceso total
+        given: Una página donde solo quien edita tiene acceso total
+        when: Esa persona baja su propio rol a editar
+        then: El cambio no se puede guardar y se explica por qué
   - id: BR-1224d28
     status: active
     title: Se exporta también una selección suelta de páginas
@@ -67,6 +107,22 @@ rules:
         given: Ninguna página marcada
         when: Se pide exportar la selección
         then: No se exporta nada y el botón permanece inactivo
+  - id: BR-1dfe765
+    status: active
+    title: Un botón de fila puede crear la fila desde una plantilla de la colección elegida
+    rule: >-
+      Un botón que agrega una fila a una colección puede llevar una plantilla elegida de esa colección. Al pulsarlo se
+      crea la fila con esa plantilla; si no tiene ninguna elegida se usa la plantilla por defecto de la colección. Lo
+      que el botón trae escrito, su título y su contenido, gana sobre la plantilla.
+    why: >-
+      Un botón de «nueva incidencia» debe poder partir siempre de la plantilla de incidencias aunque la colección tenga
+      otra por defecto.
+    context: Si la plantilla elegida se borra después, pulsar el botón avisa que la plantilla ya no existe y no crea la fila.
+    scenarios:
+      - title: El botón usa su plantilla
+        given: Un botón con la plantilla «Incidencia» y una colección cuya plantilla por defecto es otra
+        when: Se pulsa el botón
+        then: La fila nace con el contenido y los valores de «Incidencia»
   - id: BR-2a1ce65
     status: active
     title: Lo buscado se encuentra también dentro de una palabra más larga
@@ -92,27 +148,87 @@ rules:
         given: Una página con la palabra "safe" y otra con "ÜSAFE"
         when: Alguien busca "safe"
         then: Aparecen las dos, y la que tiene la palabra entera va primero
-  - id: BR-6191a45
+  - id: BR-4139398
     status: active
-    title: Una página que cambia de espacio se lleva su descendencia y deja su dirección andando
+    title: Abrir una página no espera al resto del espacio
     rule: >-
-      Al mover una página a otro espacio, todas las páginas que cuelgan de ella cambian de espacio con ella. Las
-      direcciones escritas antes del traslado siguen llevando a la página, ahora en el espacio donde vive.
+      Abrir una página trae esa página y lo que ella nombra, no las demás páginas del espacio. Tardar lo mismo en un
+      espacio de doce mil páginas que en uno de diez es parte de lo que la persona espera.
     why: >-
-      Una rama partida entre dos espacios deja hijas que nadie alcanza desde su madre. Y una dirección que deja de
-      responder convierte cada enlace y cada mención escritos antes del traslado en un callejón sin salida.
+      Un espacio crece sin aviso, y una página que tarda segundos porque el espacio es grande le dice a la persona que
+      crecer es castigado.
     context: >-
-      Cada página arrastrada avisa por su cuenta al índice de búsqueda, porque el índice registra a qué espacio
-      pertenece cada una. Quien arrastra no queda como último editor de las hijas.
+      Lo que una página nombra (menciones, subpáginas, relaciones y bloques sincronizados) se pide junto al abrirla. El
+      menú lateral y el resto del espacio llegan por separado y solo hasta donde la persona los abre.
     scenarios:
-      - title: La rama viaja entera
-        given: Una página con hijas en un espacio
-        when: Se mueve la madre a otro espacio
-        then: Las hijas quedan en el espacio nuevo, colgando de su madre
-      - title: La dirección vieja sigue sirviendo
-        given: Una página que cambió de espacio
-        when: Se abre una dirección que nombra el espacio anterior
-        then: Se llega a la página en su espacio actual
+      - title: Un espacio grande
+        given: Un espacio con doce mil páginas
+        when: Alguien abre una de ellas
+        then: La página se dibuja con su contenido y sus nombres sin cargar las otras once mil novecientas noventa y nueve
+  - id: BR-43e3ddc
+    status: active
+    title: Quien ve la lista de personas con acceso es solo quien puede cambiarla
+    rule: >-
+      Quién tiene acceso a una página o a una parte de ella, con qué rol y de dónde viene, solo se le dice a quien tiene
+      acceso total sobre eso. A quien puede leerla pero no administrarla se le responde que no puede verlo, sin nombres
+      ni roles. A quien ni siquiera puede leerla se le responde igual que si no existiera, y lo mismo si está en la
+      papelera. Quien no puede administrar solo sabe que algo tiene permisos propios, con un candado, y nada más.
+    why: >-
+      La lista de personas es información de quien administra. Contestarle distinto a quien no puede leer un bloque
+      confirmaría que el bloque existe.
+    context: >-
+      Las personas que se ofrecen para agregar son las del espacio de trabajo, y se marca a quienes no pueden abrir el
+      espacio, porque un rol sobre una página no les abre el espacio.
+    scenarios:
+      - title: Un trabajador pide la lista
+        given: Una página abierta a todo el espacio donde un trabajador puede editar
+        when: El trabajador pide ver quién tiene acceso
+        then: Se le responde que no tiene acceso total, y no recibe nombres ni correos
+  - id: BR-50fb993
+    status: active
+    title: Lo que la búsqueda sabe de una página es siempre lo que la página tiene
+    rule: >-
+      Renombrar una página, cambiarle la marca o escribir en ella cambia lo que la búsqueda encuentra apenas se guarda.
+      Una página que se tira a la papelera o se borra deja de encontrarse en ese mismo momento, y un bloque que alguien
+      no puede leer nunca aparece en sus resultados.
+    why: >-
+      Una página renombrada que sigue encontrándose por su nombre viejo es una mentira que nadie corrige. Y una página
+      borrada que sigue en los resultados muestra a cualquiera algo que ya no existe.
+    supersedes: BR-f033642
+    scenarios:
+      - title: Una página a la papelera
+        given: Una página que se encuentra por una palabra
+        when: Alguien la tira a la papelera
+        then: La siguiente búsqueda de esa palabra ya no la muestra
+  - id: BR-517fcae
+    status: active
+    title: El menú lateral muestra lo que se abre y no las filas de una colección
+    rule: >-
+      El menú lateral lista las páginas de arriba, el camino hasta la página abierta y los hijos de cada página que se
+      expande, de a cien. Las filas de una colección no aparecen en el menú, y una página en la papelera tampoco, salvo
+      la que está abierta.
+    why: Un menú que lista todo se vuelve inmanejable con las filas de una tabla, y la papelera ya tiene su propio lugar.
+    context: >-
+      A las filas se llega desde la colección, la búsqueda, las menciones y los enlaces. Cuando hay más de cien páginas
+      bajo una, el menú ofrece ver más.
+    scenarios:
+      - title: Una colección con miles de filas
+        given: Una colección con cuatro mil filas dentro de un espacio
+        when: Se mira el menú lateral
+        then: La colección aparece como una página sin flecha y ninguna de sus filas se lista
+  - id: BR-6201333
+    status: active
+    title: Una página creada con un identificador dado se crea una sola vez
+    rule: >-
+      Al crear una página se puede indicar el identificador que tendrá. Si se repite la misma petición con ese
+      identificador, el sistema responde con la página que ya creó y no crea otra.
+    why: Quien guarda lo escrito sin conexión envía de nuevo lo mismo al volver, y eso no debe duplicar las filas nuevas.
+    context: El identificador debe ser un UUID; cualquier otro valor se rechaza.
+    scenarios:
+      - title: Petición repetida
+        given: Se creó una fila con un identificador dado
+        when: Se repite la creación con el mismo identificador
+        then: La respuesta es la misma fila y no existe una segunda
   - id: BR-6f7f8a7
     status: active
     title: Lo privado responde a su dueña, y a nadie por encima de ella
@@ -126,6 +242,26 @@ rules:
     context: >-
       El área de cada persona se crea sola la primera vez que mira sus espacios. Quien decide el acceso es un único
       punto que el resto del sistema hereda, para que ninguna pantalla pueda contestar distinto que otra.
+  - id: BR-73da3c5
+    status: active
+    title: Una copia nace junto a su original y solo ella cambia de nombre
+    rule: >-
+      Al duplicar una página se copian su contenido, sus propiedades y su ícono. La copia queda inmediatamente después
+      de la original entre sus hermanas, también entre las páginas de primer nivel de un espacio. Se puede elegir si la
+      descendencia se copia también, y esa pregunta solo aparece cuando la página tiene hijas. De toda la rama copiada,
+      solo la página pedida se renombra.
+    why: >-
+      Una copia que aparece al final de una lista larga obliga a buscarla. Y renombrar también a las hijas ensuciaría
+      cada nombre de la rama con una marca que no dice nada de ellas.
+    context: >-
+      La marca de copia la pone el portal, porque el servidor no sabe en qué idioma lee cada persona. Las hermanas no se
+      renumeran; la copia se ubica a continuación de la original.
+    supersedes: BR-a096152
+    scenarios:
+      - title: Duplicar una página de primer nivel
+        given: Un espacio con tres páginas de primer nivel
+        when: Se duplica la del medio
+        then: La copia aparece justo después de ella y las otras dos no se mueven
   - id: BR-80536e4
     status: active
     title: Una página bloqueada no se escribe, ni por la pantalla ni por la vía de atrás
@@ -138,6 +274,31 @@ rules:
       candado. Y un bloqueo que solo alguien más pudiera abrir dejaría la página congelada cuando quien la bloqueó no
       está.
     context: El servidor responde con el error PAGE_LOCKED y estado 409. El bloqueo guarda cuándo y quién lo puso.
+  - id: BR-8b498e2
+    status: active
+    title: Una página que cambia de espacio se lleva su descendencia y deja su dirección andando
+    rule: >-
+      Al mover una página a otro espacio, todas las páginas y bloques que cuelgan de ella cambian de espacio con ella,
+      en un solo paso que se aplica entero o no se aplica. Las direcciones escritas antes del traslado siguen llevando a
+      la página, ahora en el espacio donde vive.
+    why: >-
+      Una rama partida entre dos espacios deja hijas que nadie alcanza desde su madre. Y una dirección que deja de
+      responder convierte cada enlace y cada mención escritos antes del traslado en un callejón sin salida.
+    context: Quien arrastra no queda como último editor de las hijas.
+    supersedes: BR-6191a45
+    scenarios:
+      - title: La rama viaja entera
+        given: Una página con hijas en un espacio
+        when: Se mueve la madre a otro espacio
+        then: Las hijas quedan en el espacio nuevo, colgando de su madre
+      - title: El traslado falla a mitad de camino
+        given: Una página que se mueve bajo una página bloqueada de otro espacio
+        when: El traslado se rechaza
+        then: La página y sus hijas quedan exactamente donde estaban
+      - title: La dirección vieja sigue sirviendo
+        given: Una página que cambió de espacio
+        when: Se abre una dirección que nombra el espacio anterior
+        then: Se llega a la página en su espacio actual
   - id: BR-8d1f5e8
     status: active
     title: Registrar quién lee se puede apagar, y apagado no guarda nada
@@ -179,19 +340,21 @@ rules:
         given: Una respuesta que no llega como lista de páginas
         when: Se intenta leer
         then: La lectura falla, en vez de seguir como si el espacio estuviera vacío
-  - id: BR-a096152
+  - id: BR-9a633a0
     status: active
-    title: Una copia nace junto a su original y solo ella cambia de nombre
+    title: La búsqueda y los retroenlaces quedan al día en el mismo guardado
     rule: >-
-      Al duplicar una página se copian su contenido, sus propiedades y su ícono. La copia queda inmediatamente después
-      de la original entre sus hermanas. Se puede elegir si la descendencia se copia también, y esa pregunta solo
-      aparece cuando la página tiene hijas. De toda la rama copiada, solo la página pedida se renombra.
+      Cuando una página cambia, la búsqueda y la sección «Vinculado desde» quedan al día en el mismo guardado que la
+      cambia. No hay una espera ni un aviso aparte que pueda perderse; si el guardado falla, no cambia nada de los tres.
     why: >-
-      Una copia que aparece al final de una lista larga obliga a buscarla. Y renombrar también a las hijas ensuciaría
-      cada nombre de la rama con una marca que no dice nada de ellas.
-    context: >-
-      La marca de copia la pone el portal, porque el servidor no sabe en qué idioma lee cada persona. Para dejar sitio a
-      la copia se renumeran las hermanas que venían después.
+      Una mención nueva que tarda en aparecer en «Vinculado desde», o una página renombrada que no se encuentra por su
+      título nuevo, hacen dudar de todo lo demás. Un aviso aparte puede perderse sin que nadie lo note.
+    supersedes: BR-ac6957c
+    scenarios:
+      - title: Una mención nueva
+        given: Una página que menciona a otra
+        when: Alguien guarda la página
+        then: En ese mismo momento la página se encuentra por su texto nuevo y la mencionada la muestra en «Vinculado desde»
   - id: BR-a2dc75d
     status: active
     title: Dónde se suelta una página dice si va dentro o al lado
@@ -206,29 +369,6 @@ rules:
     context: >-
       Reordenar renumera la fila completa desde arriba: dos hermanas empatadas harían caer el siguiente arrastre donde
       nadie apuntó. Una página soltada junto a las hijas de otra madre primero cambia de madre y después se coloca.
-  - id: BR-ac6957c
-    status: active
-    title: Cada cambio de una página llega a la búsqueda y a los retroenlaces, por separado
-    rule: >-
-      Cuando una página cambia, la búsqueda y la sección «Vinculado desde» reciben cada una su propio aviso del cambio.
-      Que una de las dos lo tome, lo reintente o falle no oculta el aviso a la otra, y ninguna recibe el mismo aviso dos
-      veces.
-    why: >-
-      Si las dos compartieran un solo aviso, el primero en tomarlo lo daría por atendido y la otra nunca se enteraría;
-      una mención nueva no aparecería en «Vinculado desde» o una página renombrada no se encontraría por su nuevo
-      título.
-    context: >-
-      Un aviso que falla se reintenta solo para quien falló. Al actualizar desde una versión anterior, cada cambio ya
-      registrado se vuelve a avisar una vez a las dos, porque antes pudo llegar a una sola.
-    scenarios:
-      - title: Una mención nueva
-        given: Una página que menciona a otra, con la búsqueda y los retroenlaces funcionando
-        when: Alguien guarda la página
-        then: La página se encuentra por su texto nuevo y la mencionada la muestra en «Vinculado desde»
-      - title: La búsqueda caída un momento
-        given: El índice de búsqueda falla al recibir un cambio
-        when: Los retroenlaces procesan ese mismo cambio
-        then: Los retroenlaces quedan al día y la búsqueda reintenta su aviso más tarde
   - id: BR-ac96db4
     status: active
     title: Exportar se cuenta por persona, y de a pocas por minuto
@@ -302,6 +442,34 @@ rules:
         given: Una página en la papelera
         when: Un agente le agrega un bloque
         then: No se escribe nada y se le dice que la traiga de vuelta primero
+  - id: BR-d5883eb
+    status: active
+    title: Eliminar para siempre espera 30 días y solo lo decide un administrador
+    rule: >-
+      Vaciar la papelera o eliminar para siempre una página no la borra en el acto. La página queda en la papelera con
+      la fecha en que se borrará, 30 días después, y hasta ese momento cualquiera con acceso puede restaurarla. Solo un
+      administrador puede pedir que se elimine para siempre. Cada pedido queda registrado con quién lo hizo, la página y
+      cómo terminó, borrada o cancelada por una restauración.
+    why: >-
+      Un borrado inmediato no tiene vuelta atrás, y vaciar la papelera de un espacio se lleva en un gesto el trabajo de
+      muchas personas. El plazo da tiempo a notar el error, y el registro dice quién lo pidió aunque la página ya no
+      exista.
+    context: >-
+      El servidor borra cada hora lo que pasó su fecha, y recién entonces borra los archivos adjuntos. Restaurar la
+      página antes del plazo cancela el borrado. Un agente no puede eliminar para siempre.
+    scenarios:
+      - title: Un administrador vacía la papelera
+        given: Un espacio con páginas en la papelera
+        when: Un administrador vacía la papelera
+        then: Las páginas siguen en la papelera con la fecha en que se borran, y quedan registradas a su nombre
+      - title: Se restaura antes del plazo
+        given: Una página programada para borrarse
+        when: Alguien la restaura antes de la fecha
+        then: La página vuelve con su contenido y el registro queda como cancelado
+      - title: Alguien que no administra intenta borrar
+        given: Una persona con rol de trabajador
+        when: Pide eliminar para siempre una página de la papelera
+        then: Se rechaza y la página no queda programada
   - id: BR-d829da6
     status: active
     title: Lo que se exporta se lee como Markdown y sabe volver
@@ -411,20 +579,93 @@ rules:
         given: Una página exportada que menciona otra que quedó fuera
         when: Se abre el archivo exportado
         then: La mención queda tal como estaba, sin apuntar a un archivo que no existe
-  - id: BR-f033642
+  - id: BR-fc54608
     status: active
-    title: Lo que la búsqueda sabe de una página se rehace cada vez que la página cambia
+    title: Quien tiene acceso total decide quién ve y quién edita una página o una parte de ella
     rule: >-
-      Renombrar una página o cambiarle la marca avisa al índice de búsqueda, igual que escribir en ella. Una página que
-      se tira a la papelera o se borra deja de encontrarse, y ese olvido se pide con una versión que el índice pueda
-      guardar.
+      Una página, o una parte de ella, puede tener sus propios permisos: se elige quién puede leerla, quién puede
+      editarla y quién tiene acceso total. Lo que no declara permisos propios sigue a lo que tiene encima, y si nada
+      encima los declara, a lo que permite el espacio. Lo que declara permisos queda cerrado para quien no figura en la
+      lista, incluidos los administradores. Un cliente nunca pasa de lectura, aunque la lista le dé más. Cualquier
+      persona del espacio de trabajo con acceso al espacio puede figurar, sea o no administradora.
     why: >-
-      Una página renombrada que sigue encontrándose por su nombre viejo es una mentira que nadie corrige, porque nadie
-      sabe que está ahí. Y un olvido que falla no se nota: la página desaparece de la vista y sigue apareciendo en los
-      resultados de cualquiera.
+      Una sección de una página (un presupuesto, una nota interna) se comparte con menos gente que la página, y hacerlo
+      no debe obligar a mover el texto a otra página.
     context: >-
-      Cada cambio se anuncia una sola vez, distinguido por el momento en que se escribió. El índice proyecta fuera del
-      servidor, así que el aviso viaja por la bandeja de salida.
+      El diálogo «Compartir» muestra la lista de quien tiene acceso, de dónde viene (de qué página hereda o si es
+      propia), y permite agregar y quitar personas, cambiar su rol, dejar de heredar y volver a heredar. Se abre desde
+      la página y, para una parte de ella, desde el menú del bloque.
+    scenarios:
+      - title: Una sección restringida
+        given: >-
+          Una página abierta para todo el espacio y una sección con permisos propios que solo nombran a una
+          administradora
+        when: Un trabajador abre la página
+        then: La sección no aparece en pantalla, ni en la búsqueda, ni en lo que el navegador recibe
+      - title: Volver a heredar
+        given: Una sección con permisos propios
+        when: Quien tiene acceso total elige volver a seguir a la página
+        then: La sección vuelve a verse para quien ve la página
+  - id: BR-6191a45
+    status: superseded
+    title: Una página que cambia de espacio se lleva su descendencia y deja su dirección andando
+    rule: >-
+      Al mover una página a otro espacio, todas las páginas que cuelgan de ella cambian de espacio con ella. Las
+      direcciones escritas antes del traslado siguen llevando a la página, ahora en el espacio donde vive.
+    why: >-
+      Una rama partida entre dos espacios deja hijas que nadie alcanza desde su madre. Y una dirección que deja de
+      responder convierte cada enlace y cada mención escritos antes del traslado en un callejón sin salida.
+    context: >-
+      Cada página arrastrada avisa por su cuenta al índice de búsqueda, porque el índice registra a qué espacio
+      pertenece cada una. Quien arrastra no queda como último editor de las hijas.
+    superseded_by: BR-8b498e2
+    scenarios:
+      - title: La rama viaja entera
+        given: Una página con hijas en un espacio
+        when: Se mueve la madre a otro espacio
+        then: Las hijas quedan en el espacio nuevo, colgando de su madre
+      - title: La dirección vieja sigue sirviendo
+        given: Una página que cambió de espacio
+        when: Se abre una dirección que nombra el espacio anterior
+        then: Se llega a la página en su espacio actual
+  - id: BR-a096152
+    status: superseded
+    title: Una copia nace junto a su original y solo ella cambia de nombre
+    rule: >-
+      Al duplicar una página se copian su contenido, sus propiedades y su ícono. La copia queda inmediatamente después
+      de la original entre sus hermanas. Se puede elegir si la descendencia se copia también, y esa pregunta solo
+      aparece cuando la página tiene hijas. De toda la rama copiada, solo la página pedida se renombra.
+    why: >-
+      Una copia que aparece al final de una lista larga obliga a buscarla. Y renombrar también a las hijas ensuciaría
+      cada nombre de la rama con una marca que no dice nada de ellas.
+    context: >-
+      La marca de copia la pone el portal, porque el servidor no sabe en qué idioma lee cada persona. Para dejar sitio a
+      la copia se renumeran las hermanas que venían después.
+    superseded_by: BR-73da3c5
+  - id: BR-ac6957c
+    status: superseded
+    title: Cada cambio de una página llega a la búsqueda y a los retroenlaces, por separado
+    rule: >-
+      Cuando una página cambia, la búsqueda y la sección «Vinculado desde» reciben cada una su propio aviso del cambio.
+      Que una de las dos lo tome, lo reintente o falle no oculta el aviso a la otra, y ninguna recibe el mismo aviso dos
+      veces.
+    why: >-
+      Si las dos compartieran un solo aviso, el primero en tomarlo lo daría por atendido y la otra nunca se enteraría;
+      una mención nueva no aparecería en «Vinculado desde» o una página renombrada no se encontraría por su nuevo
+      título.
+    context: >-
+      Un aviso que falla se reintenta solo para quien falló. Al actualizar desde una versión anterior, cada cambio ya
+      registrado se vuelve a avisar una vez a las dos, porque antes pudo llegar a una sola.
+    superseded_by: BR-9a633a0
+    scenarios:
+      - title: Una mención nueva
+        given: Una página que menciona a otra, con la búsqueda y los retroenlaces funcionando
+        when: Alguien guarda la página
+        then: La página se encuentra por su texto nuevo y la mencionada la muestra en «Vinculado desde»
+      - title: La búsqueda caída un momento
+        given: El índice de búsqueda falla al recibir un cambio
+        when: Los retroenlaces procesan ese mismo cambio
+        then: Los retroenlaces quedan al día y la búsqueda reintenta su aviso más tarde
   - id: BR-cb028f9
     status: superseded
     title: Lo que se exporta se lee como Markdown y sabe volver
@@ -443,3 +684,18 @@ rules:
       mostraba, no como el vínculo vivo. Un solo archivo en vez de una carpeta comprimida evita una dependencia nueva y
       hace más simple la lectura de vuelta.
     superseded_by: BR-d829da6
+  - id: BR-f033642
+    status: superseded
+    title: Lo que la búsqueda sabe de una página se rehace cada vez que la página cambia
+    rule: >-
+      Renombrar una página o cambiarle la marca avisa al índice de búsqueda, igual que escribir en ella. Una página que
+      se tira a la papelera o se borra deja de encontrarse, y ese olvido se pide con una versión que el índice pueda
+      guardar.
+    why: >-
+      Una página renombrada que sigue encontrándose por su nombre viejo es una mentira que nadie corrige, porque nadie
+      sabe que está ahí. Y un olvido que falla no se nota: la página desaparece de la vista y sigue apareciendo en los
+      resultados de cualquiera.
+    context: >-
+      Cada cambio se anuncia una sola vez, distinguido por el momento en que se escribió. El índice proyecta fuera del
+      servidor, así que el aviso viaja por la bandeja de salida.
+    superseded_by: BR-50fb993

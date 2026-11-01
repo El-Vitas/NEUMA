@@ -5,7 +5,6 @@ import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { resolvePageIconImageUrl } from '../../../appearance/lib/pages.icon.lib';
 import type { PageIcon } from '../../../appearance/types/pages.icon.types';
 import { resolvePageAssetUrl as getPageAssetUrl } from '../../../attachments/lib/pages.attachments.lib';
-import type { PagePersonOption } from '../../../collections/types/pages.schema.types';
 import { createPageBookmarkNodeView } from '../../media/lib/pages.editor.bookmark.node-view.lib';
 import { createPageEmbedNodeView } from '../../media/lib/pages.editor.embed.node-view.lib';
 import { createPageFileNodeView } from '../../media/lib/pages.editor.file.node-view.lib';
@@ -51,7 +50,11 @@ import {
   PAGE_EDITOR_UNSUPPORTED_TYPE,
   PAGE_EDITOR_VIDEO_TYPE,
 } from '../constants/pages.editor.blocks.constants';
-import type { PageEditorMentionTrashedLabels, PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
+import type {
+  PageEditorMentionTrashedLabels,
+  PageEditorNodeViewLabels,
+  PageEditorNodeViewReaders,
+} from '../types/pages.editor.node-views.types';
 
 const createPageCollectionNodeView = (node: EditorNode, label: string): NodeView => {
   const host = document.createElement('div');
@@ -140,17 +143,20 @@ const createPageUnsupportedNodeView = (node: EditorNode, label: string): NodeVie
 
 export const createPageEditorNodeViews = (
   labels: PageEditorNodeViewLabels,
-  readPageTitle: (pageId: string) => string | null = () => null,
-  readBorrowed: (pageId: string, blockId: string) => EditorNode | null = () => null,
-  pressTheButton: (at: number) => void = () => undefined,
-  readPersonForHover: (userId: string) => PagePersonOption | undefined = () => undefined,
-  readPageIcon: (pageId: string) => PageIcon | null = () => null,
-  readPageLifecycle: (pageId: string) => PageLifecycle | null = () => null,
+  {
+    pressTheButton = () => undefined,
+    readBorrowed = () => null,
+    readButtonTemplates = () => Promise.resolve([]),
+    readPageIcon = () => null,
+    readPageLifecycle = () => null,
+    readPageTitle = () => null,
+    readPersonForHover = () => undefined,
+  }: PageEditorNodeViewReaders = {},
 ): Readonly<
   Record<string, (node: EditorNode, view: EditorView, getPosition: () => number | undefined) => NodeView>
 > => ({
   [PAGE_EDITOR_BUTTON_TYPE]: (node, view, getPosition) =>
-    createPageButtonNodeView(node, view, getPosition, labels.button, pressTheButton),
+    createPageButtonNodeView(node, view, getPosition, labels.button, pressTheButton, readButtonTemplates),
   [PAGE_EDITOR_CALLOUT_TYPE]: (node) => createPageCalloutNodeView(node),
   [PAGE_EDITOR_CODE_TYPE]: (node, view, getPosition) =>
     createPageCodeBlockNodeView(node, view, getPosition, labels.code),

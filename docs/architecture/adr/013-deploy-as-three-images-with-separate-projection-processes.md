@@ -1,6 +1,7 @@
 # 013: Desplegar con tres imágenes y las proyecciones en procesos aparte
 
-**Status:** Accepted
+**Status:** Superseded
+**Superseded by:** 022 (los servicios de proyección; las tres imágenes siguen vigentes)
 **Date:** 2026-10-11
 **Depends on:** `007-adopt-bun-as-package-manager.md`, `010-adopt-prisma-orm-8.md`, `012-deliver-outbox-events-per-consumer.md`
 
@@ -35,3 +36,4 @@ Una proyección nueva agrega su servicio en `docker-compose.yml`. Al subir de ve
 
 - Author: El-Vitas, con Claude
 - Created: 2026-10-11
+- Modified: 2026-10-19 — El despliegue en producción suma dos imágenes de producción: `neuma-postgres`, con pgBackRest, y `neuma-ops`, el paquete de unidades y scripts. Las tres imágenes de la aplicación siguen como dice este ADR.

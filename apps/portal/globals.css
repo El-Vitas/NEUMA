@@ -10,6 +10,16 @@
 @import "katex/dist/katex.min.css";
 
 /*
+ * ProseMirror reads back from the page the text it shows, and expects the white
+ * space of what is written to be kept (its own style sheet sets the same). Without
+ * it the editor warns on the console, and a double space is lost on the screen.
+ */
+.ProseMirror {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/*
  * ProseMirror places a separator image after a widget that ends a block, and
  * expects it to sit inline. The base reset makes every image a block, which
  * turns that separator into a line of its own: a heading with a button at its
@@ -51,32 +61,4 @@
   to {
     visibility: hidden;
   }
-}
-
-/*
- * Where somebody else is writing: a thin caret in their colour, with their
- * name in a small flag above it. Neither takes room in the writing nor takes
- * a click, so nobody's text moves and nobody's click lands in somebody
- * else's line because of it.
- */
-.ProseMirror-yjs-cursor {
-  position: relative;
-  margin-inline: -1px;
-  border-inline-start: 2px solid;
-  word-break: normal;
-  pointer-events: none;
-}
-
-.ProseMirror-yjs-cursor > div {
-  position: absolute;
-  bottom: 100%;
-  left: -2px;
-  padding: 0 0.25rem;
-  color: #1a1a1a;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.25rem;
-  white-space: nowrap;
-  user-select: none;
-  pointer-events: none;
 }

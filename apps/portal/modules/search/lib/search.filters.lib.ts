@@ -24,8 +24,6 @@ const withoutBaseFilter = (params: SearchQuery, key: RemovableSearchFilterKey): 
       return { ...params, spaceId: undefined };
     case 'sourceType':
       return { ...params, sourceType: undefined };
-    case 'tags':
-      return { ...params, tags: undefined };
     default:
       return params;
   }
@@ -50,21 +48,12 @@ export const buildSearchPageUrlWithoutFilter = (
   key: RemovableSearchFilterKey,
 ): string => buildFilteredSearchPageUrl(withoutBaseFilter(params, key), withoutExtraFilter(filters, key));
 
-export const buildSearchPageUrlWithoutTag = (params: SearchQuery, filters: SearchExtraFilters, tag: string): string => {
-  const remainingTags = (params.tags ?? []).filter((candidate) => candidate !== tag);
-  return buildFilteredSearchPageUrl(
-    { ...params, tags: remainingTags.length === 0 ? undefined : remainingTags },
-    filters,
-  );
-};
-
 export const buildClearAllFiltersUrl = (params: SearchQuery): string =>
   buildSearchPageUrl({ limit: params.limit, query: params.query });
 
 export const hasAnyActiveFilter = (params: SearchQuery, filters: SearchExtraFilters): boolean =>
   params.spaceId !== undefined ||
   params.sourceType !== undefined ||
-  params.tags !== undefined ||
   filters.authorQuery !== undefined ||
   filters.editedRange !== undefined ||
   filters.verifiedOnly !== undefined;
@@ -90,16 +79,6 @@ const buildSourceTypeChip = (context: SearchFilterChipContext): ActiveSearchFilt
     name: categoryLabels.sourceType,
     removeHref: buildSearchPageUrlWithoutFilter(params, filters, 'sourceType'),
   };
-};
-
-const buildTagChips = (context: SearchFilterChipContext): readonly ActiveSearchFilterChip[] => {
-  const { categoryLabels, filters, params } = context;
-  return (params.tags ?? []).map((tag) => ({
-    id: `tag-${tag}`,
-    label: `${categoryLabels.tags}: ${tag}`,
-    name: tag,
-    removeHref: buildSearchPageUrlWithoutTag(params, filters, tag),
-  }));
 };
 
 const buildAuthorChip = (context: SearchFilterChipContext): ActiveSearchFilterChip | null => {
@@ -139,7 +118,6 @@ export const buildActiveSearchFilterChips = (context: SearchFilterChipContext): 
   const candidates = [
     buildSpaceChip(context),
     buildSourceTypeChip(context),
-    ...buildTagChips(context),
     buildAuthorChip(context),
     buildEditedRangeChip(context),
     buildVerifiedOnlyChip(context),

@@ -1,47 +1,46 @@
+import type { User } from '@neuma/shared';
 import {
-  LINK_PREVIEW_MAXIMUM_HOPS,
-  PAGE_LINK_PREVIEW_READ_LIMIT,
-  PAGE_LINK_PREVIEW_TIMEOUT_MS,
+  LINK_PREVIEW_RATE_LIMIT_MAXIMUM,
+  LINK_PREVIEW_RATE_LIMIT_TRACKED_KEYS_MAXIMUM,
+  LINK_PREVIEW_RATE_LIMIT_WINDOW_MS,
 } from '@/modules/pages/links/constants/pages.link-preview.constants';
-import { isReachableLinkPreviewAddress } from '@/modules/pages/links/lib/pages.link-preview.address.lib';
 import { readLinkPreviewFromHtml } from '@/modules/pages/links/lib/pages.link-preview.lib';
+import { createLinkPreviewRateLimiter } from '@/modules/pages/links/lib/pages.link-preview.rate-limit.lib';
 import { linkPreviewRequestSchema } from '@/modules/pages/links/schemas/pages.link-preview.schemas';
-import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
+import { fetchLinkPreviewHtml } from '@/modules/pages/links/server/lib/pages.link-preview.fetch.server';
+import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 
-/** Redirects are followed manually so every hop is checked: a remote site could redirect to an internal address. */
-const askTheSite = async (address: string): Promise<Response | null> => {
-  let here = address;
-  for (let hop = 0; hop <= LINK_PREVIEW_MAXIMUM_HOPS; hop += 1) {
-    if (!isReachableLinkPreviewAddress(here)) return null;
-    const answer = await fetch(here, {
-      headers: { accept: 'text/html' },
-      redirect: 'manual',
-      signal: AbortSignal.timeout(PAGE_LINK_PREVIEW_TIMEOUT_MS),
-    });
-    const next = answer.headers.get('location');
-    if (answer.status < 300 || answer.status >= 400 || next === null) return answer;
-    here = new URL(next, here).toString();
+const rateLimiter = createLinkPreviewRateLimiter({
+  maximum: LINK_PREVIEW_RATE_LIMIT_MAXIMUM,
+  now: Date.now,
+  trackedKeysMaximum: LINK_PREVIEW_RATE_LIMIT_TRACKED_KEYS_MAXIMUM,
+  windowMs: LINK_PREVIEW_RATE_LIMIT_WINDOW_MS,
+});
+
+/** The backend decides whether the session is real; a cookie that merely exists proves nothing. */
+const readSignedInUser = async (): Promise<'unavailable' | User | null> => {
+  try {
+    return await getCurrentUser();
+  } catch {
+    return 'unavailable';
   }
-  return null;
 };
 
 export const GET = async (request: Request): Promise<Response> => {
   const asked = linkPreviewRequestSchema.safeParse({ url: new URL(request.url).searchParams.get('url') });
   if (!asked.success) return Response.json({ error: 'invalid-url' }, { status: 400 });
 
-  try {
-    await requireAccessTokenCookie();
-  } catch {
-    return new Response(null, { status: 401 });
+  const user = await readSignedInUser();
+  if (user === 'unavailable') return new Response(null, { status: 503 });
+  if (user === null) return new Response(null, { status: 401 });
+
+  if (!rateLimiter.isAllowed(user.id)) {
+    return Response.json({ error: 'too-many-requests' }, { status: 429 });
   }
 
   try {
-    const answer = await askTheSite(asked.data.url);
-    if (answer === null || !answer.ok || !(answer.headers.get('content-type') ?? '').includes('text/html')) {
-      return Response.json({ url: asked.data.url });
-    }
-    const html = (await answer.text()).slice(0, PAGE_LINK_PREVIEW_READ_LIMIT);
-    return Response.json(readLinkPreviewFromHtml(html, asked.data.url));
+    const html = await fetchLinkPreviewHtml(asked.data.url);
+    return Response.json(html === null ? { url: asked.data.url } : readLinkPreviewFromHtml(html, asked.data.url));
   } catch {
     return Response.json({ url: asked.data.url });
   }

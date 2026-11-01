@@ -1,6 +1,6 @@
 import { PAGE_LIFECYCLE } from '@neuma/shared';
 import type { SearchResult } from '@/shared/types/search.types';
-import type { PageSummary } from '../../types/pages.types';
+import type { PageReference } from '../../types/pages.types';
 import type { PageMentionCandidate } from '../types/pages.mentions.types';
 import { foldPageLookingText } from './pages.looking.lib';
 
@@ -25,20 +25,20 @@ export const keepThePagesNamed = (
 ): readonly PageMentionCandidate[] =>
   candidates.filter((candidate) => answersToTheName(candidate.label, written)).slice(0, howMany);
 
-const toPageAtHandCandidate = (page: PageSummary): PageMentionCandidate => ({
+const toPageAtHandCandidate = (page: PageReference): PageMentionCandidate => ({
   id: page.id,
   label: page.title,
   spaceId: page.spaceId,
 });
 
-const isStillAPage = (page: PageSummary): boolean => page.lifecycle === PAGE_LIFECYCLE.ACTIVE;
+const isStillAPage = (page: PageReference): boolean => page.lifecycle === PAGE_LIFECYCLE.ACTIVE;
 
 const withoutRepeats = (candidates: readonly PageMentionCandidate[]): readonly PageMentionCandidate[] =>
   candidates.filter((candidate, at) => candidates.findIndex((other) => other.id === candidate.id) === at);
 
 /** Loaded pages first, then search results; both filtered by the same title rule. */
 export const gatherThePagesNamed = (
-  pagesAtHand: readonly PageSummary[],
+  pagesAtHand: readonly PageReference[],
   found: readonly PageMentionCandidate[],
   written: string,
   howMany: number,

@@ -8,10 +8,14 @@ import { Button } from '@/shared/components/ui/button';
 import { readPageOptionDotClass } from '../lib/pages.option-color.lib';
 import type { PagesBoardColumns } from '../types/pages.board-columns.types';
 import type { PageBoardColumnMode } from '../types/pages.board-drag.types';
-import type { PageViewGroup } from '../types/pages.schema.types';
+import type { PageViewAggregates, PageViewGroup } from '../types/pages.schema.types';
 import { PagesCollectionBoardColumnMenu } from './pages.collection.board.column-menu';
+import { PagesCollectionGroupCount } from './pages.collection.group-count';
 
 interface IProps {
+  readonly aggregates: Promise<PageViewAggregates | null>;
+  /** Empty when the board has no bands. */
+  readonly bandKey: string;
   readonly canEdit: boolean;
   readonly columns: null | PagesBoardColumns;
   readonly isCreating: boolean;
@@ -30,6 +34,8 @@ interface IProps {
 
 /** Rename and limit are answered inline, with the header turning into the field, instead of in a separate dialog. */
 export const PagesCollectionBoardColumnHeader = ({
+  aggregates,
+  bandKey,
   canEdit,
   columns,
   group,
@@ -128,7 +134,13 @@ export const PagesCollectionBoardColumnHeader = ({
           <span className="truncate">{label}</span>
         </span>
         <span className="text-muted-foreground tabular-nums">
-          {limit === null ? group.rows.length : `${group.rows.length}/${limit}`}
+          <PagesCollectionGroupCount
+            aggregates={aggregates}
+            drawn={group.rows.length}
+            groupKey={group.key}
+            subKey={bandKey}
+          />
+          {limit !== null && `/${limit}`}
         </span>
       </h3>
       {columns !== null && (
