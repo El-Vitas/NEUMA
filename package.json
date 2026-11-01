@@ -30,7 +30,7 @@
     "rules:clean": "bun packages/rules-cli/clean-history.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.15",
+    "@biomejs/biome": "^2.6.4",
     "@next/bundle-analyzer": "16.4.0",
     "concurrently": "^10.0.6",
     "dependency-cruiser": "^18.5.0",
