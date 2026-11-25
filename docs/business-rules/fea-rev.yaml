@@ -1,7 +1,7 @@
 id: FEA-REV
-name: Revisión y aprobación de cambios
+name: Change review and approval
 purpose: >-
-  Reúne las reglas de qué protege a una página verificada con responsables, cómo se propone un cambio sobre ella y quién
-  decide que entre.
+  Groups the rules for what protects a verified page with owners, how a change to it is proposed and who decides that it
+  goes in.
 scope: pages
 rules: []

@@ -1,1392 +1,1371 @@
 id: FEA-CLC
-name: Colecciones, propiedades y vistas
-purpose: Reúne las reglas de qué guarda una colección, cómo se define su forma y cómo se mira.
+name: Collections, properties and views
+purpose: Groups the rules for what a collection stores, how its shape is defined and how it is viewed.
 scope: collections
 rules:
   - id: BR-0017487
     status: active
-    title: «Yo» en un filtro es quien mira, no quien guardó la vista
+    title: '"Me" in a filter is whoever is looking, not whoever saved the view'
     rule: >-
-      En un filtro de persona, de creada por o de editada por, «yo» se resuelve con la persona que consulta la vista, o
-      con el dueño del token cuando consulta un agente. Dos personas que abren la misma vista guardada con «yo» ven cada
-      una sus propias filas, y los conteos y los totales salen de las mismas filas. El portal ofrece «Yo» como primera
-      opción de la lista de personas, y el agente lo escribe como @me.
+      In a filter on a person, on created by or on edited by, "me" resolves to the person who queries the view, or to the
+      token's owner when an agent queries. Two people who open the same view saved with "me" each see their own rows, and
+      the counts and totals come from the same rows. The portal offers "Me" as the first option in the list of people, and
+      the agent writes it as @me.
     why: >-
-      Una vista «Mis tareas» guardada con el identificador de quien la creó solo sirve a esa persona. Con «yo» la misma
-      vista sirve a todo el equipo y nadie ve lo de otro por error.
-    context: «Yo» solo significa algo en esas tres propiedades. En cualquier otra, @me es texto como cualquier otro.
+      A "My tasks" view saved with the identifier of whoever created it only serves that person. With "me" the same view
+      serves the whole team and nobody sees someone else's rows by mistake.
+    context: '"Me" only means something in those three properties. In any other, @me is text like any other.'
     scenarios:
-      - title: Dos personas, una vista
-        given: Una vista filtrada por responsable igual a yo, y filas de Ana y de Bo
-        when: Ana y Bo la abren
-        then: Ana ve las filas de Ana y Bo las de Bo
+      - title: Two people, one view
+        given: A view filtered by assignee equal to me, and rows belonging to Ana and to Bo
+        when: Ana and Bo open it
+        then: Ana sees Ana's rows and Bo sees Bo's
   - id: BR-0e8cbda
     status: active
-    title: La portada de una tarjeta sale de la primera imagen de una propiedad de archivos
+    title: A card's cover comes from the first image of a files property
     rule: >-
-      Una galería o un tablero puede mostrar sobre cada tarjeta la primera imagen de una propiedad de archivos que la
-      vista nombra, y puede dibujar las tarjetas en tres tamaños que se guardan en la vista. Una fila sin imagen en esa
-      propiedad no lleva portada, y un archivo que no es una imagen no cuenta. La portada no sale del contenido de la
-      página de la fila.
+      A gallery or a board can show on each card the first image of a files property that the view names, and can draw the
+      cards in three sizes that are stored in the view. A row with no image in that property carries no cover, and a file
+      that is not an image does not count. The cover does not come from the content of the row's page.
     why: >-
-      Las imágenes de una propiedad viajan con la fila y se pueden pedir de una vez; leer el cuerpo de cada fila para
-      encontrar una imagen costaría una lectura por tarjeta y obligaría a avisar cada vez que alguien edita un cuerpo.
+      The images of a property travel with the row and can be requested all at once; reading the body of each row to find
+      an image would cost one read per card and would force a notice every time someone edits a body.
     context: >-
-      Una portada desde el contenido queda pendiente hasta que haya un aviso de cambios del cuerpo de las filas. Tamaño
-      y portada son de la vista y la ven todas las personas que la miran.
+      A cover from the content stays pending until there is a notice of changes to the rows' body. Size and cover belong to
+      the view and are seen by everyone who looks at it.
     scenarios:
-      - title: Fila con una foto y un PDF
-        given: Una propiedad de archivos con un PDF primero y una imagen después
-        when: Se dibuja la galería con esa propiedad como portada
-        then: La tarjeta muestra la imagen, no el PDF
+      - title: Row with a photo and a PDF
+        given: A files property with a PDF first and an image afterwards
+        when: The gallery is drawn with that property as the cover
+        then: The card shows the image, not the PDF
   - id: BR-1de6648
     status: active
-    title: Una fila nueva copia su plantilla con identificadores nuevos y en una sola operación, y lo que se da gana
+    title: A new row copies its template with new identifiers and in a single operation, and what is given wins
     rule: >-
-      Crear una fila desde una plantilla copia su contenido y sus valores con identificadores nuevos, y todo queda
-      escrito junto o no queda nada. Lo que quien crea la fila da de forma explícita gana sobre la plantilla, y la
-      plantilla gana sobre el valor inicial de cada columna. Si la fila no trae título, toma el de la plantilla; si no
-      trae contenido, toma el de la plantilla.
+      Creating a row from a template copies its content and its values with new identifiers, and everything is written
+      together or nothing is. What whoever creates the row gives explicitly wins over the template, and the template wins
+      over each column's initial value. If the row brings no title, it takes the template's; if it brings no content, it
+      takes the template's.
     why: >-
-      Quien crea una fila desde una columna del tablero o un día del calendario ya dijo dónde va, y la plantilla debe
-      completar el resto sin deshacer lo que ya se dijo. Con identificadores nuevos, editar la fila no toca la plantilla
-      ni otra fila.
+      Whoever creates a row from a board column or a calendar day has already said where it goes, and the template must
+      fill in the rest without undoing what was already said. With new identifiers, editing the row touches neither the
+      template nor another row.
     context: >-
-      Pedir una plantilla que no existe en esa colección se rechaza y no crea nada. Pedir expresamente «sin plantilla»
-      crea una fila en blanco aunque haya una por defecto.
+      Asking for a template that does not exist in that collection is rejected and creates nothing. Expressly asking for
+      "no template" creates a blank row even if there is a default one.
     scenarios:
-      - title: Lo dado gana
-        given: Una plantilla con puntos igual a 3
-        when: Se crea una fila desde ella con puntos igual a 8
-        then: La fila queda con 8 puntos y el resto de la plantilla
-      - title: La plantilla gana al valor inicial
-        given: Una columna con valor inicial 1 y una plantilla con 3
-        when: Se crea una fila desde la plantilla sin dar la columna
-        then: La fila queda con 3
+      - title: What is given wins
+        given: A template with points equal to 3
+        when: A row is created from it with points equal to 8
+        then: The row ends up with 8 points and the rest of the template
+      - title: The template wins over the initial value
+        given: A column with initial value 1 and a template with 3
+        when: A row is created from the template without giving the column
+        then: The row ends up with 3
   - id: BR-1f4ab0f
     status: active
-    title: Quién creó una fila y cuándo lo dice la propia fila, y nadie lo escribe
+    title: Who created a row and when is told by the row itself, and nobody writes it
     rule: >-
-      Las propiedades de fecha de creación, fecha de última edición, creada por y editada por muestran lo que la fila
-      dice de sí misma: cuándo se creó, cuándo se editó por última vez y quién lo hizo. El servidor las llena y no se
-      pueden escribir, ni por la pantalla ni por una petición armada por fuera. Se pueden filtrar, ordenar y agrupar
-      como cualquier fecha o persona, y se actualizan solas cuando la fila cambia.
+      The properties creation date, last edit date, created by and edited by show what the row says about itself: when it
+      was created, when it was last edited and who did it. The server fills them in and they cannot be written, neither
+      through the screen nor through a request built outside. They can be filtered, sorted and grouped like any date or
+      person, and they update on their own when the row changes.
     why: >-
-      Copiar esos datos como valores obligaría a mantenerlos al día en cada edición, y alguien podría escribir un autor
-      o una fecha que no es. Leerlos de la fila los hace siempre ciertos.
-    context: Una propiedad de este tipo no se marca como obligatoria ni cambia de tipo.
+      Copying that data as values would force keeping it up to date on every edit, and someone could write an author or a
+      date that is not true. Reading them from the row makes them always true.
+    context: A property of this kind is not marked as required nor does it change type.
     scenarios:
-      - title: Escribir una fecha de creación
-        given: Una colección con la propiedad «Creada»
-        when: Una petición intenta escribir ese valor en una fila
-        then: Se rechaza, y la fila sigue mostrando su fecha real
+      - title: Writing a creation date
+        given: A collection with the property "Creada"
+        when: A request tries to write that value in a row
+        then: It is rejected, and the row keeps showing its real date
   - id: BR-26daa9e
     status: active
-    title: Un cambio en las filas que un rollup lee avisa a quien mira la colección
+    title: A change in the rows a rollup reads notifies whoever is looking at the collection
     rule: >-
-      Cuando cambia una fila de una colección que otra colección lee con un rollup, quien tiene abierta la segunda
-      colección se entera y sus valores se vuelven a calcular. Quien pregunta qué cambió en una colección recibe también
-      las filas cuyo rollup puede haber cambiado porque una fila enlazada cambió, marcadas como tales y no como cambios
-      propios.
+      When a row changes in a collection that another collection reads with a rollup, whoever has the second collection
+      open is informed and its values are recalculated. Whoever asks what changed in a collection also receives the rows
+      whose rollup may have changed because a linked row changed, marked as such and not as changes of their own.
     why: >-
-      Si el rollup se queda con el valor de la última vez que se miró, el total de un proyecto contradice las partidas
-      que se acaban de editar.
+      If the rollup keeps the value from the last time it was looked at, a project's total contradicts the line items that
+      were just edited.
     context: >-
-      Una persona editando una fila ve al instante cómo cambian las fórmulas de esa misma fila, sin esperar al servidor;
-      el valor del servidor lo confirma después.
+      A person editing a row sees instantly how the formulas of that same row change, without waiting for the server; the
+      server's value confirms it afterwards.
     scenarios:
-      - title: Se edita una partida
-        given: Un proyecto que suma las partidas y alguien mirándolo
-        when: Otra persona cambia el costo de una partida
-        then: El total del proyecto se actualiza
+      - title: A line item is edited
+        given: A project that sums its line items and someone looking at it
+        when: Another person changes the cost of a line item
+        then: The project's total is updated
   - id: BR-2a96107
     status: active
-    title: Una propiedad cambia sola, sobre lo que la fila tiene en ese momento
+    title: A property changes on its own, on top of what the row has at that moment
     rule: >-
-      Cambiar una propiedad de una fila manda solo esa propiedad, y el servidor la funde con las que la fila tiene al
-      momento de escribir, sin tocar lo que la página dice ni cortar una versión. Una fila que todavía no guardó ninguna
-      propiedad manda todas la primera vez.
+      Changing a property of a row sends only that property, and the server merges it with those the row has at the moment
+      of writing, without touching what the page says nor cutting a version. A row that has not yet stored any property
+      sends all of them the first time.
     why: >-
-      Mandar todas las propiedades de vuelta devolvía copias viejas de las que no se tocaron: si otra persona cambiaba
-      el estado mientras alguien editaba la prioridad, el estado volvía atrás. Y reescribir el contenido junto con la
-      propiedad podía pisar lo que el documento en vivo acababa de guardar.
+      Sending all the properties back returned stale copies of those that were not touched: if another person changed the
+      status while someone was editing the priority, the status went back. And rewriting the content along with the
+      property could overwrite what the live document had just saved.
     scenarios:
-      - title: Dos personas cambian propiedades distintas a la vez
-        given: Una tarea con estado «Por hacer» y prioridad «Baja»
-        when: Una la pasa a «Hecho» y otra, al mismo tiempo, sube la prioridad a «Alta»
-        then: La tarea queda en «Hecho» y con prioridad «Alta»
+      - title: Two people change different properties at once
+        given: A task with status "Por hacer" and priority "Baja"
+        when: One moves it to "Hecho" and another, at the same time, raises the priority to "Alta"
+        then: The task ends up in "Hecho" and with priority "Alta"
   - id: BR-313962a
     status: active
-    title: Un tablero deja ocultar grupos y cruzarlos en bandas desde el propio tablero
+    title: A board lets you hide groups and cross them into bands from the board itself
     rule: >-
-      Quien puede editar una vista de tablero puede ocultar un grupo desde el menú de su columna. Los grupos ocultos no
-      se dibujan, se listan aparte con la cantidad de filas que guardan y se pueden volver a mostrar uno por uno; sus
-      filas siguen existiendo y se cuentan. También puede cruzar el tablero en bandas por una segunda propiedad, o
-      quitarlas, y elegir el tamaño y la portada de las tarjetas, sin abrir la configuración de la colección. El grupo
-      de filas sin valor se oculta con su propio botón.
+      Whoever can edit a board view can hide a group from its column menu. Hidden groups are not drawn, are listed
+      separately with the number of rows they hold and can be shown again one by one; their rows keep existing and are
+      counted. They can also cross the board into bands by a second property, or remove them, and choose the size and cover
+      of the cards, without opening the collection's settings. The group of rows with no value is hidden with its own
+      button.
     why: >-
-      Un grupo que sobra a un equipo, como los terminados, ocupa pantalla que otro equipo necesita, y ocultarlo no debe
-      cambiar los datos ni obligar a borrar la opción.
+      A group that one team does not need, such as finished ones, takes up screen that another team needs, and hiding it
+      must not change the data nor force deleting the option.
     context: >-
-      Ocultar es de la vista y no cambia lo que dice ninguna fila. Mover una tarjeta al grupo oculto no es posible
-      mientras está oculto, porque no hay dónde soltarla.
+      Hiding belongs to the view and does not change what any row says. Moving a card to the hidden group is not possible
+      while it is hidden, because there is nowhere to drop it.
     scenarios:
-      - title: Ocultar y volver a mostrar
-        given: Un tablero con las columnas Pendiente y Hecho
-        when: Se oculta Hecho desde su menú
-        then: Hecho sale de la pantalla, aparece en la lista de grupos ocultos con su cantidad, y se puede mostrar de nuevo
+      - title: Hide and show again
+        given: A board with the columns Pendiente and Hecho
+        when: Hecho is hidden from its menu
+        then: Hecho leaves the screen, appears in the list of hidden groups with its count, and can be shown again
   - id: BR-3695f4e
     status: active
-    title: Una vista abierta se entera de lo que otras personas cambian en su colección, solo de lo que puede leer
+    title: An open view finds out what other people change in its collection, only of what it can read
     rule: >-
-      Quien tiene abierta la vista de una colección recibe un aviso cuando otra persona cambia una fila, una vista o la
-      forma de esa colección, y la vista se dibuja de nuevo sin recargar la página. El aviso lleva solo la identidad y
-      la versión de las filas que cambiaron, nunca su contenido. Cada persona recibe únicamente las filas que puede
-      leer, y una fila cerrada para ella no se nombra, no se cuenta y no aparece. Cuando cambian los permisos de una
-      fila o ésta sale de la colección, la persona recibe la orden de consultar de nuevo, sin que se diga qué fila fue.
-      Varios avisos seguidos se atienden con una sola lectura, y al volver una conexión caída se lee una vez. Los
-      cambios del cuerpo de una fila no se avisan por este canal.
+      Whoever has a collection's view open receives a notice when another person changes a row, a view or the shape of that
+      collection, and the view is drawn again without reloading the page. The notice carries only the identity and the
+      version of the rows that changed, never their content. Each person receives only the rows they can read, and a row
+      closed to them is not named, not counted and does not appear. When a row's permissions change or it leaves the
+      collection, the person receives the order to query again, without saying which row it was. Several notices in a row
+      are handled with a single read, and when a dropped connection comes back it is read once. Changes to a row's body are
+      not notified through this channel.
     why: >-
-      Sin aviso, dos personas sobre el mismo tablero se pisan sin saberlo hasta que una recarga. Y un aviso que nombrara
-      filas cerradas revelaría que existen.
+      Without a notice, two people on the same board overwrite each other without knowing until one reloads. And a notice
+      that named closed rows would reveal that they exist.
     context: >-
-      El canal en vivo admite hasta 20 colecciones por conexión. Las escrituras propias pendientes de la misma persona
-      van antes de la lectura, porque las acciones del servidor se ejecutan en el orden en que se enviaron.
+      The live channel admits up to 20 collections per connection. The same person's own pending writes go before the read,
+      because the server's actions are executed in the order they were sent.
     scenarios:
-      - title: Una tarjeta se mueve para quien mira
-        given: Dos personas con el mismo tablero abierto
-        when: Una cambia el estado de una tarjeta
-        then: La otra la ve pasar a la columna nueva sin recargar
-      - title: Una fila cerrada
-        given: Una persona que no puede leer una fila de la colección
-        when: Otra persona edita esa fila
-        then: La primera no recibe ningún aviso que la nombre
+      - title: A card moves for whoever is looking
+        given: Two people with the same board open
+        when: One changes a card's status
+        then: The other sees it move to the new column without reloading
+      - title: A closed row
+        given: A person who cannot read a row of the collection
+        when: Another person edits that row
+        then: The first receives no notice that names it
   - id: BR-38653c2
     status: active
-    title: Una fórmula calcula un valor de la fila con lo que la propia fila guarda
+    title: A formula computes a row's value from what the row itself stores
     rule: >-
-      Una colección puede tener propiedades de tipo fórmula. Una fórmula se escribe con un lenguaje propio (operaciones,
-      comparaciones, condiciones, funciones de texto, número, fecha y lista) y lee otras propiedades de la misma fila
-      por su nombre. Su resultado es un número, un texto, una casilla, una fecha o una lista, y la columna se trata como
-      una propiedad de ese tipo, así que se muestra, se filtra, se ordena, se agrupa y se calcula como tal. El valor no
-      se escribe a mano ni se guarda en la fila, se calcula cada vez que se lee, así que nunca muestra algo viejo. Una
-      fórmula mal escrita, que lee una propiedad que no existe, que mezcla tipos que no se pueden mezclar o que depende
-      de sí misma, se rechaza al guardar con un mensaje que dice qué pasa y, si hay propiedades parecidas, cuáles eran.
+      A collection can have properties of type formula. A formula is written in a language of its own (operations,
+      comparisons, conditions, text, number, date and list functions) and reads other properties of the same row by their
+      name. Its result is a number, a text, a checkbox, a date or a list, and the column is treated as a property of that
+      type, so it is displayed, filtered, sorted, grouped and computed as such. The value is not written by hand nor
+      stored in the row, it is computed every time it is read, so it never shows something stale. A badly written formula,
+      one that reads a property that does not exist, that mixes types that cannot be mixed or that depends on itself, is
+      rejected when saving with a message that says what is wrong and, if there are similar properties, which ones they
+      were.
     why: >-
-      Quien lleva un presupuesto o una lista de tareas necesita un total, un plazo o un estado que se deduce de otros
-      datos, y mantenerlo a mano se desactualiza el día en que alguien cambia un dato.
+      Whoever keeps a budget or a task list needs a total, a deadline or a status that is deduced from other data, and
+      maintaining it by hand goes stale the day someone changes a datum.
     context: >-
-      Una fórmula puede leer otras fórmulas y rollups, con un tope de profundidad. La misma fórmula da el mismo
-      resultado en el portal, en la consulta del servidor y para los agentes. El texto de una fórmula, su tamaño y el
-      trabajo que puede hacer por celda tienen topes, y una celda que se pasa de ellos muestra un error en lugar de
-      colgar la vista.
+      A formula can read other formulas and rollups, up to a depth cap. The same formula gives the same result in the
+      portal, in the server's query and for agents. The text of a formula, its size and the work it can do per cell have
+      caps, and a cell that exceeds them shows an error instead of hanging the view.
     scenarios:
-      - title: Un total se recalcula solo
-        given: Una colección con precio y cantidad, y una fórmula que los multiplica
-        when: Alguien cambia la cantidad de una fila
-        then: El total de esa fila muestra el valor nuevo sin que nadie lo edite
-      - title: Una fórmula con un nombre mal escrito
-        given: Una fórmula que lee la propiedad Prise
-        when: Se intenta guardar
-        then: Se rechaza y se sugiere Price
+      - title: A total recalculates on its own
+        given: A collection with price and quantity, and a formula that multiplies them
+        when: Someone changes a row's quantity
+        then: That row's total shows the new value without anyone editing it
+      - title: A formula with a misspelled name
+        given: A formula that reads the property Prise
+        when: It is attempted to save
+        then: It is rejected and Price is suggested
   - id: BR-3dcf9e7
     status: active
-    title: Una propiedad obligatoria se exige al crear la fila y al escribir esa propiedad
+    title: A required property is enforced when creating the row and when writing that property
     rule: >-
-      Una propiedad puede marcarse como obligatoria. Una fila nueva no se crea si le falta un valor en una propiedad
-      obligatoria, y quien escribe esa propiedad en una fila no puede dejarla vacía. Editar otra propiedad de una fila
-      no se bloquea porque a esa fila le falte un valor obligatorio que se marcó después. Un estado, una casilla, un
-      identificador único y los datos de creación y edición no se marcan como obligatorios, porque siempre tienen valor.
+      A property can be marked as required. A new row is not created if it lacks a value in a required property, and
+      whoever writes that property in a row cannot leave it empty. Editing another property of a row is not blocked because
+      that row lacks a required value that was marked afterwards. A status, a checkbox, a unique identifier and the
+      creation and edit data are not marked as required, because they always have a value.
     why: >-
-      Exigir los obligatorios en cada edición bloquearía filas viejas por una regla que se agregó después, y nadie
-      podría tocarlas hasta completar lo que no se pidió al crearlas. Exigirlos solo al crear dejaría vaciarlos después
-      sin que nadie lo note.
-    context: En el portal el nombre de la propiedad lleva un asterisco.
+      Enforcing required properties on every edit would block old rows because of a rule that was added later, and nobody
+      could touch them until they filled in what was not asked for when they were created. Enforcing them only on creation
+      would allow emptying them afterwards without anyone noticing.
+    context: In the portal the property's name carries an asterisk.
     scenarios:
-      - title: Una propiedad que se hizo obligatoria después
-        given: Filas antiguas sin valor en una propiedad que ahora es obligatoria
-        when: Alguien edita otra propiedad de una de esas filas
-        then: La edición se acepta
+      - title: A property that became required later
+        given: Old rows with no value in a property that is now required
+        when: Someone edits another property of one of those rows
+        then: The edit is accepted
   - id: BR-3de097e
     status: active
-    title: Una propiedad que otra lee no se puede quitar ni cambiar de modo que la rompa
+    title: A property that another reads cannot be removed or changed in a way that breaks it
     rule: >-
-      Una propiedad que lee una fórmula, o que un rollup de esta o de otra colección usa, no se puede quitar mientras
-      algo la lea, y el rechazo dice cuál fórmula o rollup la necesita. Si se renombra, las fórmulas que la nombran se
-      actualizan para seguir leyéndola. Una fórmula o un rollup no se puede marcar como obligatorio ni escribir a mano,
-      ni convertir desde otro tipo ni a otro tipo.
+      A property that a formula reads, or that a rollup of this or another collection uses, cannot be removed while
+      something reads it, and the rejection says which formula or rollup needs it. If it is renamed, the formulas that name
+      it are updated to keep reading it. A formula or a rollup cannot be marked as required nor written by hand, nor
+      converted from another type nor to another type.
     why: >-
-      Quitar en silencio una propiedad dejaría fórmulas y rollups que fallan en todas las filas sin que nadie sepa por
-      qué.
-    context: La misma regla aplica a quien cambia la forma desde el portal y a un agente.
+      Silently removing a property would leave formulas and rollups that fail on every row without anyone knowing why.
+    context: The same rule applies to whoever changes the shape from the portal and to an agent.
     scenarios:
-      - title: Quitar una propiedad que una fórmula lee
-        given: Una fórmula que usa el precio
-        when: Se intenta quitar el precio
-        then: Se rechaza nombrando la fórmula que lo usa
+      - title: Removing a property that a formula reads
+        given: A formula that uses the price
+        when: Removing the price is attempted
+        then: It is rejected, naming the formula that uses it
   - id: BR-4d9da78
     status: active
-    title: Cambiar la forma de una colección y completar sus filas es una sola operación
+    title: Changing a collection's shape and completing its rows is a single operation
     rule: >-
-      Al guardar la forma de una colección, lo que ese cambio exige a las filas que ya existen ocurre en la misma
-      operación que el cambio: el estado inicial de una propiedad de estado nueva, el número de una propiedad de
-      identificador único nueva, y la limpieza de las opciones que se quitaron. Si algún paso falla, por ejemplo porque
-      quien guarda no puede editar una de las filas, no queda ni la forma nueva ni ninguna fila cambiada.
+      When saving a collection's shape, what that change requires of the rows that already exist happens in the same
+      operation as the change: the initial status of a new status property, the number of a new unique identifier
+      property, and the cleanup of the options that were removed. If any step fails, for example because whoever saves
+      cannot edit one of the rows, neither the new shape nor any changed row remains.
     why: >-
-      Una propiedad creada con las filas viejas a medio completar obliga a adivinar qué falta y deja números o estados
-      distintos según quién llegó primero.
+      A property created with the old rows half completed forces guessing what is missing and leaves different numbers or
+      statuses depending on who got there first.
     context: >-
-      Los avisos a quienes tienen la colección abierta salen cuando la operación entera ya se confirmó. Volver a guardar
-      la forma después de un rechazo completa las filas sin repetir números.
+      The notices to those who have the collection open go out when the whole operation has already been confirmed. Saving
+      the shape again after a rejection completes the rows without repeating numbers.
     scenarios:
-      - title: Una fila que no se puede editar
-        given: Una colección con una fila que quien guarda solo puede leer
-        when: Agrega una propiedad de identificador único
-        then: Se rechaza, la propiedad no existe y la fila no cambió
-      - title: Todo bien
-        given: Una colección con tres filas
-        when: Se agrega una propiedad de estado
-        then: Las tres filas quedan en el estado inicial junto con la propiedad
+      - title: A row that cannot be edited
+        given: A collection with a row that whoever saves can only read
+        when: They add a unique identifier property
+        then: It is rejected, the property does not exist and the row did not change
+      - title: All fine
+        given: A collection with three rows
+        when: A status property is added
+        then: The three rows end up in the initial status along with the property
   - id: BR-4ddd139
     status: active
-    title: Buscar y cambiar de mes piden las filas al servidor, y lo que no cabe se dice
+    title: Searching and changing month request the rows from the server, and what does not fit is said
     rule: >-
-      Buscar en una colección envía las palabras al servidor, que filtra por el título de la fila y por sus respuestas
-      de texto (texto enriquecido, enlace, correo y teléfono), sin distinguir mayúsculas ni acentos. Las filas, los
-      conteos y las páginas siguientes de todas las vistas salen de esa misma búsqueda, y las palabras se conservan al
-      cambiar de vista, de modo que nada se oculta solo entre lo que ya se cargó. Un calendario lee todas las filas que
-      empiezan en los días de su cuadrícula del mes, con los días de las semanas incompletas, y cambiar de mes vuelve a
-      pedirlas. Si la cuadrícula tiene más de mil filas se dibujan las primeras mil y la pantalla lo dice. Las filas sin
-      fecha se cuentan aparte y no se pierden de vista.
+      Searching in a collection sends the words to the server, which filters by the row's title and by its text answers
+      (rich text, link, email and phone), without distinguishing capitalization or accents. The rows, the counts and the
+      next pages of all views come from that same search, and the words are kept when changing view, so nothing is hidden
+      on its own among what was already loaded. A calendar reads all the rows that start on the days of its month grid,
+      with the days of the incomplete weeks, and changing month requests them again. If the grid has more than a thousand
+      rows, the first thousand are drawn and the screen says so. Rows without a date are counted separately and are not
+      lost from view.
     why: >-
-      Filtrar en la pantalla solo lo cargado presenta un resultado incompleto como si fuera completo, y un calendario
-      que se queda con las primeras cien filas hace desaparecer en silencio las demás.
+      Filtering on screen only what was loaded presents an incomplete result as if it were complete, and a calendar that
+      keeps the first hundred rows silently makes the rest disappear.
     context: >-
-      No se buscan números, fechas ni los nombres de las opciones, porque escribir un 3 coincidiría con media colección.
-      Las palabras y el mes viajan en la dirección de la página para que se puedan compartir y recargar.
+      Numbers, dates and option names are not searched, because typing a 3 would match half the collection. The words and
+      the month travel in the page address so they can be shared and reloaded.
     supersedes: BR-fbf632f
     scenarios:
-      - title: Buscar con muchas filas
-        given: Una tabla de dos mil filas de la que solo se cargaron cincuenta
-        when: Se busca una palabra que dice una fila que no estaba cargada
-        then: La fila aparece y el conteo cuenta las filas que coinciden en toda la colección
-      - title: Buscar en una respuesta de texto
-        given: Una fila cuyo título no dice reunión pero cuyas notas sí
-        when: Se busca reunion sin acento
-        then: La fila aparece
-      - title: Un mes con más de cien filas
-        given: Un calendario con ciento treinta filas en un mismo mes
-        when: Se abre ese mes
-        then: Se dibujan las ciento treinta filas de la cuadrícula
+      - title: Searching with many rows
+        given: A table of two thousand rows of which only fifty were loaded
+        when: A word is searched that a row that was not loaded says
+        then: The row appears and the count counts the rows that match across the whole collection
+      - title: Searching in a text answer
+        given: A row whose title does not say reunión but whose notes do
+        when: reunion is searched without the accent
+        then: The row appears
+      - title: A month with more than a hundred rows
+        given: A calendar with one hundred thirty rows in the same month
+        when: That month is opened
+        then: The one hundred thirty rows of the grid are drawn
   - id: BR-4fef023
     status: active
-    title: Una colección se mira de varias formas, y cada una recuerda la suya
+    title: A collection is viewed in several ways, and each one remembers its own
     rule: >-
-      Las mismas filas de una colección se miran como tabla, como tablero, como lista, como galería, como calendario o
-      como avance, y una colección puede tener varias vistas a la vez. Cada vista guarda por su cuenta por dónde agrupa,
-      qué filtra, cómo ordena, qué propiedades enseña y cuánto alto ocupa una fila, así que cambiar una no toca a las
-      demás. Una de ellas queda marcada como principal, y es por la que se abre la colección cuando nadie pide otra.
+      The same rows of a collection are viewed as a table, as a board, as a list, as a gallery, as a calendar or as
+      progress, and a collection can have several views at once. Each view stores on its own what it groups by, what it
+      filters, how it sorts, which properties it shows and how tall a row is, so changing one does not touch the others.
+      One of them is marked as the main one, and it is the one the collection opens with when nobody asks for another.
     why: >-
-      Las mismas filas responden preguntas distintas según quién las mire: quien reparte trabajo quiere columnas por
-      estado, quien revisa fechas quiere un calendario, y quien busca una nota quiere una lista de nombres. Obligar a
-      todos a mirar la misma tabla hace que cada quien se arme la suya por fuera, y entonces deja de haber una sola
-      colección.
+      The same rows answer different questions depending on who looks at them: whoever distributes work wants columns by
+      status, whoever reviews dates wants a calendar, and whoever looks for a note wants a list of names. Forcing everyone
+      to look at the same table makes each person build their own outside, and then there stops being a single collection.
     context: >-
-      Un tablero y una rejilla agrupan; una tabla, una lista y una galería no. Una vista que necesita agrupar y no tiene
-      por dónde lo dice antes de guardarse, en vez de quedar en blanco.
+      A board and a grid group; a table, a list and a gallery do not. A view that needs to group and has nothing to group
+      by says so before being saved, instead of staying blank.
     scenarios:
-      - title: Dos vistas de las mismas filas
-        given: Una colección con una vista de tabla y una de tablero
-        when: Se pone un filtro en el tablero
-        then: La tabla sigue enseñando lo que enseñaba
-      - title: La vista con la que se abre
-        given: Una colección cuya vista principal es la galería
-        when: Alguien abre la página de la colección
-        then: Se le enseña la galería
-      - title: Un tablero sin por dónde agrupar
-        given: Una vista de tablero a la que no se le eligió propiedad de agrupación
-        when: Se intenta guardar la configuración
-        then: Se dice qué falta y no se guarda
+      - title: Two views of the same rows
+        given: A collection with a table view and a board view
+        when: A filter is set on the board
+        then: The table keeps showing what it showed
+      - title: The view it opens with
+        given: A collection whose main view is the gallery
+        when: Someone opens the collection's page
+        then: They are shown the gallery
+      - title: A board with nothing to group by
+        given: A board view for which no grouping property was chosen
+        when: It is attempted to save the settings
+        then: It says what is missing and does not save
   - id: BR-59b630f
     status: active
-    title: Un estado siempre tiene valor y sus opciones viven en tres grupos
+    title: A status always has a value and its options live in three groups
     rule: >-
-      Una propiedad de estado ofrece sus opciones repartidas en tres grupos fijos: por hacer, en curso y completado.
-      Cada grupo conserva al menos una opción. Una propiedad de estado nace con una opción en cada grupo, una fila nueva
-      empieza en la primera opción de «por hacer», y una fila nunca se queda sin estado: borrarlo no se permite. Se
-      puede filtrar por una opción o por todo un grupo, y las filas se ordenan por grupo y, dentro de él, por la
-      posición de la opción.
+      A status property offers its options distributed in three fixed groups: to do, in progress and done. Each group keeps
+      at least one option. A status property is born with one option in each group, a new row starts at the first "to do"
+      option, and a row never stays without a status: deleting it is not allowed. One can filter by an option or by a whole
+      group, and rows are sorted by group and, within it, by the option's position.
     why: >-
-      Un estado es lo que dice en qué punto está el trabajo. Si una fila pudiera quedarse sin estado, la columna de «sin
-      asignar» de un tablero escondería trabajo que nadie sabe en qué punto está. Y los grupos permiten preguntar «qué
-      sigue abierto» sin tener que listar todas las opciones que cada equipo se inventó.
+      A status is what says where the work stands. If a row could be left without a status, the "unassigned" column of a
+      board would hide work that nobody knows where it stands. And the groups make it possible to ask "what is still open"
+      without having to list all the options that each team invented.
     context: >-
-      Un estado no se puede obligar, porque ya siempre tiene valor. Quitar una opción mueve sus filas a otra del mismo
-      grupo. El estado no se convierte desde otro tipo ni se convierte en otro.
+      A status cannot be made required, because it already always has a value. Removing an option moves its rows to
+      another of the same group. A status is not converted from another type nor converted into another.
     scenarios:
-      - title: Una fila nueva
-        given: Una colección con una propiedad de estado
-        when: Se crea una fila sin decir el estado
-        then: La fila empieza en la primera opción del grupo «por hacer»
-      - title: Intentar dejar una fila sin estado
-        given: Una fila con estado
-        when: Alguien pide borrar el valor
-        then: Se rechaza, y el estado queda como estaba
+      - title: A new row
+        given: A collection with a status property
+        when: A row is created without stating the status
+        then: The row starts at the first option of the "to do" group
+      - title: Trying to leave a row without a status
+        given: A row with a status
+        when: Someone asks to delete the value
+        then: It is rejected, and the status stays as it was
   - id: BR-5bd97c6
     status: active
-    title: Cada opción de una propiedad lleva su nombre, su color y un identificador propio
+    title: Each option of a property carries its name, its color and an identifier of its own
     rule: >-
-      Una propiedad de selección, de selección múltiple o de estado define sus opciones, y cada opción es un nombre, un
-      color y un identificador que el servidor le da al crearla y que no cambia nunca. Las filas, los filtros, las
-      agrupaciones y los topes de columna guardan el identificador, no el nombre. Renombrar una opción cambia solo la
-      forma de la colección y ninguna fila se toca. Quitar una opción deja sin ese valor a las filas que la tenían, y en
-      un estado esas filas pasan a otra opción del mismo grupo. El color es opcional y es un conjunto cerrado y con
-      nombre; uno que el producto no conoce se descarta al leerlo y la opción queda sin color.
+      A select, multi-select or status property defines its options, and each option is a name, a color and an identifier
+      that the server gives it when creating it and that never changes. Rows, filters, groupings and column caps store the
+      identifier, not the name. Renaming an option changes only the collection's shape and no row is touched. Removing an
+      option leaves the rows that had it without that value, and in a status those rows move to another option of the same
+      group. The color is optional and is a closed, named set; one that the product does not know is discarded when read
+      and the option is left without a color.
     why: >-
-      Con el nombre como valor, renombrar una opción obligaba a reescribir cada fila que la tenía, y dos personas
-      renombrando a la vez dejaban filas apuntando a un nombre que ya no existía. Con un identificador estable el nombre
-      es solo lo que se lee, y cambiarlo es inmediato y no puede romper nada.
+      With the name as the value, renaming an option forced rewriting every row that had it, and two people renaming at the
+      same time left rows pointing to a name that no longer existed. With a stable identifier the name is only what is
+      read, and changing it is immediate and cannot break anything.
     context: >-
-      Los identificadores son únicos dentro de cada propiedad, no entre propiedades. Por eso una fila que se mueve a
-      otra colección cuyas opciones tienen otros identificadores se rechaza, en lugar de guardar un valor que aquella
-      colección no entiende. Las colecciones creadas antes guardaban el nombre: una migración les dio identificador a
-      cada opción y reescribió filas, filtros y agrupaciones. El nombre de la opción siempre se muestra al lado del
-      color.
+      Identifiers are unique within each property, not across properties. That is why a row that is moved to another
+      collection whose options have other identifiers is rejected, instead of storing a value that that collection does not
+      understand. Collections created earlier stored the name: a migration gave each option an identifier and rewrote rows,
+      filters and groupings. The option's name is always shown next to the color.
     supersedes: BR-12b587f
     scenarios:
-      - title: Renombrar no toca las filas
-        given: Una selección con la opción «Alta» que dos filas tienen elegida
-        when: Alguien la renombra a «Urgente»
-        then: Las dos filas siguen eligiéndola y la muestran como «Urgente», sin que se haya escrito ninguna fila
-      - title: Quitar una opción de un estado
-        given: Un estado con dos opciones en el grupo «En curso» y una fila en la que se quitará
-        when: Se quita esa opción
-        then: La fila pasa a la otra opción del grupo «En curso»
+      - title: Renaming does not touch the rows
+        given: A select with the option "Alta" that two rows have chosen
+        when: Someone renames it to "Urgente"
+        then: Both rows still choose it and show it as "Urgente", without any row having been written
+      - title: Removing an option from a status
+        given: A status with two options in the "In progress" group and a row from which one will be removed
+        when: That option is removed
+        then: The row moves to the other option of the "In progress" group
   - id: BR-5e4ab65
     status: active
-    title: Seleccionar todo lo que coincide actúa sobre todas las filas, hasta mil, o dice que son demasiadas
+    title: Selecting everything that matches acts on all the rows, up to a thousand, or says there are too many
     rule: >-
-      Cuando las filas marcadas son menos que las que coinciden con la vista y la búsqueda, la barra ofrece marcar todas
-      las que coinciden, también las que no se cargaron. Se pueden marcar hasta mil filas de una vez; si coinciden más,
-      la barra lo dice y pide acotar con una búsqueda o un filtro, y no marca una parte. Lo que se hace con esas filas
-      se puede deshacer con los valores que tenían.
+      When the marked rows are fewer than those that match the view and the search, the bar offers to mark all those that
+      match, including those that were not loaded. Up to a thousand rows can be marked at once; if more match, the bar says
+      so and asks to narrow down with a search or a filter, and does not mark a part. What is done with those rows can be
+      undone with the values they had.
     why: >-
-      Borrar o asignar sobre las filas cargadas mientras la pantalla da a entender que son todas deja filas sin tocar y
-      nadie lo nota.
-    context: El límite de mil es el de ids que devuelve una respuesta de consulta.
+      Deleting or assigning over the loaded rows while the screen implies that they are all leaves rows untouched and
+      nobody notices.
+    context: The limit of a thousand is the number of ids that a query response returns.
     scenarios:
-      - title: Más filas que las cargadas
-        given: Una tabla de ciento treinta y ocho filas con cincuenta cargadas y marcadas
-        when: Se elige marcar todas las que coinciden
-        then: Quedan marcadas las ciento treinta y ocho
-      - title: Demasiadas
-        given: Una tabla en la que coinciden mil quinientas filas
-        when: Se marcan las cargadas
-        then: La barra dice que son demasiadas y no ofrece marcarlas todas
+      - title: More rows than loaded
+        given: A table of one hundred thirty-eight rows with fifty loaded and marked
+        when: Marking all that match is chosen
+        then: All one hundred thirty-eight end up marked
+      - title: Too many
+        given: A table in which one thousand five hundred rows match
+        when: The loaded ones are marked
+        then: The bar says there are too many and does not offer to mark them all
   - id: BR-61a1857
     status: active
-    title: Una fecha puede ser un día o un rango, y una persona puede ser una o varias
+    title: A date can be a day or a range, and a person can be one or several
     rule: >-
-      Una propiedad de fecha guarda un día o un instante de inicio y, si se quiere, un fin que nunca es anterior al
-      inicio; los dos extremos son ambos días o ambos instantes. Una fecha que cae en un rango coincide con cualquier
-      día del rango, y «antes de» y «después de» comparan contra el fin y el inicio del rango. Una propiedad de persona
-      guarda siempre una lista de miembros del espacio. Por defecto admite una sola persona; la propiedad puede permitir
-      varias, y entonces se filtra con «contiene» y «no contiene».
+      A date property stores a day or a starting instant and, if desired, an end that is never earlier than the start; both
+      ends are either both days or both instants. A date that falls within a range matches any day of the range, and
+      "before" and "after" compare against the range's end and start. A person property always stores a list of space
+      members. By default it admits a single person; the property can allow several, and then it is filtered with
+      "contains" and "does not contain".
     why: >-
-      Un trabajo dura días y no cabe en una fecha suelta. Y un trabajo con varios responsables obligaba a crear una
-      propiedad de persona por cada uno.
+      A job lasts days and does not fit in a single date. And a job with several people responsible forced creating one
+      person property for each.
     context: >-
-      El calendario coloca una fila el día en que empieza. Mover una fila de un día a otro conserva la duración de su
-      rango. Cambiar una propiedad de persona de varias a una sola no reescribe las filas que ya tienen más de una.
+      The calendar places a row on the day it starts. Moving a row from one day to another keeps its range's duration.
+      Changing a person property from several to a single one does not rewrite the rows that already have more than one.
     scenarios:
-      - title: Un fin anterior al inicio
-        given: Una fecha que empieza el día 10
-        when: Se intenta guardar con fin el día 8
-        then: Se rechaza
+      - title: An end earlier than the start
+        given: A date that starts on the 10th
+        when: It is attempted to save it with an end on the 8th
+        then: It is rejected
   - id: BR-6571dc2
     status: active
-    title: Un rollup nunca cuenta una fila que quien mira no puede abrir
+    title: A rollup never counts a row that whoever is looking cannot open
     rule: >-
-      Al calcular un rollup para alguien, las filas enlazadas que esa persona no puede abrir, y las que están en la
-      papelera, no se leen y por lo tanto no se cuentan, no se suman y no se muestran. Dos personas pueden ver valores
-      distintos en el mismo rollup, y eso es lo correcto. Vale igual para el portal y para los agentes, que tienen los
-      permisos de la persona dueña de su token.
+      When computing a rollup for someone, the linked rows that that person cannot open, and those that are in the trash,
+      are not read and therefore are not counted, not summed and not shown. Two people can see different values in the
+      same rollup, and that is correct. It applies equally to the portal and to agents, which have the permissions of the
+      person who owns their token.
     why: >-
-      Un total que incluye una fila secreta le dice a quien lo mira que la fila existe y cuánto vale, aunque no pueda
-      abrirla.
-    context: Lo mismo vale al filtrar, ordenar, agrupar y calcular totales de la vista por un rollup.
+      A total that includes a secret row tells whoever looks at it that the row exists and how much it is worth, even if
+      they cannot open it.
+    context: The same applies when filtering, sorting, grouping and computing a view's totals by a rollup.
     scenarios:
-      - title: Una partida cerrada no suma
-        given: Un proyecto con tres partidas y una persona que solo puede abrir dos
-        when: Esa persona lee el rollup de suma
-        then: La suma no incluye la tercera partida
+      - title: A closed line item does not add up
+        given: A project with three line items and a person who can only open two
+        when: That person reads the sum rollup
+        then: The sum does not include the third line item
   - id: BR-65a2252
     status: active
-    title: Una ventana de fechas trae todas las filas que alcanzan esos días, y avisa si no caben
+    title: A date window brings all the rows that reach those days, and warns if they do not fit
     rule: >-
-      Una línea de tiempo o un calendario pide al servidor las filas cuyas fechas se superponen con los días que
-      muestra, no solo las que empiezan en ellos; una fila que empezó antes y llega a la ventana se dibuja. Cuando el
-      final está en otra propiedad, la superposición cubre también la fila que solo tiene inicio, que dura el día en que
-      empieza. Si en la ventana hay más filas de las que la pantalla lee, la pantalla dice cuántas dibuja en vez de
-      pasar las primeras por todas. Un agente pide lo mismo con una ventana de días sobre una columna de fecha, que se
-      suma al filtro de la vista.
+      A timeline or a calendar asks the server for the rows whose dates overlap the days it shows, not only those that
+      start in them; a row that started earlier and reaches the window is drawn. When the end is in another property, the
+      overlap also covers the row that only has a start, which lasts the day it starts. If there are more rows in the
+      window than the screen reads, the screen says how many it draws instead of passing the first ones off as all of
+      them. An agent asks for the same with a window of days over a date column, which is added to the view's filter.
     why: >-
-      Pedir solo las filas que empiezan dentro de la ventana esconde las tareas largas justo cuando están en curso, que
-      son las que más importan. Y un corte silencioso hace creer que no hay nada más.
+      Asking only for the rows that start inside the window hides long tasks exactly when they are in progress, which are
+      the ones that matter most. And a silent cut makes people believe there is nothing more.
     context: >-
-      La ventana se compara por días en el calendario de quien mira. Una fila sin fecha nunca está en una ventana; se
-      cuenta aparte.
+      The window is compared by days in the calendar of whoever is looking. A row without a date is never in a window; it
+      is counted separately.
     scenarios:
-      - title: Una tarea que empezó el mes pasado
-        given: Una fila del 28 de septiembre al 5 de octubre
-        when: Se pide la ventana de octubre
-        then: La fila viene, porque su rango toca octubre
-      - title: Una ventana demasiado llena
-        given: Una ventana con más filas de las que la pantalla lee
-        when: Se abre la línea de tiempo
-        then: La pantalla avisa que dibuja solo las primeras
+      - title: A task that started last month
+        given: A row from September 28 to October 5
+        when: The October window is requested
+        then: The row comes, because its range touches October
+      - title: An overly full window
+        given: A window with more rows than the screen reads
+        when: The timeline is opened
+        then: The screen warns that it draws only the first ones
   - id: BR-6972f50
     status: active
-    title: Un número tiene formato, y un enlace, un correo y un teléfono se comprueban al guardarse
+    title: A number has a format, and a link, an email and a phone are checked when saved
     rule: >-
-      Una propiedad de número elige cómo se muestra: número, porcentaje o moneda, con un máximo de decimales que se
-      exige al guardar. Un porcentaje se escribe y se muestra como porcentaje pero se guarda como fracción, así que
-      cambiar el formato no cambia lo que las filas guardaron. Una moneda lleva su código de tres letras. Una propiedad
-      de enlace solo admite direcciones web, la de correo exige un correo con forma válida y la de teléfono exige un
-      número con la cantidad de dígitos razonable; un enlace nunca se abre si no es una dirección web. Una propiedad de
-      archivos guarda hasta diez archivos que ya estaban subidos y que quien escribe puede adjuntar.
+      A number property chooses how it is displayed: number, percentage or currency, with a maximum number of decimals that
+      is enforced when saving. A percentage is written and displayed as a percentage but is stored as a fraction, so
+      changing the format does not change what the rows stored. A currency carries its three-letter code. A link property
+      only admits web addresses, the email property requires an email with a valid form and the phone property requires a
+      number with a reasonable number of digits; a link is never opened if it is not a web address. A files property stores
+      up to ten files that were already uploaded and that whoever writes can attach.
     why: >-
-      Un campo de texto libre deja pasar un enlace que no abre, un correo con un error de tecleo o un número sin su
-      moneda, y el error se descubre cuando alguien intenta usarlo. Y un porcentaje guardado como 25 en una fila y como
-      0,25 en otra no se puede sumar.
+      A free text field lets through a link that does not open, an email with a typo or a number without its currency, and
+      the error is discovered when someone tries to use it. And a percentage stored as 25 in one row and as 0.25 in another
+      cannot be summed.
     context: >-
-      Los archivos de una celda se eligen entre los que se subieron a la página de la fila. Quien puede leer la fila
-      puede leer los nombres de esos archivos, no más.
+      The files in a cell are chosen from those that were uploaded to the row's page. Whoever can read the row can read the
+      names of those files, no more.
     scenarios:
-      - title: Un enlace que no es web
-        given: Una propiedad de enlace
-        when: Alguien guarda «javascript:alert(1)»
-        then: Se rechaza
+      - title: A link that is not web
+        given: A link property
+        when: Someone saves "javascript:alert(1)"
+        then: It is rejected
   - id: BR-6d4a26c
     status: active
-    title: Un identificador único numera las filas sin repetir ni reutilizar un número
+    title: A unique identifier numbers the rows without repeating or reusing a number
     rule: >-
-      Una propiedad de identificador único da a cada fila nueva el siguiente número de la colección, empezando por uno.
-      El número lo escribe el servidor al crear la fila; nadie lo escribe ni lo cambia, y un número que alguien mande se
-      ignora. Un número nunca se vuelve a dar, ni cuando la fila se borra. La propiedad puede llevar un prefijo que solo
-      cambia cómo se muestra el número, no el número guardado. Al agregar la propiedad a una colección con filas, cada
-      fila existente recibe su número en el orden en que se creó.
+      A unique identifier property gives each new row the next number of the collection, starting at one. The number is
+      written by the server when creating the row; nobody writes or changes it, and a number that someone sends is ignored.
+      A number is never given again, not even when the row is deleted. The property can carry a prefix that only changes
+      how the number is displayed, not the stored number. When adding the property to a collection with rows, each existing
+      row receives its number in the order in which it was created.
     why: >-
-      Un identificador que se reutiliza o que se puede escribir deja de identificar: dos filas distintas acabarían con
-      el mismo número en una conversación, y nadie sabría de cuál se habla.
+      An identifier that is reused or that can be written stops identifying: two different rows would end up with the same
+      number in a conversation, and nobody would know which one is being talked about.
     context: >-
-      Dos filas creadas a la vez reciben números distintos. No se puede marcar como obligatoria, porque la llena el
-      servidor.
+      Two rows created at the same time receive different numbers. It cannot be marked as required, because the server
+      fills it in.
     scenarios:
-      - title: Una fila borrada
-        given: Una colección con las filas 1, 2 y 3
-        when: Se borra la 3 y se crea otra fila
-        then: La fila nueva recibe el 4
+      - title: A deleted row
+        given: A collection with rows 1, 2 and 3
+        when: Row 3 is deleted and another row is created
+        then: The new row receives 4
   - id: BR-6d8414e
     status: active
-    title: Lo que llena el servidor no lo escribe nadie, entre por el camino que entre
+    title: What the server fills in is written by nobody else, whichever path it comes in through
     rule: >-
-      El número de un identificador único y los campos de quién creó o editó una fila y cuándo los llena el servidor.
-      Una escritura de bloques que intente fijarlos o cambiarlos, venga de una transacción enviada a mano o del canal en
-      vivo, se rechaza entera con el código BLOCK_PROPERTY_SERVER_ASSIGNED y no cambia nada. Crear una fila que pide un
-      número propio no se rechaza: el servidor le da el siguiente y descarta el pedido.
+      The number of a unique identifier and the fields of who created or edited a row and when are filled in by the
+      server. A block write that tries to set or change them, whether it comes from a hand-sent transaction or from the live
+      channel, is rejected whole with the code BLOCK_PROPERTY_SERVER_ASSIGNED and changes nothing. Creating a row that
+      asks for a number of its own is not rejected: the server gives it the next one and discards the request.
     why: >-
-      Si solo la API de páginas lo vigilara, bastaría una transacción de bloques para ponerle a una fila el número de
-      otra o firmarla con el nombre de alguien más. La regla vale en un solo lugar, donde pasan todas las escrituras.
+      If only the pages API watched over it, a block transaction would be enough to give a row another row's number or
+      sign it with someone else's name. The rule holds in a single place, where all writes pass.
     context: >-
-      El servidor sigue escribiendo estos valores por su propia vía. Los demás valores de la fila se escriben con
-      normalidad en la misma transacción.
+      The server keeps writing these values through its own path. The row's other values are written normally in the same
+      transaction.
     scenarios:
-      - title: Un número escrito a mano
-        given: Una fila con el número 3 en una colección con identificador único
-        when: Una transacción de bloques intenta dejarlo en 99
-        then: Se rechaza con BLOCK_PROPERTY_SERVER_ASSIGNED y la fila sigue con el 3
-      - title: Una firma ajena
-        given: Una colección con un campo de quién creó la fila
-        when: Una transacción crea una fila con otra persona en ese campo
-        then: Se rechaza y la fila no se crea
+      - title: A hand-written number
+        given: A row with the number 3 in a collection with a unique identifier
+        when: A block transaction tries to set it to 99
+        then: It is rejected with BLOCK_PROPERTY_SERVER_ASSIGNED and the row keeps the 3
+      - title: Someone else's signature
+        given: A collection with a field of who created the row
+        when: A transaction creates a row with another person in that field
+        then: It is rejected and the row is not created
   - id: BR-81880e6
     status: active
-    title: Cada cambio a una vista toca una sola cosa, y dos personas que tocan cosas distintas no se pisan
+    title: Each change to a view touches a single thing, and two people who touch different things do not overwrite each other
     rule: >-
-      Una vista se cambia con operaciones pequeñas, cada una sobre una sola cosa, como poner un filtro, quitar un orden,
-      ensanchar una columna o plegar un grupo. El servidor las aplica sobre lo que la vista tiene en ese momento, todas
-      o ninguna, y sube la versión de la vista por cada operación. Si dos personas cambian cosas distintas de la misma
-      vista, ambos cambios quedan; si cambian la misma cosa, queda la última. Un filtro se cambia por sus condiciones,
-      cada una con su identificador, no reescribiendo el filtro entero. Solo puede cambiar una vista quien puede editar
-      su colección, y una colección bloqueada o en la papelera no cambia sus vistas.
+      A view is changed with small operations, each on a single thing, such as setting a filter, removing a sort,
+      widening a column or folding a group. The server applies them on top of what the view has at that moment, all or none,
+      and raises the view's version for each operation. If two people change different things of the same view, both
+      changes remain; if they change the same thing, the last one remains. A filter is changed through its conditions, each
+      with its identifier, not by rewriting the whole filter. Only whoever can edit its collection can change a view, and a
+      locked collection or one in the trash does not change its views.
     why: >-
-      Mandar la configuración completa de la vista borra en silencio lo que otra persona cambió entretanto, y la
-      configuración se queda abierta mientras las filas siguen vivas al lado. Con operaciones pequeñas el cambio de una
-      persona nunca lleva copias viejas de lo que no tocó.
+      Sending the complete view configuration silently erases what another person changed in the meantime, and the
+      configuration stays open while the rows keep living alongside. With small operations one person's change never
+      carries stale copies of what it did not touch.
     context: >-
-      Cambiar el nombre de una vista o la que se abre por defecto sigue siendo cambiar la forma de la colección. La
-      pantalla sigue editando una configuración completa; lo que viaja es solo la diferencia.
+      Changing a view's name or the one that opens by default is still changing the collection's shape. The screen keeps
+      editing a complete configuration; what travels is only the difference.
     supersedes: BR-22dc232
     scenarios:
-      - title: Dos personas en la misma vista
-        given: Dos personas con la misma vista abierta
-        when: Una agrupa por estado y la otra ensancha una columna
-        then: La vista queda agrupada por estado y con la columna ensanchada
-      - title: Una colección bloqueada
-        given: Una colección bloqueada
-        when: Alguien intenta poner un filtro a una de sus vistas
-        then: El cambio se rechaza y la vista queda como estaba
+      - title: Two people in the same view
+        given: Two people with the same view open
+        when: One groups by status and the other widens a column
+        then: The view ends up grouped by status and with the widened column
+      - title: A locked collection
+        given: A locked collection
+        when: Someone tries to set a filter on one of its views
+        then: The change is rejected and the view stays as it was
   - id: BR-8986494
     status: active
-    title: Un agente puede crear y configurar vistas de fechas y de tarjetas, con los nombres que ven las personas
+    title: An agent can create and configure date and card views, with the names people see
     rule: >-
-      Un agente puede crear una vista de línea de tiempo y cambiar, en cualquier vista, la columna de fecha que coloca
-      las filas, la columna donde termina cada fila, la escala, la columna de la que sale la portada, el tamaño de las
-      tarjetas y la segunda agrupación de un tablero, nombrando columnas como las ven las personas. Una columna que no
-      es del tipo que ese ajuste pide se rechaza diciendo cuál. Lo que el agente cambia llega como el cambio de esas
-      claves de la vista, así que no pisa lo que otra persona cambió entretanto, y al leer la colección ve esos ajustes
-      con los nombres de las columnas.
+      An agent can create a timeline view and change, in any view, the date column that places the rows, the column where
+      each row ends, the scale, the column the cover comes from, the size of the cards and a board's second grouping,
+      naming columns as people see them. A column that is not of the type that setting asks for is rejected, saying which.
+      What the agent changes arrives as the change of those keys of the view, so it does not overwrite what another person
+      changed in the meantime, and when reading the collection it sees those settings with the columns' names.
     why: >-
-      Un agente que solo puede mirar una línea de tiempo o dejarla como la creó la persona no puede prepararla para
-      quien la va a usar. Y si las vistas del agente se guardaran enteras, borrarían los ajustes que la persona hizo en
-      la pantalla.
+      An agent that can only look at a timeline or leave it as the person created it cannot prepare it for whoever is going
+      to use it. And if the agent's views were stored whole, they would erase the settings the person made on screen.
     context: >-
-      Los permisos son los de la persona dueña del token. Las vistas se crean con la configuración completa solo al
-      nacer.
+      The permissions are those of the person who owns the token. Views are created with the complete configuration only
+      when they are born.
     scenarios:
-      - title: Una columna que no es fecha
-        given: Una colección con una columna de texto llamada Notas
-        when: Un agente pide que la línea de tiempo empiece en Notas
-        then: Se rechaza diciendo que no es una columna de fecha
+      - title: A column that is not a date
+        given: A collection with a text column called Notas
+        when: An agent asks for the timeline to start at Notas
+        then: It is rejected, saying that it is not a date column
   - id: BR-8bd78a9
     status: active
-    title: Un agente maneja las plantillas con las mismas reglas que una persona
+    title: An agent handles templates with the same rules as a person
     rule: >-
-      Un agente puede listar las plantillas de una colección, crear una fila nombrando una plantilla por su nombre o su
-      identificador, y crear, cambiar y borrar plantillas. Recibe exactamente los permisos de la persona dueña de su
-      ficha, así que quien no puede editar la colección no cambia sus plantillas por el agente. Las descripciones del
-      servicio del agente explican cómo funcionan la plantilla por defecto y las palabras de hoy y yo.
+      An agent can list a collection's templates, create a row by naming a template by its name or its identifier, and
+      create, change and delete templates. It receives exactly the permissions of the person who owns its profile, so
+      whoever cannot edit the collection does not change its templates through the agent. The descriptions of the agent's
+      service explain how the default template and the words today and me work.
     why: >-
-      Un agente que no pudiera usar plantillas tendría que reproducir a mano lo que la plantilla ya sabe, y lo haría
-      distinto cada vez.
+      An agent that could not use templates would have to reproduce by hand what the template already knows, and would do
+      it differently each time.
     context: >-
-      Nombrar una plantilla con un nombre repetido pide el identificador. Pedir una plantilla que no existe lista las
-      que sí existen solo si la ficha puede leer la colección.
+      Naming a template with a repeated name asks for the identifier. Asking for a template that does not exist lists those
+      that do exist only if the profile can read the collection.
     scenarios:
-      - title: Un agente crea una fila sin nombrar plantilla
-        given: Una colección con plantilla por defecto
-        when: Un agente crea una fila con solo un título
-        then: La fila nace con el contenido y los valores de la plantilla por defecto
+      - title: An agent creates a row without naming a template
+        given: A collection with a default template
+        when: An agent creates a row with just a title
+        then: The row is born with the content and values of the default template
   - id: BR-8e6b1f4
     status: active
-    title: Una tarjeta arrastrada cambia el valor de la columna y queda donde se soltó, en una sola escritura
+    title: A dragged card changes the column's value and stays where it was dropped, in a single write
     rule: >-
-      En un tablero, cada columna es un valor de la propiedad por la que se agrupa. Arrastrar una tarjeta a otra columna
-      escribe ese valor en la fila y la deja en el lugar donde se soltó, entre las demás tarjetas de esa vista, y las
-      dos cosas ocurren juntas o no ocurre ninguna. Soltarla en la columna de las filas sin valor le quita el valor en
-      lugar de escribirle la palabra «sin asignar». Soltarla donde ya estaba no escribe nada. Cuando la propiedad guarda
-      varios valores, la tarjeta deja el valor de la columna de la que sale y toma el de la columna a la que llega, y
-      conserva los demás. Si la vista ordena por una propiedad, el lugar lo decide ese orden y solo se escribe el valor.
-      Lo mismo se hace desde el teclado, con Alt y las flechas, y el resultado se anuncia. Quien no puede editar la fila
-      no puede mover su tarjeta. En un tablero agrupado por estado nunca hay columna de filas sin valor, porque un
-      estado siempre tiene valor.
+      On a board, each column is a value of the property it is grouped by. Dragging a card to another column writes that
+      value in the row and leaves it at the place where it was dropped, among the other cards of that view, and both things
+      happen together or neither happens. Dropping it in the column of rows with no value removes the value instead of
+      writing the word "sin asignar" into it. Dropping it where it already was writes nothing. When the property stores
+      several values, the card leaves the value of the column it comes from and takes that of the column it arrives at, and
+      keeps the others. If the view sorts by a property, that order decides the place and only the value is written. The
+      same is done from the keyboard, with Alt and the arrows, and the result is announced. Whoever cannot edit the row
+      cannot move its card. On a board grouped by status there is never a column of rows with no value, because a status
+      always has a value.
     why: >-
-      Un tablero donde hay que abrir cada tarjeta para cambiarle el estado es una lista en columnas. Y si el valor y el
-      lugar se escribieran por separado, un fallo a medias dejaría la tarjeta en la columna nueva y en el lugar viejo, o
-      al revés.
+      A board where each card has to be opened to change its status is a list in columns. And if the value and the place
+      were written separately, a half failure would leave the card in the new column and the old place, or the other way
+      around.
     context: >-
-      Al mover una tarjeta solo viaja lo que cambió, no la página entera. El valor tiene que ser el identificador de una
-      opción que la propiedad ofrece; cualquier otro se rechaza en el servidor. Cada vista tiene su propio orden de
-      tarjetas.
+      When moving a card only what changed travels, not the whole page. The value has to be the identifier of an option
+      that the property offers; any other is rejected on the server. Each view has its own order of cards.
     supersedes: BR-5a97271
     scenarios:
-      - title: Mover y ordenar
-        given: Un tablero con tres tarjetas en Por hacer y una en Hecho
-        when: Se arrastra la última de Por hacer al comienzo de Hecho
-        then: La tarjeta queda en Hecho, antes de la que ya estaba, y al recargar sigue ahí
-      - title: Un fallo a medias
-        given: Una fila que no se puede editar
-        when: Se intenta moverla de columna
-        then: Ni su valor ni su lugar cambian
+      - title: Moving and ordering
+        given: A board with three cards in Por hacer and one in Hecho
+        when: The last one in Por hacer is dragged to the beginning of Hecho
+        then: The card ends up in Hecho, before the one that was already there, and stays there on reload
+      - title: A half failure
+        given: A row that cannot be edited
+        when: Moving it to another column is attempted
+        then: Neither its value nor its place changes
   - id: BR-951dca7
     status: active
-    title: Una tabla deja poner las filas en otro lugar a mano y ajustar el texto por columna
+    title: A table lets you put rows in another place by hand and wrap text per column
     rule: >-
-      En una tabla que no ordena sus filas por ninguna propiedad, quien puede editar puede llevar una fila a otro lugar
-      arrastrándola por su asa o con el teclado, y la fila queda junto a la vecina sobre la que se la soltó. El lugar es
-      el orden propio de esa vista y lo ven todas las personas que la miran; otras vistas de la colección no cambian.
-      Cuando la vista ordena por una propiedad, el lugar de la fila es el de ese orden y no se ofrece el asa. Cada
-      columna puede, además, ajustar su texto en varias líneas aunque la tabla en conjunto no lo haga, y el ancho y las
-      columnas fijas de la vista también se guardan en ella.
+      In a table that does not sort its rows by any property, whoever can edit can take a row to another place by dragging
+      it by its handle or with the keyboard, and the row ends up next to the neighbor it was dropped on. The place is that
+      view's own order and is seen by everyone who looks at it; other views of the collection do not change. When the view
+      sorts by a property, the row's place is that of that order and the handle is not offered. Each column can also wrap
+      its text across several lines even if the table as a whole does not, and the view's width and pinned columns are
+      also stored in it.
     why: >-
-      Un orden a mano que cambia el orden de la colección entera desordena el árbol lateral y las demás vistas. Y
-      envolver el texto de todas las columnas por una sola larga vuelve la tabla ilegible.
+      A manual order that changes the whole collection's order scrambles the side tree and the other views. And wrapping
+      the text of all columns because of a single long one makes the table illegible.
     context: >-
-      Una fila solo se lleva entre las de su mismo grupo cuando la tabla agrupa. Ajustar una columna sube una fila corta
-      a mediana, porque las líneas de más quedarían cortadas.
+      A row is only taken among those of its same group when the table groups. Wrapping a column raises a short row to
+      medium, because the extra lines would be cut off.
     scenarios:
-      - title: Llevar una fila antes de otra
-        given: Una tabla sin orden por propiedad con las filas A, B y C
-        when: Se suelta C en la mitad superior de A
-        then: Queda C, A, B, con una sola escritura que nombra a A como vecina
-      - title: Tabla ordenada
-        given: Una tabla ordenada por prioridad
-        when: Se mira por quien puede editar
-        then: No hay asa para llevar filas a otro lugar
+      - title: Taking a row before another
+        given: A table with no sort by property with rows A, B and C
+        when: C is dropped on the upper half of A
+        then: It ends up C, A, B, with a single write that names A as the neighbor
+      - title: Sorted table
+        given: A table sorted by priority
+        when: It is looked at by someone who can edit
+        then: There is no handle to take rows to another place
   - id: BR-974f23f
     status: active
-    title: Un calendario se ve por semana o por mes y dibuja los rangos día a día
+    title: A calendar is seen by week or by month and draws ranges day by day
     rule: >-
-      Un calendario se puede ver por mes o por semana, y la escala se guarda en la vista. Una fila con rango de fechas
-      aparece en cada día que dura, a la misma altura en todos ellos y nombrada donde empieza cada tramo; las filas que
-      comparten un día no se tapan. Arrastrar un tramo mueve el rango entero tomando como referencia el día por el que
-      se lo agarró, y con el teclado el día se mueve de uno en uno o de siete en siete.
+      A calendar can be seen by month or by week, and the scale is stored in the view. A row with a date range appears on
+      each day it lasts, at the same height on all of them and named where each stretch begins; rows that share a day do
+      not cover each other. Dragging a stretch moves the whole range taking as reference the day it was grabbed by, and
+      with the keyboard the day moves one at a time or seven at a time.
     why: >-
-      Una tarea de tres días dibujada en un solo día miente sobre la carga real de esos días. Y mover un rango por su
-      primer día cuando se lo agarró por el último lo deja lejos de donde la mano lo soltó.
-    context: Cambiar de mes o de semana pide al servidor los días nuevos; la escala no cambia por eso.
+      A three-day task drawn on a single day lies about the real load of those days. And moving a range by its first day
+      when it was grabbed by the last leaves it far from where the hand dropped it.
+    context: Changing month or week requests the new days from the server; the scale does not change because of that.
     scenarios:
-      - title: Rango agarrado por su segundo día
-        given: Un rango del 10 al 12 de septiembre
-        when: Se agarra por el 11 y se suelta sobre el 15
-        then: El rango queda del 14 al 16
+      - title: Range grabbed by its second day
+        given: A range from September 10 to 12
+        when: It is grabbed by the 11th and dropped on the 15th
+        then: The range ends up from the 14th to the 16th
   - id: BR-991f4fd
     status: active
-    title: Un filtro rápido se suma a la vista sin cambiarla
+    title: A quick filter is added to the view without changing it
     rule: >-
-      Quien mira una colección puede poner un filtro rápido encima del de la vista, con las mismas condiciones,
-      incluidas las fechas relativas y «yo». El filtro rápido viaja en la dirección de la página y se suma con «y» al de
-      la vista. Vale para las filas, los conteos, las páginas siguientes y la selección de todas las que coinciden, y se
-      mantiene al cambiar de vista. No se guarda, nadie más lo ve y la vista queda como estaba. Si no deja pasar ninguna
-      fila, la pantalla lo dice y ofrece quitarlo.
+      Whoever looks at a collection can put a quick filter on top of the view's, with the same conditions, including
+      relative dates and "me". The quick filter travels in the page address and is added with "and" to the view's. It
+      applies to the rows, the counts, the next pages and the selection of all that match, and is kept when changing view.
+      It is not stored, nobody else sees it and the view stays as it was. If it lets no row through, the screen says so and
+      offers to remove it.
     why: >-
-      Mirar «lo mío de esta semana» un momento no debería obligar a editar la vista del equipo ni a crear otra, ni dejar
-      un filtro que el siguiente en abrirla no sabe de dónde salió.
-    context: Lo pueden usar también quienes solo leen la colección.
+      Looking at "my things this week" for a moment should not force editing the team's view nor creating another, nor
+      leaving a filter that the next person to open it does not know where it came from.
+    context: It can also be used by those who only read the collection.
   - id: BR-9afad17
     status: active
-    title: La plantilla por defecto se usa al crear una fila por cualquier camino, y solo hay una por colección
+    title: The default template is used when creating a row by any path, and there is only one per collection
     rule: >-
-      Una colección tiene como máximo una plantilla por defecto. Cuando se crea una fila sin nombrar plantilla, desde
-      una tabla, un tablero, un calendario o un agente, se usa la plantilla por defecto si existe. Cambiar la plantilla
-      por defecto es una sola escritura sobre la colección, y borrar la plantilla que lo era deja la colección sin
-      plantilla por defecto.
+      A collection has at most one default template. When a row is created without naming a template, from a table, a
+      board, a calendar or an agent, the default template is used if it exists. Changing the default template is a single
+      write on the collection, and deleting the template that was the default leaves the collection without a default
+      template.
     why: >-
-      Si el valor por defecto dependiera de la vista, una misma fila nacería distinta según desde dónde se creó y un
-      agente no tendría forma de saber con qué empieza.
+      If the default depended on the view, the same row would be born differently depending on where it was created and an
+      agent would have no way of knowing what it starts with.
     context: >-
-      La plantilla por defecto es de la colección y no de cada vista. Una plantilla por vista podría sumarse después sin
-      cambiar esta regla. Una colección guarda como máximo cincuenta plantillas.
+      The default template belongs to the collection and not to each view. A template per view could be added later without
+      changing this rule. A collection stores at most fifty templates.
     scenarios:
-      - title: Una columna del tablero usa la plantilla por defecto
-        given: Una colección con una plantilla por defecto
-        when: Alguien agrega una tarjeta en una columna del tablero
-        then: La tarjeta nace con el contenido y los valores de esa plantilla y con el valor de la columna
+      - title: A board column uses the default template
+        given: A collection with a default template
+        when: Someone adds a card in a board column
+        then: The card is born with that template's content and values and with the column's value
   - id: BR-a4aa5e3
     status: active
-    title: Un rollup resume una propiedad de las filas que una relación enlaza
+    title: A rollup summarizes a property of the rows that a relation links
     rule: >-
-      Una colección puede tener propiedades de tipo rollup. Un rollup sigue una relación de la colección, toma una
-      propiedad de las filas enlazadas y la resume con un cálculo (contar, sumar, promedio, mínimo, máximo, mediana,
-      porcentajes de llenado, o mostrar los valores originales). Los cálculos que se ofrecen son los que tienen sentido
-      para el tipo de la propiedad elegida, y el resultado es un valor del tipo que corresponde, que se filtra, se
-      ordena y se agrupa como cualquier otro. Los valores originales sirven para mostrar y para los agentes, pero no se
-      pueden filtrar, ordenar ni agrupar. Un rollup puede leer una propiedad de otra colección que a su vez sea un
-      rollup o una fórmula, hasta un tope de profundidad, y nunca puede formar un ciclo.
+      A collection can have properties of type rollup. A rollup follows a relation of the collection, takes a property of
+      the linked rows and summarizes it with a calculation (count, sum, average, minimum, maximum, median, fill
+      percentages, or show the original values). The calculations offered are those that make sense for the type of the
+      chosen property, and the result is a value of the corresponding type, which is filtered, sorted and grouped like any
+      other. The original values serve for display and for agents, but cannot be filtered, sorted or grouped. A rollup can
+      read a property of another collection that is itself a rollup or a formula, up to a depth cap, and can never form a
+      cycle.
     why: >-
-      El total de partidas de un proyecto, el avance de sus tareas o la próxima fecha de entrega viven en filas de otra
-      colección, y sin esto cada quien los suma a mano o los exporta a una planilla.
+      A project's total line items, the progress of its tasks or the next delivery date live in rows of another collection,
+      and without this everyone sums them by hand or exports them to a spreadsheet.
     context: >-
-      Un rollup lee solo filas de la colección a la que apunta la relación y no se puede cambiar de relación sin volver
-      a elegir la propiedad y el cálculo.
+      A rollup only reads rows of the collection the relation points to and cannot switch relations without choosing the
+      property and the calculation again.
     scenarios:
-      - title: Suma de las partidas de un proyecto
-        given: Un proyecto enlazado con tres partidas de 10, 20 y 30
-        when: Se lee el rollup que suma el costo
-        then: Muestra 60
+      - title: Sum of a project's line items
+        given: A project linked with three line items of 10, 20 and 30
+        when: The rollup that sums the cost is read
+        then: It shows 60
   - id: BR-aa08c26
     status: active
-    title: Una fila sin valor no cumple lo que pide un valor
+    title: A row with no value does not meet what asks for a value
     rule: >-
-      Una fila que no tiene nada en la propiedad no cumple una condición que pide un valor («es», «contiene», «es antes
-      de», «es mayor que», «está en el grupo»), y sí cumple una que pide su ausencia («no es», «no contiene», «no está
-      en el grupo»). Una casilla que nunca se tocó se lee como sin marcar. Las condiciones «está vacío» y «tiene valor»
-      siguen igual.
+      A row that has nothing in the property does not meet a condition that asks for a value ("is", "contains", "is before",
+      "is greater than", "is in the group"), and does meet one that asks for its absence ("is not", "does not contain", "is
+      not in the group"). A checkbox that was never touched is read as unchecked. The conditions "is empty" and "has a
+      value" stay the same.
     why: >-
-      Con «responsable contiene yo» o «vence antes de hoy», las filas sin responsable o sin fecha aparecían en la lista
-      como si fueran de la persona o estuvieran vencidas, y la vista dejaba de servir para lo que prometía.
+      With "assignee contains me" or "due before today", rows without an assignee or without a date appeared in the list as
+      if they belonged to the person or were overdue, and the view stopped being useful for what it promised.
     context: >-
-      Antes, una fila sin valor pasaba cualquier condición sobre esa propiedad. El motor compartido y la consulta del
-      servidor aplican la misma regla.
+      Before, a row with no value passed any condition on that property. The shared engine and the server's query apply the
+      same rule.
   - id: BR-ae2730d
     status: active
-    title: Una selección se ordena por la posición de sus opciones, no por su nombre
+    title: A selection is sorted by the position of its options, not by its name
     rule: >-
-      Al ordenar las filas por una selección, una selección múltiple o un estado, el orden es el de la lista de opciones
-      de la propiedad, no el alfabético: la primera opción va primero. Un estado ordena por grupo y, dentro de cada
-      grupo, por posición. Una fecha ordena por su inicio y después por su fin, y una relación, por cuántos enlaces
-      tiene. Las filas sin valor van siempre al final.
+      When sorting rows by a select, a multi-select or a status, the order is that of the property's option list, not
+      alphabetical: the first option goes first. A status sorts by group and, within each group, by position. A date sorts
+      by its start and then by its end, and a relation by how many links it has. Rows with no value always go last.
     why: >-
-      Un orden alfabético de «alta», «baja» y «media» no es el orden que alguien le dio a la prioridad, y obliga a
-      numerar las opciones para que salgan bien.
-    context: Cambiar el orden de las opciones cambia el orden de las filas.
+      An alphabetical order of "alta", "baja" and "media" is not the order someone gave to priority, and it forces
+      numbering the options so that they come out right.
+    context: Changing the order of the options changes the order of the rows.
     scenarios:
-      - title: Prioridades
-        given: Una selección con las opciones Alta, Media y Baja en ese orden
-        when: Se ordenan las filas de menor a mayor por esa selección
-        then: Salen las de Alta, luego Media, luego Baja, y las sin valor al final
+      - title: Priorities
+        given: A select with the options Alta, Media and Baja in that order
+        when: The rows are sorted from lowest to highest by that select
+        then: Those with Alta come out, then Media, then Baja, and those without a value last
   - id: BR-af673e9
     status: active
-    title: Una plantilla es el punto de partida de una fila y nunca es una fila, y una plantilla borrada se puede recuperar
+    title: A template is a row's starting point and is never a row, and a deleted template can be recovered
     rule: >-
-      Una colección puede tener plantillas, y cada una guarda un nombre, un contenido y los valores con que empieza una
-      fila. Una plantilla no es una fila de la colección, así que no aparece en ninguna vista, conteo, resultado de
-      búsqueda, lista de cambios, árbol lateral ni listado de un agente, y no consume un identificador único. Solo se ve
-      en la lista de plantillas de la colección y abriéndola por su dirección. Una plantilla borrada va a la papelera,
-      donde se muestra como plantilla de su colección y no como fila, y al restaurarla vuelve a las plantillas de la
-      colección, sin volver a ser la plantilla por defecto.
+      A collection can have templates, and each one stores a name, a content and the values a row starts with. A template
+      is not a row of the collection, so it appears in no view, count, search result, change list, side tree or agent
+      listing, and it does not consume a unique identifier. It is only seen in the collection's template list and by
+      opening it through its address. A deleted template goes to the trash, where it is shown as a template of its
+      collection and not as a row, and when restored it returns to the collection's templates, without becoming the
+      default template again.
     why: >-
-      Si una plantilla contara como fila, los totales mentirían y un tablero mostraría una tarjeta que nadie creó. Y un
-      borrado por accidente no puede ser irrecuperable mientras cualquier otra página se recupera de la papelera.
+      If a template counted as a row, the totals would lie and a board would show a card that nobody created. And an
+      accidental deletion cannot be unrecoverable while any other page is recovered from the trash.
     context: >-
-      Una plantilla se edita como cualquier página y hereda los permisos de su colección. Duplicar una colección con sus
-      páginas se lleva también sus plantillas y la plantilla por defecto. Vaciar la papelera también borra las
-      plantillas que hay en ella.
+      A template is edited like any page and inherits its collection's permissions. Duplicating a collection with its pages
+      also carries its templates and the default template. Emptying the trash also deletes the templates in it.
     supersedes: BR-554783b
     scenarios:
-      - title: Un conteo no incluye plantillas
-        given: Una colección con tres filas y dos plantillas
-        when: Alguien pide el conteo de la vista
-        then: El conteo dice tres
-      - title: Recuperar una plantilla borrada
-        given: Una plantilla por defecto que alguien borró por error
-        when: Alguien la restaura desde la papelera
-        then: Vuelve a la lista de plantillas de la colección y la colección queda sin plantilla por defecto
+      - title: A count does not include templates
+        given: A collection with three rows and two templates
+        when: Someone asks for the view's count
+        then: The count says three
+      - title: Recovering a deleted template
+        given: A default template that someone deleted by mistake
+        when: Someone restores it from the trash
+        then: It returns to the collection's template list and the collection is left without a default template
   - id: BR-b52cd07
     status: active
-    title: Los totales de una vista dicen qué porcentaje de las filas tiene valor
+    title: A view's totals say what percentage of the rows has a value
     rule: >-
-      Además de contar y sumar, el pie de una vista puede mostrar el porcentaje de filas con valor y el porcentaje de
-      filas vacías de una propiedad. El resultado es el mismo para las propiedades guardadas y para las calculadas, y
-      cuando no hay filas el porcentaje no se inventa.
-    why: Saber que el 40 % de las tareas no tiene responsable dice más que saber que son 12 de 30.
-    context: Un porcentaje de una propiedad calculada se mide entre las filas que se pudieron calcular.
+      Besides counting and summing, a view's footer can show the percentage of rows with a value and the percentage of
+      empty rows of a property. The result is the same for stored and for computed properties, and when there are no rows
+      the percentage is not invented.
+    why: Knowing that 40% of the tasks have no assignee says more than knowing it is 12 of 30.
+    context: A percentage of a computed property is measured among the rows that could be computed.
     scenarios:
-      - title: Porcentaje con valor
-        given: Cuatro filas y una propiedad con valor en tres
-        when: Se pide el porcentaje con valor
-        then: El resultado es 75 %
+      - title: Percentage with a value
+        given: Four rows and a property with a value in three
+        when: The percentage with a value is requested
+        then: The result is 75%
   - id: BR-c00503a
     status: active
-    title: «Hoy» y «yo» en una plantilla se resuelven al crear la fila, para quien la crea
+    title: '"Today" and "me" in a template are resolved when creating the row, for whoever creates it'
     rule: >-
-      Una plantilla puede dejar una columna de fecha para llenarse con el día de hoy y una columna de persona para
-      llenarse con quien crea la fila. Son las únicas dos palabras que una plantilla admite. Se resuelven en el momento
-      de crear cada fila, con el calendario de la zona horaria de quien la crea, y la fila resultante guarda el día y la
-      persona, nunca la palabra.
+      A template can leave a date column to be filled with today's date and a person column to be filled with whoever
+      creates the row. They are the only two words a template admits. They are resolved at the moment each row is created,
+      with the calendar of the time zone of whoever creates it, and the resulting row stores the day and the person, never
+      the word.
     why: >-
-      Una plantilla de reunión semanal que siempre dijera la fecha en que se hizo la plantilla sería inútil, y una que
-      apuntara siempre a su autor asignaría el trabajo a quien no corresponde.
+      A weekly meeting template that always said the date on which the template was made would be useless, and one that
+      always pointed to its author would assign the work to whoever it does not belong to.
     context: >-
-      «Hoy» solo cabe en una columna de fecha y «yo» solo en una de persona; cualquier otra combinación se rechaza al
-      guardar la plantilla. Sin zona horaria se usa UTC. Lo que quien crea la fila da de forma explícita gana sobre
-      estas palabras.
+      "Today" only fits in a date column and "me" only in a person column; any other combination is rejected when saving
+      the template. Without a time zone, UTC is used. What whoever creates the row gives explicitly wins over these words.
     scenarios:
-      - title: Hoy según la zona de quien crea
-        given: Una plantilla con la fecha de vencimiento marcada como hoy
-        when: Una persona en Santiago crea una fila a las 23:30 hora local
-        then: La fecha de vencimiento es el día local de Santiago
+      - title: Today according to the zone of whoever creates
+        given: A template with the due date marked as today
+        when: A person in Santiago creates a row at 23:30 local time
+        then: The due date is the local day in Santiago
   - id: BR-c0f99c2
     status: active
-    title: Una colección se lee por páginas, y nunca se presenta cortada como si fuera entera
+    title: A collection is read in pages, and a cut one is never presented as if it were whole
     rule: >-
-      Una vista no trae todas las filas de una colección. Trae una primera página de filas, o de cada columna si agrupa,
-      y cada página dice si hay más y desde dónde seguir. Quien lee pide la página siguiente con ese punto de
-      continuación, y el orden no cambia entre páginas aunque se agreguen o muevan filas. Cuántas filas hay en total,
-      cuántas hay en cada grupo y lo que suman o promedian las columnas se calculan sobre todas las filas que pasan el
-      filtro, no sobre las que ya se trajeron, y llegan aparte para que las filas se dibujen sin esperarlos. Una
-      colección cortada nunca se presenta como entera.
+      A view does not bring all of a collection's rows. It brings a first page of rows, or of each column if it groups, and
+      each page says whether there are more and where to continue from. Whoever reads asks for the next page with that
+      continuation point, and the order does not change between pages even if rows are added or moved. How many rows there
+      are in total, how many there are in each group and what the columns sum or average are computed over all the rows
+      that pass the filter, not over those already brought, and arrive separately so that the rows are drawn without waiting
+      for them. A cut collection is never presented as whole.
     why: >-
-      Una colección que creció sola costaría al abrirse en proporción a todo lo que guardó, y filtrar sobre una
-      colección ya cortada responde que nada cumple cuando lo que cumple quedó afuera. Dar el total aparte permite ver
-      las filas enseguida y, aun así, no mentir sobre cuántas hay.
+      A collection that grew on its own would cost, when opened, in proportion to everything it stored, and filtering over
+      an already cut collection answers that nothing matches when what matches was left out. Giving the total separately
+      makes it possible to see the rows right away and still not lie about how many there are.
     context: >-
-      Cada respuesta lleva como máximo mil filas y una página de filas lleva como máximo cien. El agente recibe lo mismo
-      que la pantalla y puede pedir solo los conteos, solo un grupo o solo las columnas que necesita.
+      Each response carries at most a thousand rows and a page of rows carries at most a hundred. The agent receives the
+      same as the screen and can ask for only the counts, only one group or only the columns it needs.
     supersedes: BR-3c85c11
     scenarios:
-      - title: Una colección de miles de filas
-        given: Una colección con diez mil filas y una vista en tabla
-        when: Alguien abre la vista
-        then: Ve las primeras filas enseguida, el total llega después, y puede pedir más filas sin que el orden cambie
-      - title: Un conteo con filtro
-        given: Una vista con un filtro que deja tres mil filas
-        when: Se pide el total
-        then: El total es tres mil aunque solo se hayan traído cincuenta filas
+      - title: A collection of thousands of rows
+        given: A collection with ten thousand rows and a table view
+        when: Someone opens the view
+        then: They see the first rows right away, the total arrives afterwards, and they can ask for more rows without the order changing
+      - title: A count with a filter
+        given: A view with a filter that leaves three thousand rows
+        when: The total is requested
+        then: The total is three thousand even though only fifty rows were brought
   - id: BR-c974803
     status: active
-    title: Un agente lee solo lo que cambió en una colección desde su última lectura, sin perder ningún cambio
+    title: An agent reads only what changed in a collection since its last read, without losing any change
     rule: >-
-      Una consulta de colección entrega un cursor, y la herramienta de cambios devuelve las filas escritas desde ese
-      cursor, con su estado actual, los identificadores de las que pasaron a la papelera, el total de filas que el
-      agente puede leer y un cursor nuevo. El cursor se apoya en el identificador de transacción que escribió cada fila,
-      así que una escritura que se confirma tarde nunca se pierde; a cambio, puede repetir filas, y cada fila lleva su
-      versión para reconocer la repetición. Las filas cerradas para el agente no se nombran ni se cuentan. Un cursor que
-      el servidor no escribió pide leer la colección de nuevo. El agente puede pedir que la llamada espere hasta 25
-      segundos a que algo cambie.
+      A collection query delivers a cursor, and the changes tool returns the rows written since that cursor, with their
+      current state, the identifiers of those that went to the trash, the total number of rows the agent can read and a new
+      cursor. The cursor relies on the identifier of the transaction that wrote each row, so a write that is confirmed late
+      is never lost; in exchange, it can repeat rows, and each row carries its version to recognize the repetition. Rows
+      closed to the agent are neither named nor counted. A cursor that the server did not write asks to read the collection
+      again. The agent can ask the call to wait up to 25 seconds for something to change.
     why: >-
-      Releer la colección entera para saber qué cambió gasta el contexto del agente y no dice qué cambió. Un cursor por
-      fecha perdería los cambios de transacciones que empezaron antes y se confirmaron después.
+      Rereading the whole collection to know what changed wastes the agent's context and does not say what changed. A
+      cursor by date would lose the changes of transactions that started earlier and were confirmed later.
     context: >-
-      Cada escritura de un bloque deja en él el identificador de su transacción mediante un disparador de la base. Esto
-      vuelve las actualizaciones de un bloque no HOT por el índice que lo sirve.
+      Each write of a block leaves in it the identifier of its transaction by means of a database trigger. This turns a
+      block's updates into non-HOT ones for the index that serves it.
     scenarios:
-      - title: Solo lo que cambió
-        given: Un agente con el cursor de su última lectura
-        when: Alguien renombra una fila
-        then: La herramienta devuelve esa fila y un cursor nuevo, y la siguiente llamada no devuelve nada
-      - title: Una transacción tardía
-        given: Una transacción que empezó antes de que se entregara el cursor y se confirma después
-        when: El agente pide los cambios desde ese cursor
-        then: La fila de esa transacción aparece
+      - title: Only what changed
+        given: An agent with the cursor from its last read
+        when: Someone renames a row
+        then: The tool returns that row and a new cursor, and the next call returns nothing
+      - title: A late transaction
+        given: A transaction that started before the cursor was delivered and is confirmed afterwards
+        when: The agent asks for the changes since that cursor
+        then: The row from that transaction appears
   - id: BR-d1358d5
     status: active
-    title: Una línea de tiempo pone cada fila en los días que dura
+    title: A timeline places each row on the days it lasts
     rule: >-
-      Una vista de línea de tiempo dibuja cada fila como una barra desde su día de inicio hasta su día de fin, sobre una
-      escala de días, semanas o meses que se guarda en la vista. El inicio y el fin salen de una sola propiedad de fecha
-      con rango, o de dos propiedades de fecha cuando la vista nombra una para el final. Una fila sin inicio no tiene
-      lugar en el tiempo, así que se lista aparte con su cantidad total, y la barra de una fila que sigue más allá de
-      los días mostrados se corta en el borde diciendo que continúa. Una marca señala el día de hoy en el calendario de
-      quien mira.
+      A timeline view draws each row as a bar from its start day to its end day, on a scale of days, weeks or months that is
+      stored in the view. The start and the end come from a single date property with a range, or from two date properties
+      when the view names one for the end. A row with no start has no place in time, so it is listed separately with its
+      total count, and the bar of a row that continues beyond the displayed days is cut at the edge saying that it
+      continues. A mark points to today's date in the calendar of whoever is looking.
     why: >-
-      Una fecha de inicio y una de fin dicen cuánto dura algo, y eso es lo que un equipo necesita ver para planear. Una
-      fila sin fecha que desaparece del dibujo parece borrada, y una escala fija obliga a elegir entre ver el año o ver
-      la semana.
+      A start date and an end date say how long something lasts, and that is what a team needs to see in order to plan. A
+      row without a date that disappears from the drawing looks deleted, and a fixed scale forces choosing between seeing
+      the year or seeing the week.
     context: >-
-      Los días se leen sin la hora; un final anterior al inicio se lee como el día del inicio. La escala es de la vista,
-      no de quien mira. Si la vista aún no dice qué fecha guarda el inicio, la pantalla lo pide en vez de dibujar vacío.
+      Days are read without the time; an end earlier than the start is read as the start day. The scale belongs to the view,
+      not to whoever is looking. If the view does not yet say which date holds the start, the screen asks for it instead of
+      drawing empty.
     scenarios:
-      - title: Una fila con rango
-        given: Una fila con fecha del 14 al 18 de septiembre y una línea de tiempo por días
-        when: Se abre la línea de tiempo en esos días
-        then: La fila se dibuja como una barra de cinco días que empieza el 14
-      - title: Una fila sin inicio
-        given: Una fila sin fecha de inicio
-        when: Se abre la línea de tiempo
-        then: No tiene barra y aparece en la lista de filas sin inicio, que dice cuántas son en total
+      - title: A row with a range
+        given: A row with a date from September 14 to 18 and a timeline by days
+        when: The timeline is opened on those days
+        then: The row is drawn as a five-day bar that starts on the 14th
+      - title: A row with no start
+        given: A row with no start date
+        when: The timeline is opened
+        then: It has no bar and appears in the list of rows with no start, which says how many there are in total
   - id: BR-d39ee9c
     status: active
-    title: Lo que alguien no puede abrir no entra en sus conteos, y si no se puede calcular bien se dice
+    title: What someone cannot open does not enter their counts, and if it cannot be computed correctly that is said
     rule: >-
-      Los totales, los conteos por grupo y los cálculos de una vista se hacen solo sobre las filas que quien mira puede
-      abrir, y dos personas con los mismos permisos ven los mismos números en la pantalla y en el agente. Una relación
-      no cuenta ni muestra las filas de la otra colección que quien mira no puede abrir, y si no puede abrir esa
-      colección la relación se ve vacía. Si una colección tiene tantas filas cerradas para quien mira que no se pueden
-      dejar fuera con exactitud, la consulta se rechaza con un error que lo dice y queda registrado con la colección, en
-      lugar de contar mal en silencio.
+      A view's totals, group counts and calculations are made only over the rows that whoever is looking can open, and two
+      people with the same permissions see the same numbers on screen and in the agent. A relation neither counts nor shows
+      the rows of the other collection that whoever is looking cannot open, and if they cannot open that collection the
+      relation looks empty. If a collection has so many rows closed to whoever is looking that they cannot be left out
+      exactly, the query is rejected with an error that says so and is recorded with the collection, instead of silently
+      counting wrong.
     why: >-
-      Un conteo que incluye filas que no se pueden ver delata que existen y su cantidad, y un conteo calculado de otra
-      manera para cada pantalla nunca coincide. Rechazar con un motivo es mejor que dar un número que puede ser falso.
+      A count that includes rows that cannot be seen gives away that they exist and how many, and a count computed in a
+      different way for each screen never matches. Rejecting with a reason is better than giving a number that may be false.
     context: >-
-      El límite son cinco mil filas cerradas en una misma colección. Las reglas propias de un token de agente sobre
-      páginas concretas cuentan igual que los permisos de la fila.
+      The limit is five thousand closed rows in a single collection. The own rules of an agent token over specific pages
+      count the same as the row's permissions.
     scenarios:
-      - title: Una fila cerrada
-        given: Una colección de diez filas, una cerrada para una persona
-        when: Esa persona pide el total y los conteos por grupo
-        then: Ve nueve filas, nueve en los grupos y nueve en el total
-      - title: Demasiadas cerradas
-        given: Una colección con más de cinco mil filas cerradas para una persona
-        when: Pide un conteo
-        then: Recibe un error que dice por qué no se puede calcular
+      - title: A closed row
+        given: A collection of ten rows, one closed to a person
+        when: That person asks for the total and the group counts
+        then: They see nine rows, nine in the groups and nine in the total
+      - title: Too many closed
+        given: A collection with more than five thousand rows closed to a person
+        when: They ask for a count
+        then: They receive an error that says why it cannot be computed
   - id: BR-d71ba80
     status: active
-    title: Cada vista ordena las filas a mano a su manera, y mientras no lo haga sigue el orden de la colección
+    title: Each view orders rows by hand in its own way, and until it does it follows the collection's order
     rule: >-
-      Una vista puede tener su propio orden manual de filas. Mientras no lo tenga, sigue el orden en que la colección
-      lista sus filas, de modo que la barra lateral y las vistas que nadie ordenó se ven como siempre. La primera vez
-      que alguien coloca una fila en una vista, esa vista toma el orden de la colección como punto de partida y desde
-      entonces lo lleva por su cuenta, sin tocar el de las demás. Una fila nueva se agrega al final de las vistas que ya
-      tienen orden propio, en la misma operación que la crea. Una fila que se borra para siempre desaparece de todos los
-      órdenes en la misma operación. Dos personas que colocan filas distintas a la vez conservan ambas colocaciones.
+      A view can have its own manual row order. As long as it does not have one, it follows the order in which the
+      collection lists its rows, so the side bar and the views that nobody ordered look as always. The first time someone
+      places a row in a view, that view takes the collection's order as its starting point and from then on carries it on
+      its own, without touching that of the others. A new row is added at the end of the views that already have an order
+      of their own, in the same operation that creates it. A row that is deleted forever disappears from all orders in the
+      same operation. Two people who place different rows at the same time keep both placements.
     why: >-
-      Un solo orden para la colección obligaría a que mover una tarjeta en un tablero cambie el lugar de la fila en cada
-      tabla y lista, y una lista de ids por vista que no limpia lo que se borra acaba apuntando a filas que ya no
-      existen.
+      A single order for the collection would mean that moving a card on a board changes the row's place in every table and
+      list, and a per-view list of ids that does not clean up what is deleted ends up pointing to rows that no longer exist.
     context: >-
-      Un orden manual guarda hasta veinte mil filas. Si la vista ordena por una propiedad, esa propiedad manda y el
-      orden manual solo desempata.
+      A manual order stores up to twenty thousand rows. If the view sorts by a property, that property governs and the
+      manual order only breaks ties.
     scenarios:
-      - title: Una vista sin orden propio
-        given: Una tabla y un tablero de la misma colección, y nadie ha colocado filas
-        when: Se mueve una tarjeta en el tablero
-        then: El tablero queda con el nuevo orden y la tabla sigue como estaba
-      - title: Una fila borrada
-        given: Una fila que figura en el orden de un tablero
-        when: Se borra para siempre
-        then: El tablero ya no la lleva en su orden ni la cuenta en ninguna relación
+      - title: A view with no order of its own
+        given: A table and a board of the same collection, and nobody has placed rows
+        when: A card is moved on the board
+        then: The board ends up with the new order and the table stays as it was
+      - title: A deleted row
+        given: A row that appears in a board's order
+        when: It is deleted forever
+        then: The board no longer carries it in its order nor is it counted in any relation
   - id: BR-dcdbcbc
     status: active
-    title: Una celda que no se puede calcular lo dice, y no estropea el resto
+    title: A cell that cannot be computed says so, and does not spoil the rest
     rule: >-
-      Cuando una fórmula o un rollup no se puede calcular para una fila (por ejemplo, una división por cero, un texto
-      que no es un número o un dato que depende de otro que falló), esa celda muestra un error con su código y su
-      motivo, y las demás celdas y filas se calculan con normalidad. Un agente recibe el mismo error en la propiedad de
-      la fila. Los totales de la vista no cuentan esas celdas como valores y dicen cuántas fallaron.
+      When a formula or a rollup cannot be computed for a row (for example, a division by zero, a text that is not a number
+      or a datum that depends on another that failed), that cell shows an error with its code and its reason, and the other
+      cells and rows are computed normally. An agent receives the same error in the row's property. The view's totals do
+      not count those cells as values and say how many failed.
     why: >-
-      Un error escondido como una celda vacía hace pensar que no hay dato, y un error que tumba la tabla entera por una
-      sola fila impide trabajar con las demás.
+      An error hidden as an empty cell makes people think there is no data, and an error that brings down the whole table
+      because of a single row prevents working with the others.
     context: >-
-      Si el cálculo de la vista pide mirar más filas de las que se pueden calcular de una vez, la consulta se rechaza
-      con un mensaje que pide acotar el filtro, en lugar de devolver algo parcial sin decirlo.
+      If the view's computation asks to look at more rows than can be computed at once, the query is rejected with a message
+      that asks to narrow the filter, instead of returning something partial without saying so.
     scenarios:
-      - title: Una división por cero
-        given: Una fórmula que divide por la cantidad y una fila con cantidad 0
-        when: Se lee la tabla
-        then: Esa celda muestra un error de división por cero y las otras filas muestran su resultado
+      - title: A division by zero
+        given: A formula that divides by the quantity and a row with quantity 0
+        when: The table is read
+        then: That cell shows a division-by-zero error and the other rows show their result
   - id: BR-dd13106
     status: active
-    title: Arrastrar o estirar una barra cambia las fechas de esa fila y nada más
+    title: Dragging or stretching a bar changes that row's dates and nothing else
     rule: >-
-      Mover una barra de la línea de tiempo desplaza el inicio y el fin juntos, conservando la duración y la hora del
-      día. Estirar uno de sus extremos cambia solo ese extremo, sin dejar que cruce al otro. Cada gesto es una sola
-      escritura que lleva únicamente las fechas que cambiaron, de modo que no pisa lo que otra persona editó en la fila
-      entretanto, y la barra se ve en su lugar nuevo antes de que el servidor responda y vuelve a donde estaba si lo
-      rechaza. Todo gesto tiene su equivalente con el teclado, y quien no puede editar mira pero no arrastra.
+      Moving a timeline bar shifts the start and the end together, keeping the duration and the time of day. Stretching one
+      of its ends changes only that end, without letting it cross the other. Each gesture is a single write that carries
+      only the dates that changed, so it does not overwrite what another person edited in the row in the meantime, and the
+      bar is seen in its new place before the server responds and goes back to where it was if the server rejects it. Every
+      gesture has its keyboard equivalent, and whoever cannot edit looks but does not drag.
     why: >-
-      Si el arrastre mandara la fila entera, dos personas moviendo cosas distintas de la misma fila se deshacerían entre
-      sí. Y un gesto que solo se puede hacer con el ratón deja fuera a quien no puede usarlo.
+      If the drag sent the whole row, two people moving different things of the same row would undo each other. And a
+      gesture that can only be done with the mouse leaves out whoever cannot use it.
     context: >-
-      Con el final en otra propiedad, mover escribe las dos propiedades en la misma escritura; estirar el final de una
-      fila que no tenía fin le crea uno.
+      With the end in another property, moving writes both properties in the same write; stretching the end of a row that
+      had no end creates one.
     scenarios:
-      - title: Mover una barra
-        given: Una barra del 14 al 18 de septiembre
-        when: Se arrastra tres días a la derecha
-        then: La fila queda del 17 al 21, con una sola escritura de su fecha
-      - title: Estirar más allá del inicio
-        given: Una barra del 14 al 18 de septiembre
-        when: Se estira su final nueve días a la izquierda
-        then: El final se queda en el día del inicio y no lo cruza
+      - title: Moving a bar
+        given: A bar from September 14 to 18
+        when: It is dragged three days to the right
+        then: The row ends up from the 17th to the 21st, with a single write of its date
+      - title: Stretching past the start
+        given: A bar from September 14 to 18
+        when: Its end is stretched nine days to the left
+        then: The end stays on the start day and does not cross it
   - id: BR-f45f95c
     status: active
-    title: Una relación enlaza filas de otra colección, y cada enlace se agrega o se quita de uno en uno
+    title: A relation links rows of another collection, and each link is added or removed one at a time
     rule: >-
-      Una propiedad de relación apunta a las filas de otra colección del mismo espacio. Se puede crear en un solo
-      sentido, o en ambos: en ese caso la otra colección recibe una propiedad que apunta de vuelta, y agregar o quitar
-      un enlace en un lado lo agrega o lo quita en el otro en el mismo acto. Los enlaces se cambian de a uno, con una
-      orden de agregar y otra de quitar, de modo que dos personas que editan la misma celda a la vez no se pisan; no se
-      escribe la lista entera. Una celda enlaza hasta cien filas y respeta el orden en que se agregaron. Quien lee solo
-      ve los enlaces a filas que puede abrir. Para cambiar una relación en ambos sentidos hace falta poder editar
-      también la fila del otro lado: si no se puede, la operación entera se rechaza con un error que nombra ese lado, y
-      no cambia nada. Quitar una propiedad de relación deja la del otro lado como relación de un solo sentido, con sus
-      valores.
+      A relation property points to the rows of another collection in the same space. It can be created in one direction,
+      or in both: in that case the other collection receives a property that points back, and adding or removing a link on
+      one side adds or removes it on the other in the same act. Links are changed one at a time, with one add command and
+      another remove command, so that two people editing the same cell at once do not overwrite each other; the whole list
+      is not written. A cell links up to a hundred rows and respects the order in which they were added. Whoever reads only
+      sees the links to rows they can open. To change a relation in both directions it is necessary to be able to edit the
+      row on the other side as well: if that is not possible, the whole operation is rejected with an error that names that
+      side, and nothing changes. Removing a relation property leaves the one on the other side as a one-way relation, with
+      its values.
     why: >-
-      Sin relaciones, enlazar dos colecciones obliga a copiar nombres a mano, que se desactualizan. Y si una persona
-      pudiera editar una fila ajena a través del espejo de una relación, la relación sería una puerta para saltarse los
-      permisos de esa fila.
+      Without relations, linking two collections forces copying names by hand, which go stale. And if a person could edit
+      someone else's row through the mirror of a relation, the relation would be a door to skip that row's permissions.
     context: >-
-      La colección a la que apunta se elige una sola vez, al crear la propiedad. La propiedad de vuelta nunca se nombra
-      desde fuera: la crea el servidor. Una relación no se agrega desde un agente externo hoy; solo se lee.
+      The collection it points to is chosen only once, when creating the property. The property pointing back is never
+      named from outside: the server creates it. A relation is not added from an external agent today; it is only read.
     scenarios:
-      - title: Enlazar en ambos sentidos
-        given: Una relación en ambos sentidos entre Tareas y Proyectos
-        when: Se enlaza la tarea T1 al proyecto P1
-        then: P1 muestra T1 en la propiedad de vuelta, sin otro cambio
-      - title: Sin permiso para editar el otro lado
-        given: Una persona que puede editar T1 pero solo leer P1
-        when: Intenta enlazar T1 a P1 en una relación en ambos sentidos
-        then: Se rechaza todo, con un error que dice que el lado espejo no se puede editar
+      - title: Linking in both directions
+        given: A two-way relation between Tareas and Proyectos
+        when: Task T1 is linked to project P1
+        then: P1 shows T1 in the property pointing back, with no other change
+      - title: No permission to edit the other side
+        given: A person who can edit T1 but only read P1
+        when: They try to link T1 to P1 in a two-way relation
+        then: Everything is rejected, with an error that says the mirror side cannot be edited
   - id: BR-f6f03fe
     status: active
-    title: Un cambio de columnas no pisa el que otro hizo mientras tanto
+    title: A column change does not overwrite the one that someone else made in the meantime
     rule: >-
-      Quien cambia las columnas de una colección lo hace sobre la forma que leyó. Si al guardar la forma ya no es esa,
-      porque otra persona o un agente la cambió entre medio, el cambio se rechaza entero y se avisa que la colección
-      cambió, para que se vuelva a mirar antes de intentarlo de nuevo.
-    why: Guardar sobre una forma vieja borraría en silencio la columna o la opción que el otro acababa de agregar.
-    context: Vale igual para el portal y para los agentes. Lo que ya se había hecho antes del rechazo se informa como hecho.
+      Whoever changes a collection's columns does so on the shape they read. If when saving the shape is no longer that one,
+      because another person or an agent changed it in between, the change is rejected whole and it is announced that the
+      collection changed, so that it is looked at again before trying again.
+    why: Saving over an old shape would silently erase the column or the option that the other had just added.
+    context: It applies equally to the portal and to agents. What had already been done before the rejection is reported as done.
     scenarios:
-      - title: Dos cambios a la vez
-        given: Un agente leyó las columnas de una colección
-        when: Una persona agrega una columna y después el agente guarda su cambio
-        then: El cambio del agente se rechaza diciendo que la colección cambió, y la columna nueva sigue ahí
+      - title: Two changes at once
+        given: An agent read a collection's columns
+        when: A person adds a column and then the agent saves its change
+        then: The agent's change is rejected saying that the collection changed, and the new column is still there
   - id: BR-f707396
     status: active
-    title: Un filtro se arma con grupos, y cada grupo dice si pide todo o cualquiera
+    title: A filter is built with groups, and each group says whether it asks for all or any
     rule: >-
-      El filtro de una vista no es una lista plana de condiciones: es un grupo que contiene condiciones y otros grupos,
-      y cada grupo declara si se cumple cuando se cumplen todas las cosas que lleva dentro o cuando se cumple cualquiera
-      de ellas. Así se expresa «vence esta semana y está sin asignar, o está marcada como urgente» sin salir de la
-      pantalla. Una condición que señala una propiedad que la colección ya no tiene se deja de aplicar y no se dibuja,
-      en vez de filtrar por algo que nadie puede ver ni corregir.
+      A view's filter is not a flat list of conditions: it is a group that contains conditions and other groups, and each
+      group declares whether it is met when all the things it carries inside are met or when any one of them is met. This
+      is how "due this week and unassigned, or marked as urgent" is expressed without leaving the screen. A condition that
+      points to a property the collection no longer has stops being applied and is not drawn, instead of filtering by
+      something that nobody can see or correct.
     why: >-
-      Con condiciones sueltas unidas siempre por «y», media pregunta real no se puede escribir, y quien la necesita
-      termina creando una vista por cada caso o exportando a una planilla. Y un filtro que sigue aplicando una propiedad
-      borrada esconde filas por un motivo que ya no aparece en ninguna parte.
+      With loose conditions always joined by "and", half of the real questions cannot be written, and whoever needs them
+      ends up creating a view for each case or exporting to a spreadsheet. And a filter that keeps applying a deleted
+      property hides rows for a reason that no longer appears anywhere.
     scenarios:
-      - title: Dos caminos para pasar
-        given: Un filtro cuyo grupo raíz pide cualquiera de sus dos grupos
-        when: Una fila cumple solo el segundo grupo
-        then: La fila pasa el filtro
-      - title: Una propiedad que ya no está
-        given: Un filtro con una condición sobre una propiedad que se quitó
-        when: Se mira la vista
-        then: Esa condición no se aplica ni se dibuja, y el resto del filtro sigue valiendo
+      - title: Two ways to pass
+        given: A filter whose root group asks for any of its two groups
+        when: A row meets only the second group
+        then: The row passes the filter
+      - title: A property that is no longer there
+        given: A filter with a condition on a property that was removed
+        when: The view is looked at
+        then: That condition is neither applied nor drawn, and the rest of the filter remains valid
   - id: BR-f7880be
     status: active
-    title: Una fecha del filtro puede moverse con el día en que se mira
+    title: A filter's date can move with the day it is looked at
     rule: >-
-      Un filtro de fecha (también sobre la fecha de creación y la de última edición) puede comparar con un día exacto o
-      con una fecha relativa que se resuelve cada vez que se consulta, en el calendario de quien mira. Las fechas
-      relativas son hoy, ayer, mañana, esta semana, la semana pasada, la próxima semana, este mes, el mes pasado, el
-      próximo mes, los últimos N días y los próximos N días. Las semanas van de lunes a domingo, y los últimos y los
-      próximos N días cuentan hoy. «Vencido» es «es antes de» hoy, y «es el día o antes de» y «es el día o después de»
-      conservan el día mismo. Una fecha con rango coincide cuando se cruza con los días pedidos, y «antes de» mira dónde
-      termina el rango y «después de» dónde empieza. Una fecha sin hora se compara por días y una con hora por
-      instantes, así que un bloque creado a última hora de la tarde cae en el día de quien mira y una fecha de
-      vencimiento se queda en su día calendario donde sea que esté la persona.
+      A date filter (also on the creation date and the last edit date) can compare with an exact day or with a relative date
+      that is resolved every time it is queried, in the calendar of whoever is looking. The relative dates are today,
+      yesterday, tomorrow, this week, last week, next week, this month, last month, next month, the last N days and the next
+      N days. Weeks run from Monday to Sunday, and the last and next N days include today. "Overdue" is "is before" today,
+      and "is the day or before" and "is the day or after" keep the day itself. A date with a range matches when it
+      overlaps the requested days, and "before" looks at where the range ends and "after" at where it starts. A date
+      without a time is compared by days and one with a time by instants, so a block created late in the afternoon falls on
+      the day of whoever is looking and a due date stays on its calendar day wherever the person is.
     why: >-
-      Una vista de «lo que vence esta semana» guardada con días exactos queda vieja al día siguiente. Y el día de una
-      persona en Santiago no es el día en UTC, así que comparar siempre en UTC hace que a ciertas horas lo de hoy
-      parezca de mañana o de ayer.
+      A "what is due this week" view saved with exact days goes stale the next day. And a person's day in Santiago is not
+      the day in UTC, so always comparing in UTC makes today's things seem like tomorrow's or yesterday's at certain hours.
     context: >-
-      Quien mira dice su zona horaria y, si no la dice, se usa UTC. Un marcador de fecha que no existe se rechaza al
-      guardar la vista y al consultar, con un mensaje, y no se compara como texto.
+      Whoever is looking states their time zone and, if they do not, UTC is used. A date marker that does not exist is
+      rejected when saving the view and when querying, with a message, and is not compared as text.
     scenarios:
-      - title: La semana cambia antes en un lugar que en otro
-        given: Es domingo por la noche en Santiago y ya lunes en UTC
-        when: Dos personas miran la misma vista de «esta semana»
-        then: Quien está en Santiago ve la semana que termina hoy y quien está en UTC ve la que empieza hoy
+      - title: The week changes earlier in one place than in another
+        given: It is Sunday night in Santiago and already Monday in UTC
+        when: Two people look at the same "this week" view
+        then: Whoever is in Santiago sees the week that ends today and whoever is in UTC sees the one that starts today
   - id: BR-f94b138
     status: active
-    title: La forma de una colección se cambia después de crearla
+    title: A collection's shape is changed after creating it
     rule: >-
-      Una colección ya creada se puede reconfigurar: agregar propiedades de cualquiera de los tipos que existen,
-      renombrarlas, quitarlas, marcarlas como obligatorias, fijar lo que cada tipo necesita (el formato de un número, el
-      prefijo de un identificador único, a qué colección apunta una relación, si una persona admite varias) y decidir
-      qué opciones ofrece una propiedad de lista y de qué color es cada una. Nada de eso viaja hasta que se guarda, así
-      que una colección nunca queda en una forma a medias. La propiedad de título no se puede quitar, porque es la que
-      abre cada fila. Una propiedad conserva su tipo cuando lo que guarda no cabría en otro: un estado, una relación,
-      los archivos, el identificador único y los datos de creación y edición no cambian de tipo ni se convierten desde
-      otro. Solo quien puede escribir la página ve por dónde entrar.
+      An already created collection can be reconfigured: adding properties of any of the existing types, renaming them,
+      removing them, marking them as required, setting what each type needs (a number's format, a unique identifier's
+      prefix, which collection a relation points to, whether a person admits several) and deciding which options a list
+      property offers and what color each one is. None of that travels until it is saved, so a collection is never left in
+      a half-way shape. The title property cannot be removed, because it is the one that opens each row. A property keeps
+      its type when what it stores would not fit in another: a status, a relation, files, the unique identifier and the
+      creation and edit data do not change type nor are converted from another. Only whoever can write the page sees where
+      to enter.
     why: >-
-      Una colección cuya forma se decide el día que nace obliga a saber de antemano qué se va a necesitar, que es
-      justamente lo que nadie sabe al empezar. Y cambiar a mitad de camino el tipo de lo que guarda ids de opciones, de
-      filas o de archivos dejaría filas con valores que la propiedad ya no sabe leer.
+      A collection whose shape is decided the day it is born forces knowing in advance what will be needed, which is
+      precisely what nobody knows at the start. And changing midway the type of what stores option, row or file ids would
+      leave rows with values that the property no longer knows how to read.
     context: >-
-      Lo que las filas ya escribieron no se toca: los valores viven en cada fila, no en la forma. Renombrar una
-      propiedad o una opción, o cambiar el color de una opción, no mueve ninguna fila. Entre tipos de texto, número,
-      fecha, persona, casilla y selección sí se puede cambiar, y lo que no encaje con el tipo nuevo hay que volver a
-      responderlo.
+      What the rows had already written is not touched: values live in each row, not in the shape. Renaming a property or an
+      option, or changing an option's color, does not move any row. Between the types text, number, date, person, checkbox
+      and select it can be changed, and what does not fit the new type has to be answered again.
     supersedes: BR-37f128e
     scenarios:
-      - title: Un estado no se convierte en otra cosa
-        given: Una propiedad de estado con filas en distintos grupos
-        when: Alguien intenta cambiarle el tipo a selección
-        then: El tipo no se ofrece, porque los valores de las filas son identificadores de las opciones del estado
+      - title: A status is not converted into something else
+        given: A status property with rows in different groups
+        when: Someone tries to change its type to select
+        then: The type is not offered, because the rows' values are identifiers of the status's options
   - id: BR-fb3c415
     status: active
-    title: Una colección tiene un tope de propiedades y de vistas, lo pida quien lo pida
+    title: A collection has a cap on properties and views, whoever asks for it
     rule: >-
-      La forma de una colección tiene topes: cuántas propiedades puede definir y cuántas vistas puede tener. Los topes
-      los aplica el servidor y no solo la pantalla, así que una petición armada por fuera del portal se rechaza igual
-      que un intento hecho desde la interfaz.
+      A collection's shape has caps: how many properties it can define and how many views it can have. The caps are applied
+      by the server and not only by the screen, so a request built outside the portal is rejected just like an attempt made
+      from the interface.
     why: >-
-      Los topes de la pantalla protegen a quien usa la pantalla. Quien manda mil propiedades de una vez no lo hace desde
-      ahí, y una colección con mil propiedades no se dibuja, no se filtra y no se exporta: deja de ser usable para todos
-      los que comparten el espacio, no solo para quien la mandó.
+      The screen's caps protect whoever uses the screen. Whoever sends a thousand properties at once does not do it from
+      there, and a collection with a thousand properties is not drawn, is not filtered and is not exported: it stops being
+      usable for everyone who shares the space, not just for whoever sent it.
     scenarios:
-      - title: Una forma dentro de los topes
-        given: Una petición con menos propiedades y vistas que el tope
-        when: Se manda
-        then: La forma se guarda
-      - title: Una forma que pasa el tope
-        given: Una petición con más propiedades que el tope, armada fuera del portal
-        when: Se manda
-        then: Se rechaza por inválida y la colección se queda como estaba
+      - title: A shape within the caps
+        given: A request with fewer properties and views than the cap
+        when: It is sent
+        then: The shape is saved
+      - title: A shape over the cap
+        given: A request with more properties than the cap, built outside the portal
+        when: It is sent
+        then: It is rejected as invalid and the collection stays as it was
   - id: BR-12b587f
     status: superseded
-    title: Cada opción de una propiedad lleva su nombre y su color
+    title: Each option of a property carries its name and its color
     rule: >-
-      Una propiedad de selección, simple o múltiple, define sus opciones, y cada opción es un nombre y un color. El
-      color es opcional: una opción sin color se muestra igual que las demás, con el fondo neutro. Los colores son un
-      conjunto cerrado y con nombre, no un valor libre, para que la misma opción se vea igual en la tabla, en la columna
-      de un tablero y en cualquier pantalla que la muestre. Un color que el producto no conoce se descarta al leerlo, y
-      la opción se queda sin color en vez de romper la página.
+      A select property, single or multiple, defines its options, and each option is a name and a color. The color is
+      optional: an option without a color is shown the same as the others, with the neutral background. The colors are a
+      closed, named set, not a free value, so that the same option looks the same in the table, in a board's column and on
+      any screen that shows it. A color that the product does not know is discarded when read, and the option is left
+      without a color instead of breaking the page.
     why: >-
-      En un tablero, la columna es un valor de la propiedad por la que se agrupa. Sin color, todas las columnas se ven
-      iguales y hay que leer cada encabezado para saber dónde está uno. El color es lo que hace que un tablero se lea de
-      un vistazo. Y que sea un conjunto cerrado evita que cada quien escriba un color distinto para lo mismo.
+      On a board, the column is a value of the property it is grouped by. Without color, all the columns look the same and
+      one has to read each header to know where one is. Color is what makes a board readable at a glance. And making it a
+      closed set prevents each person from writing a different color for the same thing.
     context: >-
-      Las opciones se guardan como objetos con nombre y color. Las colecciones creadas antes las guardaban como una
-      lista de nombres, y esas se siguen leyendo: llegan sin color. El color nunca es la única señal de nada, porque el
-      nombre de la opción siempre se muestra al lado.
+      Options are stored as objects with a name and a color. Collections created earlier stored them as a list of names, and
+      those are still read: they arrive without color. Color is never the only signal of anything, because the option's name
+      is always shown next to it.
     superseded_by: BR-5bd97c6
     scenarios:
-      - title: Una opción con color
-        given: Una propiedad de selección con la opción «hecho» en verde
-        when: Se mira una fila que la tiene
-        then: La opción se muestra con su nombre sobre un fondo verde
-      - title: Una opción sin color
-        given: Una propiedad cuyas opciones no tienen color
-        when: Se mira una fila
-        then: La opción se muestra con el fondo neutro, sin perder su nombre
-      - title: Una colección escrita antes
-        given: Una colección cuyas opciones se guardaron como una lista de nombres
-        when: Se abre
-        then: Las opciones se leen igual, y se muestran sin color
-      - title: Un color que no existe
-        given: Una opción guardada con un color que el producto no conoce
-        when: Se lee
-        then: La opción se muestra sin color, y la página se abre igual
+      - title: An option with color
+        given: A select property with the option "hecho" in green
+        when: A row that has it is looked at
+        then: The option is shown with its name on a green background
+      - title: An option without color
+        given: A property whose options have no color
+        when: A row is looked at
+        then: The option is shown with the neutral background, without losing its name
+      - title: A collection written earlier
+        given: A collection whose options were stored as a list of names
+        when: It is opened
+        then: The options are read the same, and are shown without color
+      - title: A color that does not exist
+        given: An option stored with a color that the product does not know
+        when: It is read
+        then: The option is shown without color, and the page opens anyway
   - id: BR-22dc232
     status: superseded
-    title: Cambiar una vista no pisa lo que otra persona cambió mientras tanto
+    title: Changing a view does not overwrite what another person changed in the meantime
     rule: >-
-      Guardar la configuración de una vista manda lo que la colección dice en ese momento, no lo que decía cuando se
-      abrió la pantalla de configuración. Si entre una cosa y otra alguien cambió la agrupación, poner un filtro
-      conserva esa agrupación en vez de devolverla a como estaba. Lo mismo vale al renombrar o quitar una opción de una
-      propiedad: la opción se nombra por su identificador, y si ya fue quitada por otra persona el cambio no se aplica y
-      se dice que la opción ya se movió, en lugar de escribir encima. Renombrar ya no puede chocar con otro renombre,
-      porque el nombre no es la dirección de la opción.
+      Saving a view's configuration sends what the collection says at that moment, not what it said when the configuration
+      screen was opened. If between one and the other someone changed the grouping, setting a filter keeps that grouping
+      instead of returning it to how it was. The same applies when renaming or removing a property's option: the option is
+      named by its identifier, and if it was already removed by another person the change is not applied and it is said
+      that the option already moved, instead of writing over it. Renaming can no longer clash with another rename, because
+      the name is not the option's address.
     why: >-
-      La configuración se abre al costado y se queda abierta mientras las filas siguen vivas al lado. Mandar lo leído al
-      abrirla borra en silencio el trabajo de quien tocó la misma vista entretanto, y nadie se entera hasta que falta
-      algo que sí se había configurado.
-    context: Un estado no puede quedarse sin opción en uno de sus grupos, así que quitar la última de un grupo se rechaza.
+      The configuration opens at the side and stays open while the rows keep living alongside. Sending what was read when
+      opening it silently erases the work of whoever touched the same view in the meantime, and nobody finds out until
+      something that had been configured is missing.
+    context: A status cannot be left without an option in one of its groups, so removing the last one of a group is rejected.
     supersedes: BR-699e037
     superseded_by: BR-81880e6
     scenarios:
-      - title: Quitar una opción ya quitada
-        given: Dos personas con la misma opción abierta
-        when: Las dos la quitan
-        then: La segunda recibe que la opción ya se movió y no se escribe nada
+      - title: Removing an already removed option
+        given: Two people with the same option open
+        when: Both remove it
+        then: The second receives that the option already moved and nothing is written
   - id: BR-37f128e
     status: superseded
-    title: La forma de una colección se cambia después de crearla
+    title: A collection's shape is changed after creating it
     rule: >-
-      Una colección ya creada se puede reconfigurar: agregar propiedades propias del tipo que se quiera, renombrarlas,
-      quitarlas, y decidir qué opciones ofrece una selección y de qué color es cada una. Nada de eso viaja hasta que se
-      guarda, así que una colección nunca queda en una forma a medias. La propiedad de título no se puede quitar, porque
-      es la que abre cada fila. Cambiar el tipo de una propiedad no se ofrece aquí. Solo quien puede escribir la página
-      ve por dónde entrar.
+      An already created collection can be reconfigured: adding properties of whatever type is wanted, renaming them,
+      removing them, and deciding which options a select offers and what color each one is. None of that travels until it is
+      saved, so a collection is never left in a half-way shape. The title property cannot be removed, because it is the one
+      that opens each row. Changing a property's type is not offered here. Only whoever can write the page sees where to
+      enter.
     why: >-
-      Una colección cuya forma se decide el día que nace obliga a saber de antemano qué se va a necesitar, que es
-      justamente lo que nadie sabe al empezar. Sin esto, agregar una columna significa rehacer la colección entera.
+      A collection whose shape is decided the day it is born forces knowing in advance what will be needed, which is
+      precisely what nobody knows at the start. Without this, adding a column means redoing the whole collection.
     context: >-
-      Lo que las filas ya escribieron no se toca: los valores viven en cada fila, no en la forma, así que renombrar una
-      propiedad o cambiar el color de una opción no mueve ninguna fila. Renombrar una opción tampoco cambia lo que las
-      filas guardaron, y eso se avisa antes de hacerlo. Cambiar el tipo de una propiedad queda fuera porque es una
-      pregunta sobre qué pasa con cada fila que ya respondió, y no la resuelve un desplegable de paso.
+      What the rows had already written is not touched: values live in each row, not in the shape, so renaming a property or
+      changing an option's color does not move any row. Renaming an option does not change what the rows stored either, and
+      that is announced before doing it. Changing a property's type is left out because it is a question about what happens
+      to each row that already answered, and a dropdown along the way does not solve it.
     superseded_by: BR-f94b138
     scenarios:
-      - title: Agregar una propiedad
-        given: Una colección ya creada
-        when: Se agrega una propiedad de selección llamada «Familia» y se guarda
-        then: La propiedad aparece en la tabla y en las filas, con la clave que le corresponde
-      - title: Poner color a una opción
-        given: Una propiedad de selección con sus opciones
-        when: Se le da color a una opción y se guarda
-        then: La opción se ve con ese color en la tabla y como columna del tablero
-      - title: Quitar una propiedad sin dejar filas atascadas
-        given: Filas que guardaron un valor bajo una propiedad
-        when: Se quita esa propiedad de la forma
-        then: Las filas se siguen pudiendo mover y guardar, y lo que quedó bajo la propiedad quitada se deja atrás
-      - title: El título no se quita
-        given: La forma de una colección
-        when: Se busca quitar la propiedad de título
-        then: No se ofrece, y se explica que es la que abre cada fila
-      - title: Quien solo puede leer
-        given: Alguien sin permiso de escribir la página
-        when: Abre la colección
-        then: No se le dibuja la manera de entrar a la configuración
+      - title: Adding a property
+        given: An already created collection
+        when: A select property called "Familia" is added and saved
+        then: The property appears in the table and in the rows, with the key that corresponds to it
+      - title: Giving an option a color
+        given: A select property with its options
+        when: An option is given a color and saved
+        then: The option is seen with that color in the table and as a board column
+      - title: Removing a property without leaving rows stuck
+        given: Rows that stored a value under a property
+        when: That property is removed from the shape
+        then: The rows can still be moved and saved, and what was left under the removed property is left behind
+      - title: The title is not removed
+        given: A collection's shape
+        when: Removing the title property is attempted
+        then: It is not offered, and it is explained that it is the one that opens each row
+      - title: Whoever can only read
+        given: Someone without permission to write the page
+        when: They open the collection
+        then: The way into the settings is not drawn for them
   - id: BR-3c85c11
     status: superseded
-    title: Una colección se trae hasta un tope de filas, y dice cuando quedó algo fuera
+    title: A collection is brought up to a cap of rows, and says when something was left out
     rule: >-
-      Leer una colección trae sus filas hasta un tope, no todas las que guarde. Una consulta con filtro u orden recorre
-      la colección hasta un tope mucho mayor antes de filtrar, para no dejar fuera filas que cumplen y están más abajo.
-      Cuando la colección tenía más de las que se recorrieron, la respuesta lo declara y quien la lee ve que puede haber
-      más. Una colección cortada nunca se presenta como si fuera entera.
+      Reading a collection brings its rows up to a cap, not all that it stores. A query with a filter or a sort walks the
+      collection up to a much higher cap before filtering, so as not to leave out rows that match and are further down.
+      When the collection had more than were walked, the response declares it and whoever reads it sees that there may be
+      more. A cut collection is never presented as if it were whole.
     why: >-
-      Una colección que creció sola costaría al abrirse en proporción a todo lo que guardó. Pero callar el corte es peor
-      que el corte, y filtrar sobre una colección ya cortada es callarlo dos veces: la respuesta dice que nada cumple
-      cuando lo que cumple quedó afuera.
+      A collection that grew on its own would cost, when opened, in proportion to everything it stored. But keeping silent
+      about the cut is worse than the cut, and filtering over an already cut collection is keeping silent twice: the
+      response says that nothing matches when what matches was left out.
     context: >-
-      Hoy se traen 500 filas al abrir una colección o una vista, y una consulta recorre hasta 5000 antes de filtrar y
-      ordenar. El agente recibe la misma advertencia que la pantalla.
+      Today 500 rows are brought when opening a collection or a view, and a query walks up to 5000 before filtering and
+      sorting. The agent receives the same warning as the screen.
     supersedes: BR-e248700
     superseded_by: BR-c0f99c2
     scenarios:
-      - title: La tarea que cumple está más abajo
-        given: Una colección de 800 tareas donde solo la fila 700 está bloqueada
-        when: Un agente consulta las tareas bloqueadas
-        then: Recibe la fila 700
+      - title: The task that matches is further down
+        given: A collection of 800 tasks where only row 700 is blocked
+        when: An agent queries the blocked tasks
+        then: It receives row 700
   - id: BR-554783b
     status: superseded
-    title: Una plantilla es el punto de partida de una fila y nunca es una fila
+    title: A template is a row's starting point and is never a row
     rule: >-
-      Una colección puede tener plantillas, y cada una guarda un nombre, un contenido y los valores con que empieza una
-      fila. Una plantilla no es una fila de la colección, así que no aparece en ninguna vista, conteo, resultado de
-      búsqueda, lista de cambios, papelera ni listado de un agente, y no consume un identificador único. Solo se ve en
-      la lista de plantillas de la colección y abriéndola por su dirección.
+      A collection can have templates, and each one stores a name, a content and the values a row starts with. A template
+      is not a row of the collection, so it appears in no view, count, search result, change list, trash or agent listing,
+      and it does not consume a unique identifier. It is only seen in the collection's template list and by opening it
+      through its address.
     why: >-
-      Si una plantilla contara como fila, los totales mentirían, un tablero mostraría una tarjeta que nadie creó y un
-      agente actuaría sobre algo que es solo un molde.
+      If a template counted as a row, the totals would lie, a board would show a card that nobody created and an agent would
+      act on something that is only a mold.
     context: >-
-      Una plantilla se edita como cualquier página, con el mismo editor y las mismas versiones, y hereda los permisos de
-      su colección. Borrarla la manda a la papelera con plazo, sin pasar por el listado de la papelera. Duplicar una
-      colección con sus páginas se lleva también sus plantillas y la plantilla por defecto.
+      A template is edited like any page, with the same editor and the same versions, and inherits its collection's
+      permissions. Deleting it sends it to the trash with a deadline, without going through the trash listing. Duplicating a
+      collection with its pages also carries its templates and the default template.
     superseded_by: BR-af673e9
     scenarios:
-      - title: Un conteo no incluye plantillas
-        given: Una colección con tres filas y dos plantillas
-        when: Alguien pide el conteo de la vista
-        then: El conteo dice tres
-      - title: Una búsqueda no encuentra el contenido de una plantilla
-        given: Una plantilla cuyo texto contiene una palabra única
-        when: Alguien busca esa palabra
-        then: No hay resultados
+      - title: A count does not include templates
+        given: A collection with three rows and two templates
+        when: Someone asks for the view's count
+        then: The count says three
+      - title: A search does not find a template's content
+        given: A template whose text contains a unique word
+        when: Someone searches for that word
+        then: There are no results
   - id: BR-5a97271
     status: superseded
-    title: Una tarjeta arrastrada a otra columna cambia el valor que esa columna representa
+    title: A card dragged to another column changes the value that column represents
     rule: >-
-      En un tablero, cada columna es un valor de la propiedad por la que se agrupa. Arrastrar una tarjeta de una columna
-      a otra escribe ese valor en la fila, y eso es todo el acto: nadie tiene que abrir la fila después para decir dónde
-      quedó. Soltarla en la columna de las filas sin valor le quita el valor en lugar de escribirle la palabra «sin
-      asignar». Soltarla donde ya estaba no escribe nada. Lo mismo se hace desde el teclado, con Alt y las flechas, y el
-      resultado se anuncia. Quien no puede escribir la página tampoco puede mover sus tarjetas. En un tablero agrupado
-      por estado nunca hay columna de filas sin valor, porque un estado siempre tiene valor.
+      On a board, each column is a value of the property it is grouped by. Dragging a card from one column to another writes
+      that value in the row, and that is the whole act: nobody has to open the row afterwards to say where it ended up.
+      Dropping it in the column of rows with no value removes the value instead of writing the word "sin asignar" into it.
+      Dropping it where it already was writes nothing. The same is done from the keyboard, with Alt and the arrows, and the
+      result is announced. Whoever cannot write the page cannot move its cards either. On a board grouped by status there is
+      never a column of rows with no value, because a status always has a value.
     why: >-
-      Un tablero donde hay que abrir cada tarjeta para cambiarle el estado no es un tablero: es una lista en columnas. Y
-      uno que solo responde al ratón deja fuera a quien no puede usarlo, que en un producto de trabajo diario es una
-      exclusión que se nota todos los días.
+      A board where each card has to be opened to change its status is not a board: it is a list in columns. And one that
+      only responds to the mouse leaves out whoever cannot use it, which in a daily work product is an exclusion that is
+      noticed every day.
     context: >-
-      Al mover una tarjeta solo viaja la propiedad que cambió, no la página entera: devolver la página completa
-      sobrescribiría lo que otra persona escribió en ella mientras la tarjeta estaba en el aire. El valor tiene que ser
-      el identificador de una de las opciones que la propiedad ofrece; cualquier otro se rechaza en el servidor, aunque
-      alguien lo pida por su cuenta. Si la columna es un día, la fila recibe esa fecha, y si tenía un rango de fechas,
-      el rango conserva su duración.
+      When moving a card only the property that changed travels, not the whole page: returning the complete page would
+      overwrite what another person wrote in it while the card was in the air. The value has to be the identifier of one of
+      the options the property offers; any other is rejected on the server, even if someone asks for it on their own. If the
+      column is a day, the row receives that date, and if it had a date range, the range keeps its duration.
     supersedes: BR-d7ada57
     superseded_by: BR-8e6b1f4
     scenarios:
-      - title: Mover una tarjeta de estado
-        given: Un tablero agrupado por estado
-        when: Se arrastra una tarjeta de «Por hacer» a «Completado»
-        then: La fila guarda el identificador de la opción de esa columna y nada más
+      - title: Moving a status card
+        given: A board grouped by status
+        when: A card is dragged from "To do" to "Complete"
+        then: The row stores the identifier of that column's option and nothing else
   - id: BR-699e037
     status: superseded
-    title: Cambiar una vista no pisa lo que otra persona cambió mientras tanto
+    title: Changing a view does not overwrite what another person changed in the meantime
     rule: >-
-      Guardar la configuración de una vista manda lo que la colección dice en ese momento, no lo que decía cuando se
-      abrió la pantalla de configuración. Si entre una cosa y otra alguien cambió la agrupación, poner un filtro
-      conserva esa agrupación en vez de devolverla a como estaba. Lo mismo vale al renombrar una opción de una
-      propiedad: si esa opción ya fue renombrada o quitada por otra persona, el cambio no se aplica y se dice que la
-      opción ya se movió, en lugar de escribir encima.
+      Saving a view's configuration sends what the collection says at that moment, not what it said when the configuration
+      screen was opened. If between one and the other someone changed the grouping, setting a filter keeps that grouping
+      instead of returning it to how it was. The same applies when renaming a property's option: if that option was already
+      renamed or removed by another person, the change is not applied and it is said that the option already moved, instead
+      of writing over it.
     why: >-
-      La configuración se abre al costado y se queda abierta mientras las filas siguen vivas al lado. Mandar lo leído al
-      abrirla borra en silencio el trabajo de quien tocó la misma vista entretanto, y nadie se entera hasta que falta
-      algo que sí se había configurado.
+      The configuration opens at the side and stays open while the rows keep living alongside. Sending what was read when
+      opening it silently erases the work of whoever touched the same view in the meantime, and nobody finds out until
+      something that had been configured is missing.
     superseded_by: BR-22dc232
     scenarios:
-      - title: Una agrupación puesta mientras la configuración estaba abierta
-        given: Una vista que alguien acaba de agrupar por estado
-        when: Desde la configuración abierta de antes se pone un filtro
-        then: La vista queda con el filtro nuevo y con la agrupación por estado
-      - title: Una opción que ya se movió
-        given: Una opción que otra persona acaba de renombrar
-        when: Alguien intenta renombrarla desde lo que había leído antes
-        then: El cambio se rechaza diciendo que la opción ya se movió, y el renombre de la otra persona se conserva
+      - title: A grouping set while the configuration was open
+        given: A view that someone just grouped by status
+        when: A filter is set from the configuration that was open before
+        then: The view ends up with the new filter and with the grouping by status
+      - title: An option that already moved
+        given: An option that another person just renamed
+        when: Someone tries to rename it from what they had read before
+        then: The change is rejected saying that the option already moved, and the other person's rename is kept
   - id: BR-d7ada57
     status: superseded
-    title: Una tarjeta arrastrada a otra columna cambia el valor que esa columna representa
+    title: A card dragged to another column changes the value that column represents
     rule: >-
-      En un tablero, cada columna es un valor de la propiedad por la que se agrupa. Arrastrar una tarjeta de una columna
-      a otra escribe ese valor en la fila, y eso es todo el acto: nadie tiene que abrir la fila después para decir dónde
-      quedó. Soltarla en la columna de las filas sin valor le quita el valor en lugar de escribirle la palabra «sin
-      asignar». Soltarla donde ya estaba no escribe nada. Lo mismo se hace desde el teclado, con Alt y las flechas, y el
-      resultado se anuncia. Quien no puede escribir la página tampoco puede mover sus tarjetas.
+      On a board, each column is a value of the property it is grouped by. Dragging a card from one column to another writes
+      that value in the row, and that is the whole act: nobody has to open the row afterwards to say where it ended up.
+      Dropping it in the column of rows with no value removes the value instead of writing the word "sin asignar" into it.
+      Dropping it where it already was writes nothing. The same is done from the keyboard, with Alt and the arrows, and the
+      result is announced. Whoever cannot write the page cannot move its cards either.
     why: >-
-      Un tablero donde hay que abrir cada tarjeta para cambiarle el estado no es un tablero: es una lista en columnas. Y
-      uno que solo responde al ratón deja fuera a quien no puede usarlo, que en un producto de trabajo diario es una
-      exclusión que se nota todos los días.
+      A board where each card has to be opened to change its status is not a board: it is a list in columns. And one that
+      only responds to the mouse leaves out whoever cannot use it, which in a daily work product is an exclusion that is
+      noticed every day.
     context: >-
-      Al mover una tarjeta solo viaja la propiedad que cambió, no la página entera: devolver la página completa
-      sobrescribiría lo que otra persona escribió en ella mientras la tarjeta estaba en el aire. El valor tiene que ser
-      uno de los que la propiedad ofrece; cualquier otro se rechaza en el servidor, aunque alguien lo pida por su
-      cuenta.
+      When moving a card only the property that changed travels, not the whole page: returning the complete page would
+      overwrite what another person wrote in it while the card was in the air. The value has to be one of those the property
+      offers; any other is rejected on the server, even if someone asks for it on their own.
     superseded_by: BR-5a97271
     scenarios:
-      - title: Mover con el ratón
-        given: Una tarjeta en la columna «por hacer»
-        when: Se arrastra a la columna «hecho»
-        then: La fila pasa a valer «hecho» y la tarjeta se queda ahí al recargar
-      - title: Mover con el teclado
-        given: Una tarjeta con el foco puesto
-        when: Se pulsa Alt y la flecha derecha
-        then: La tarjeta pasa a la columna siguiente y se anuncia a dónde fue
-      - title: Soltar donde ya estaba
-        given: Una tarjeta en «por hacer»
-        when: Se suelta en «por hacer»
-        then: No se escribe nada
-      - title: Quitar el valor
-        given: Una tarjeta con valor
-        when: Se suelta en la columna de las filas sin valor
-        then: La fila deja de tener ese valor
-      - title: Quien solo puede leer
-        given: Alguien sin permiso de escribir la página
-        when: Intenta mover una tarjeta
-        then: Las tarjetas no se pueden arrastrar, y el servidor rechaza el intento hecho por fuera
+      - title: Moving with the mouse
+        given: A card in the "por hacer" column
+        when: It is dragged to the "hecho" column
+        then: The row now has the value "hecho" and the card stays there on reload
+      - title: Moving with the keyboard
+        given: A card with focus on it
+        when: Alt and the right arrow are pressed
+        then: The card moves to the next column and where it went is announced
+      - title: Dropping where it already was
+        given: A card in "por hacer"
+        when: It is dropped in "por hacer"
+        then: Nothing is written
+      - title: Removing the value
+        given: A card with a value
+        when: It is dropped in the column of rows with no value
+        then: The row no longer has that value
+      - title: Whoever can only read
+        given: Someone without permission to write the page
+        when: They try to move a card
+        then: The cards cannot be dragged, and the server rejects an attempt made from outside
   - id: BR-e248700
     status: superseded
-    title: Una colección se trae hasta un tope de filas, y dice cuando quedó algo fuera
+    title: A collection is brought up to a cap of rows, and says when something was left out
     rule: >-
-      Leer una colección trae sus filas hasta un tope, no todas las que guarde. Cuando la colección tenía más de las que
-      caben, la respuesta lo declara y la pantalla lo dice junto a las filas, indicando cuántas se están viendo y que
-      hay que filtrar o buscar para llegar al resto. Una colección cortada nunca se presenta como si fuera entera.
+      Reading a collection brings its rows up to a cap, not all that it stores. When the collection had more than fit, the
+      response declares it and the screen says so next to the rows, indicating how many are being seen and that one has to
+      filter or search to reach the rest. A cut collection is never presented as if it were whole.
     why: >-
-      Una colección que creció sola —una bandeja de entrada, un registro de incidencias— costaría al abrirse en
-      proporción a todo lo que guardó, y quien la abre espera por filas que no va a mirar. Pero callar el corte es peor
-      que el corte: quinientas de mil sin avisar se leen como las mil, y entonces se decide sobre filas que nadie sabe
-      que faltan.
+      A collection that grew on its own —an inbox, an incident log— would cost, when opened, in proportion to everything it
+      stored, and whoever opens it waits for rows they will not look at. But keeping silent about the cut is worse than the
+      cut: five hundred out of a thousand without a warning are read as the thousand, and then decisions are made over rows
+      that nobody knows are missing.
     superseded_by: BR-3c85c11
     superseded_reason: >-
-      Una consulta con filtro u orden cortaba la colección antes de filtrar, y callaba las filas que cumplían más abajo.
-      Ahora recorre mucho más antes de cortar.
+      A query with a filter or a sort cut the collection before filtering, and kept silent about the rows that matched
+      further down. Now it walks much further before cutting.
     scenarios:
-      - title: Una colección que cabe
-        given: Una colección con menos filas que el tope
-        when: Se abre
-        then: Se ven todas y no se dice nada de ningún corte
-      - title: Una colección que no cabe
-        given: Una colección con más filas que el tope
-        when: Se abre
-        then: Se ven las primeras hasta el tope y se avisa que hay más
+      - title: A collection that fits
+        given: A collection with fewer rows than the cap
+        when: It is opened
+        then: All are seen and nothing is said about any cut
+      - title: A collection that does not fit
+        given: A collection with more rows than the cap
+        when: It is opened
+        then: The first ones up to the cap are seen and it is warned that there are more
   - id: BR-fbf632f
     status: superseded
-    title: Buscar y cambiar de mes piden las filas al servidor, y lo que no cabe se dice
+    title: Searching and changing month request the rows from the server, and what does not fit is said
     rule: >-
-      Buscar en una colección envía las palabras al servidor, que filtra por el título de la fila, y las filas, los
-      conteos y las páginas siguientes de todas las vistas salen de esa misma búsqueda, de modo que nada se oculta solo
-      entre lo que ya se cargó. Un calendario lee todas las filas que empiezan en los días de su cuadrícula del mes, con
-      los días de las semanas incompletas, y cambiar de mes vuelve a pedirlas. Si la cuadrícula tiene más de mil filas
-      se dibujan las primeras mil y la pantalla lo dice. Las filas sin fecha se cuentan aparte y no se pierden de vista.
+      Searching in a collection sends the words to the server, which filters by the row's title, and the rows, the counts and
+      the next pages of all views come from that same search, so nothing is hidden on its own among what was already loaded.
+      A calendar reads all the rows that start on the days of its month grid, with the days of the incomplete weeks, and
+      changing month requests them again. If the grid has more than a thousand rows, the first thousand are drawn and the
+      screen says so. Rows without a date are counted separately and are not lost from view.
     why: >-
-      Filtrar en la pantalla solo lo cargado presenta un resultado incompleto como si fuera completo, y un calendario
-      que se queda con las primeras cien filas hace desaparecer en silencio las demás.
+      Filtering on screen only what was loaded presents an incomplete result as if it were complete, and a calendar that
+      keeps the first hundred rows silently makes the rest disappear.
     context: >-
-      La búsqueda del servidor mira el título, no los textos de las demás propiedades. Las palabras y el mes viajan en
-      la dirección de la página para que se puedan compartir y recargar.
+      The server's search looks at the title, not at the texts of the other properties. The words and the month travel in the
+      page address so they can be shared and reloaded.
     superseded_by: BR-4ddd139
     scenarios:
-      - title: Buscar con muchas filas
-        given: Una tabla de dos mil filas de la que solo se cargaron cincuenta
-        when: Se busca una palabra que dice una fila que no estaba cargada
-        then: La fila aparece y el conteo cuenta las filas que coinciden en toda la colección
-      - title: Un mes con más de cien filas
-        given: Un calendario con ciento treinta filas en un mismo mes
-        when: Se abre ese mes
-        then: Se dibujan las ciento treinta filas de la cuadrícula
+      - title: Searching with many rows
+        given: A table of two thousand rows of which only fifty were loaded
+        when: A word is searched that a row that was not loaded says
+        then: The row appears and the count counts the rows that match across the whole collection
+      - title: A month with more than a hundred rows
+        given: A calendar with one hundred thirty rows in the same month
+        when: That month is opened
+        then: The one hundred thirty rows of the grid are drawn

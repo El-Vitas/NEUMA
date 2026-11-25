@@ -1,110 +1,108 @@
 id: FEA-ADJ
-name: Archivos de una página
-purpose: Define qué archivos acepta una página, cómo se entregan a quien los consulta y qué se puede hacer con ellos.
+name: Files of a page
+purpose: Defines which files a page accepts, how they are delivered to whoever consults them and what can be done with them.
 scope: attachments
 rules:
   - id: BR-6f62d11
     status: active
-    title: Un archivo dice qué es y cuánto pesa
+    title: A file says what it is and how much it weighs
     rule: >-
-      Un archivo en una página muestra su nombre, el tipo que es y cuánto pesa, con las palabras que la gente usa para
-      ese tipo.
-    why: Antes de abrir algo se decide si vale la pena, y para eso hay que saber qué es y cuánto va a costar bajarlo.
-    context: Un archivo guardado antes de que la página registrara esos datos no dice nada en vez de decir algo falso.
+      A file on a page shows its name, the type it is and how much it weighs, using the words people use for that type.
+    why: Before opening something, one decides whether it is worth it, and for that one needs to know what it is and how much it will cost to download.
+    context: A file stored before the page recorded that data says nothing instead of saying something false.
   - id: BR-860b902
     status: active
-    title: El sistema acepta lo que su interfaz promete aceptar
+    title: The system accepts what its interface promises to accept
     rule: >-
-      Un archivo dentro del tamaño que la interfaz anuncia debe poder subirse. Uno que lo excede se rechaza con un
-      mensaje antes de enviarlo, nunca fallando a mitad de camino.
+      A file within the size the interface announces must be uploadable. One that exceeds it is rejected with a message
+      before being sent, never failing halfway.
     why: >-
-      Prometer diez megabytes y reventar en uno es mentirle a quien sube el archivo, y hacerlo con un error técnico que
-      tumba la pantalla en vez de decir qué pasó.
+      Promising ten megabytes and blowing up at one is lying to whoever uploads the file, and doing it with a technical
+      error that brings the screen down instead of saying what happened.
     context: >-
-      El límite del transporte tiene que ir por encima del límite anunciado, porque el envío del archivo cuesta más que
-      el archivo. Aplica a los adjuntos, al ícono de imagen y a la portada por igual.
+      The transport limit has to be above the announced limit, because sending the file costs more than the file. It
+      applies to attachments, the image icon and the cover alike.
     scenarios:
-      - title: Un archivo grande pero permitido
-        given: Un archivo de siete megabytes y un límite anunciado de diez
-        when: Se sube a una página
-        then: Queda guardado
-      - title: Un archivo por encima del límite
-        given: Un archivo de once megabytes y un límite anunciado de diez
-        when: Se intenta subir
-        then: Se rechaza con un mensaje que dice el límite, y nada se envía
+      - title: A large but allowed file
+        given: A seven-megabyte file and an announced limit of ten
+        when: It is uploaded to a page
+        then: It is saved
+      - title: A file over the limit
+        given: An eleven-megabyte file and an announced limit of ten
+        when: An upload is attempted
+        then: It is rejected with a message that states the limit, and nothing is sent
   - id: BR-8f2657d
     status: active
-    title: Lista explícita de tipos aceptados
+    title: Explicit list of accepted types
     rule: >-
-      Una página solo acepta los tipos de archivo de una lista explícita, que hoy son imágenes, documentos, comprimidos,
-      texto plano, audio y video en los formatos que un navegador sabe reproducir.
+      A page only accepts file types from an explicit list, which today are images, documents, archives, plain text,
+      audio and video in the formats a browser knows how to play.
     why: >-
-      Es una lista y no una regla general para que agregar un tipo sea una decisión que alguien tomó, y todo lo demás
-      quede rechazado sin tener que haberlo previsto.
+      It is a list and not a general rule so that adding a type is a decision someone made, and everything else is
+      rejected without having had to foresee it.
   - id: BR-aaf3a59
     status: active
-    title: Un archivo se entrega entero o por el trozo pedido
+    title: A file is delivered whole or by the requested chunk
     rule: >-
-      Cuando alguien pide solo una parte de un archivo, el sistema entrega esa parte y dice cuál es del total. Si no se
-      pide ninguna parte, entrega el archivo entero.
+      When someone requests only a part of a file, the system delivers that part and says which part it is of the total.
+      If no part is requested, it delivers the whole file.
     why: >-
-      Es lo que permite saltar al minuto cuarenta de una grabación sin esperar los treinta y nueve anteriores. Responder
-      siempre con el archivo completo deja la barra de reproducción inmóvil.
+      It is what allows jumping to minute forty of a recording without waiting for the thirty-nine before it. Always
+      answering with the complete file leaves the playback bar frozen.
     context: >-
-      Pedir un trozo que no existe se responde diciendo que no está disponible, no entregando el archivo entero, porque
-      eso sería responder otra pregunta.
+      Requesting a chunk that does not exist is answered by saying it is not available, not by delivering the whole file,
+      because that would be answering a different question.
     scenarios:
-      - title: Salto dentro de una grabación
-        given: Una grabación larga publicada en una página
-        when: Quien la escucha salta a un punto avanzado
-        then: El sistema entrega solo el trozo correspondiente y la reproducción sigue desde ahí
+      - title: Jump within a recording
+        given: A long recording published on a page
+        when: Whoever listens to it jumps to a late point
+        then: The system delivers only the corresponding chunk and playback continues from there
   - id: BR-c251abd
     status: active
-    title: Un documento viaja para leerse, el resto para guardarse
+    title: A document travels to be read, the rest to be saved
     rule: >-
-      Un archivo que la página muestra en su interior se entrega para ser leído ahí mismo. Cualquier otro se entrega
-      para ser guardado en el equipo de quien lo pide.
+      A file that the page shows inside itself is delivered to be read right there. Any other is delivered to be saved on
+      the computer of whoever requests it.
     why: >-
-      Entregar un documento como algo que se guarda hace que la página muestre un marco vacío y el archivo termine en
-      una carpeta que nadie pidió.
+      Delivering a document as something to be saved makes the page show an empty frame and the file end up in a folder
+      nobody asked for.
     context: >-
-      El enlace del bloque siempre baja el archivo con su nombre original, aunque el documento se esté leyendo en la
-      página.
+      The block's link always downloads the file with its original name, even if the document is being read on the page.
   - id: BR-c78adcb
     status: active
-    title: Un archivo baja con su nombre y de un clic
-    rule: Cualquier archivo de una página se descarga con un clic y llega con el nombre con que fue subido.
-    why: Un archivo bajado con un nombre inventado obliga a renombrarlo para reconocerlo después.
+    title: A file downloads with its name and in one click
+    rule: Any file of a page is downloaded with one click and arrives with the name it was uploaded with.
+    why: A file downloaded with an invented name forces renaming it to recognize it afterwards.
   - id: BR-d3de47c
     status: active
-    title: Un agente sube un archivo igual que una persona
+    title: An agent uploads a file the same way a person does
     rule: >-
-      Un agente sube un archivo a una página o a una fila enviándolo en base64 con su nombre y su tipo, y recibe el id
-      para ponerlo en una columna de archivos. Pasa por las mismas reglas que la subida del portal: hasta 10 MB, solo
-      los tipos aceptados, un nombre válido, y solo en una página donde su token puede escribir. Una página que el token
-      tiene cerrada responde como si no existiera. Un archivo que no es base64 válido, está vacío o pasa del límite se
-      rechaza antes de guardar nada.
+      An agent uploads a file to a page or to a row by sending it in base64 with its name and its type, and receives the
+      id to put it in a files column. It goes through the same rules as the portal upload: up to 10 MB, only the accepted
+      types, a valid name, and only on a page where its token can write. A page that the token has closed off answers as
+      if it did not exist. A file that is not valid base64, is empty or exceeds the limit is rejected before anything is
+      saved.
     why: >-
-      Lo que una persona hace en el portal lo hace un agente por el MCP, y por el camino eficiente; una subida con
-      reglas más flojas sería la puerta trasera para guardar lo que el portal no deja.
+      What a person does in the portal an agent does through the MCP, and by the efficient path; an upload with looser
+      rules would be the back door for storing what the portal does not allow.
     context: >-
-      El archivo queda en la página a la que se subió, y quien ve esa página lo abre. Adjuntarlo a una fila es un paso
-      aparte: poner el id en la columna de archivos.
+      The file stays on the page it was uploaded to, and whoever sees that page opens it. Attaching it to a row is a
+      separate step: putting the id in the files column.
     scenarios:
-      - title: Un tipo que el portal rechaza
-        given: Un token que escribe en una fila
-        when: El agente sube un ejecutable
-        then: Se rechaza y la fila no gana ningún archivo
-      - title: Subir y adjuntar
-        given: Un token que escribe en la colección
-        when: Sube un informe a una fila y pone su id en la columna de archivos
-        then: La fila lo lista y el archivo se descarga con su contenido
+      - title: A type the portal rejects
+        given: A token that writes to a row
+        when: The agent uploads an executable
+        then: It is rejected and the row gains no file
+      - title: Upload and attach
+        given: A token that writes to the collection
+        when: It uploads a report to a row and puts its id in the files column
+        then: The row lists it and the file downloads with its content
   - id: BR-f2bb3a7
     status: active
-    title: Solo los archivos pueden enmarcarse, y solo en la propia aplicación
+    title: Only files can be framed, and only inside the application itself
     rule: >-
-      Ninguna pantalla de la aplicación puede mostrarse dentro de un marco en otro sitio. La única excepción son los
-      archivos de una página, y únicamente dentro de la propia aplicación.
+      No screen of the application can be shown inside a frame on another site. The only exception is the files of a
+      page, and only within the application itself.
     why: >-
-      El visor que dibuja un documento lo lee dentro de un marco propio; negar ese marco es negar el visor. Fuera de esa
-      excepción, permitir marcos abre la puerta a que otro sitio muestre la aplicación como si fuera suya.
+      The viewer that draws a document reads it inside its own frame; denying that frame is denying the viewer. Outside
+      that exception, allowing frames opens the door for another site to show the application as if it were its own.

@@ -1,40 +1,40 @@
 id: FEA-NTF
-name: Bandeja de avisos
-purpose: Que cada persona se entere de lo que le concierne sin tener que recorrer las páginas.
+name: Notification inbox
+purpose: That each person finds out what concerns them without having to go through the pages.
 scope: avisos
 rules:
   - id: BR-e8bca02
     status: active
-    title: Los avisos llegan al momento y se leen una vez
+    title: Notifications arrive instantly and are read once
     rule: >-
-      Cada persona tiene una bandeja con los avisos de menciones y de respuestas en las conversaciones donde participa,
-      del más nuevo al más viejo, con lo leído y lo no leído. Un aviso nuevo aparece al instante en todas las ventanas
-      abiertas de esa persona, con el conteo de no leídos. Se marca como leído uno por uno o todos a la vez. Cada aviso
-      lleva al bloque del que habla.
+      Each person has an inbox with the notifications of mentions and of replies in the conversations they take part in,
+      from newest to oldest, with read and unread ones. A new notification appears instantly in all of that person's
+      open windows, along with the unread count. They are marked as read one by one or all at once. Each notification
+      leads to the block it talks about.
     why: >-
-      Una mención que se entera horas después, o que obliga a recorrer páginas para encontrarla, no cumple para lo que
-      se escribió.
+      A mention that is found out about hours later, or that forces going through pages to find it, does not fulfill what
+      it was written for.
     context: >-
-      La lista es acotada y se pide por tramos. El conteo de no leídos solo cuenta avisos de bloques que la persona
-      todavía puede leer, y llega a mostrar 99+. Existe un tipo de aviso reservado para los cambios en páginas seguidas,
-      que todavía no se crea.
+      The list is bounded and requested in chunks. The unread count only counts notifications of blocks the person can
+      still read, and goes up to showing 99+. There is a notification type reserved for changes in followed pages, which
+      is not created yet.
     scenarios:
-      - title: Aviso en vivo
-        given: Luis tiene la aplicación abierta
-        when: Ana lo nombra en un comentario
-        then: La campana de Luis suma uno sin que él haga nada
+      - title: Live notification
+        given: Luis has the application open
+        when: Ana mentions him in a comment
+        then: Luis's bell goes up by one without him doing anything
   - id: BR-ea7f878
     status: active
-    title: Un aviso no leído nunca se borra
+    title: An unread notification is never deleted
     rule: >-
-      Un aviso que nadie leyó se conserva sin límite de tiempo. Uno leído se borra noventa días después de haberse
-      leído.
+      A notification that nobody has read is kept with no time limit. A read one is deleted ninety days after it was
+      read.
     why: >-
-      Borrar un aviso pendiente es perder lo que alguien tenía que atender. Los leídos no le sirven a nadie pasado un
-      tiempo y harían crecer la bandeja sin fin.
-    context: El borrado de leídos corre en el servidor, de tanto en tanto, sin un proceso aparte.
+      Deleting a pending notification means losing what someone had to attend to. Read ones are of no use to anyone after
+      a while and would make the inbox grow endlessly.
+    context: Deletion of read notifications runs on the server, every so often, without a separate process.
     scenarios:
-      - title: Retención
-        given: Un aviso leído hace noventa y un días y otro que nunca se leyó
-        when: Corre la limpieza
-        then: Se borra el leído y se conserva el no leído
+      - title: Retention
+        given: A notification read ninety-one days ago and another that was never read
+        when: The cleanup runs
+        then: The read one is deleted and the unread one is kept

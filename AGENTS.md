@@ -51,7 +51,7 @@ State assumptions explicitly. If unclear, stop and ask. If multiple interpretati
 
 **Don't get stuck.** If you don't understand the request, ask. Never force a misinterpretation.
 
-**Confirm before acting.** Before writing code or making changes, restate what you understood and wait for confirmation. Example: *"Ok, según lo que entendí quieres que..."*
+**Confirm before acting.** Before writing code or making changes, restate what you understood and wait for confirmation. Example: *"Ok, from what I understood you want..."*
 
 ### Minimalism Over Engineering
 
@@ -129,7 +129,7 @@ Dot-separated. No kebab-case. Names read left to right: broader → narrower.
 |---|---|---|
 | Types | `{domain}.types.ts` | `user.types.ts`, `auth.types.ts` |
 | Constants | `{domain}.constants.ts` | `product.constants.ts`, `order.constants.ts` |
-| Utilities | `{domain}.lib.ts` | `auth.lib.ts`, `cliente.lib.ts` |
+| Utilities | `{domain}.lib.ts` | `auth.lib.ts`, `client.lib.ts` |
 
 App-specific conventions (components, DTOs, views, etc.) are defined in each app's
 `AGENTS.md`.

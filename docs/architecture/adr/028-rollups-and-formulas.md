@@ -1,192 +1,192 @@
-# 028: Rollups y fórmulas con un solo motor, calculados al leer
+# 028: Rollups and formulas with a single engine, computed on read
 
 **Status:** Accepted
 **Date:** 2026-10-21
 **Depends on:** `021-everything-is-a-block.md`, `024-collection-property-types.md`, `025-views-as-reducer-queries.md`, `026-collection-change-notices.md`
-**Precedes:** la etapa 11 (caché local y modo cliente) del plan `2026-10-20-trabajo-diario.md`.
+**Precedes:** stage 11 (local cache and client mode) of the plan `2026-10-20-daily-work.md`.
 
 ## Context
 
-La etapa 10 pide dos tipos de propiedad nuevos. Una **fórmula** calcula un valor desde las otras propiedades de la fila. Un **rollup** resume una propiedad de las filas que una relación enlaza. Se muestran en tabla, tablero y galería, se filtran, ordenan, agrupan y agregan como cualquier otra propiedad, y las puede definir y leer un agente.
+Stage 10 asks for two new property types. A **formula** computes a value from the row's other properties. A **rollup** summarizes a property of the rows that a relation links. They are shown in table, board and gallery, they are filtered, sorted, grouped and aggregated like any other property, and an agent can define and read them.
 
-ADR 024 dejó esto fuera y fijó dos cosas que valen aquí. Los valores derivados no se copian a `properties.values`, y las lecturas quitan de cada celda de relación los ids que el lector no puede leer antes de contar o agregar. ADR 025 compila filtro, orden y grupos a SQL sobre `properties.values`, con el motor de `packages/shared` como oráculo de la semántica. ADR 026 dio a cada bloque un `changeXid`.
+ADR 024 left this out and fixed two things that apply here. Derived values are not copied to `properties.values`, and reads strip from each relation cell the ids the reader cannot read before counting or aggregating. ADR 025 compiles filter, sort and groups to SQL over `properties.values`, with the `packages/shared` engine as the oracle of the semantics. ADR 026 gave each block a `changeXid`.
 
-Un motor de fórmulas serio necesita límite de tiempo y de trabajo, un resultado por `(fila, propiedad)` atado a la versión del esquema, carga de dependencias en lotes y valores precalculados para filtrar y ordenar. Es lo más caro de esta etapa.
+A serious formula engine needs a time and work limit, a result per `(row, property)` tied to the schema version, batch loading of dependencies and precomputed values for filtering and sorting. It is the most expensive part of this stage.
 
-Lo que obliga a decidir:
+What forces a decision:
 
-- una fórmula no se puede expresar en SQL sin duplicar el lenguaje, y un rollup depende de otras filas;
-- un rollup puede revelar una fila ilegible, y una fórmula con `now()` cambia sin que nadie escriba;
-- cuando cambia una fila relacionada cambia el valor de otra fila cuyo bloque no se tocó;
-- el agente debe poder definir, probar y entender un error sin pasar por el portal.
+- a formula cannot be expressed in SQL without duplicating the language, and a rollup depends on other rows;
+- a rollup can reveal an unreadable row, and a formula with `now()` changes without anyone writing;
+- when a related row changes, the value of another row whose block was not touched changes;
+- the agent must be able to define, test and understand an error without going through the portal.
 
-AGENTS.md pide la solución más simple y optimizar solo con una medición. Por eso esta decisión **no incluye caché** en la primera versión, y fija cuándo se añade.
+AGENTS.md asks for the simplest solution and to optimize only with a measurement. That is why this decision **does not include a cache** in the first version, and fixes when one is added.
 
 ## Alternatives Considered
 
-### Dónde corre el lenguaje
+### Where the language runs
 
-- **Compilar la fórmula a SQL.**
-  - PRO: filtrar y ordenar sale de la base.
-  - CON: dos semánticas, fechas y zonas distintas, y Postgres no da un límite de trabajo por fila.
-- **Una librería de expresiones o un sandbox de JavaScript.**
-  - PRO: nada que escribir.
-  - CON: no controla el trabajo por celda, el sandbox es superficie de ataque y añade una dependencia sin aprobar.
-- **Un lenguaje completo con listas, funciones anónimas y variables.**
-  - PRO: expresa cualquier cálculo.
-  - CON: trae bucles y recursión, que la etapa 10 deja fuera.
-- **Un intérprete propio, pequeño y tipado, una sola vez en `packages/shared` (elegida).**
-  - PRO: servidor, portal y MCP ejecutan el mismo código. Sin bucles, el trabajo de una celda está acotado.
-  - CON: hay que escribir y probar analizador y catálogo. Las fórmulas de otras herramientas no se importan tal cual.
+- **Compile the formula to SQL.**
+  - PRO: filtering and sorting come from the database.
+  - CON: two semantics, different dates and zones, and Postgres gives no per-row work limit.
+- **An expression library or a JavaScript sandbox.**
+  - PRO: nothing to write.
+  - CON: it does not control the work per cell, the sandbox is an attack surface and it adds an unapproved dependency.
+- **A full language with lists, anonymous functions and variables.**
+  - PRO: it expresses any computation.
+  - CON: it brings loops and recursion, which stage 10 leaves out.
+- **Our own small, typed interpreter, written once in `packages/shared` (chosen).**
+  - PRO: server, portal and MCP run the same code. Without loops, the work of a cell is bounded.
+  - CON: the parser and catalog have to be written and tested. Formulas from other tools are not imported as is.
 
-### Dónde viven los resultados
+### Where the results live
 
-- **Calcular al leer, en lote (elegida para la versión 1).**
-  - PRO: el resultado siempre es fresco y es por lector de forma natural (permisos, `now()` y zona funcionan sin reglas aparte). No hay tabla, migración de datos, invalidación ni respuesta «pendiente».
-  - CON: filtrar, ordenar, agrupar o agregar por un valor calculado evalúa los candidatos en cada consulta. Su costo crece con la colección, y por eso se mide.
-- **Tabla de resultados validada al leer con `changeXid` (plan siguiente, con disparador).**
-  - PRO: SQL filtra y ordena sobre columnas tipadas.
-  - CON: dos tablas, invalidación por fila y por filas relacionadas, valores por lector aparte, presupuesto y respuesta «pendiente».
-- **Copiar a `properties.values` o invalidar al escribir.**
-  - PRO: el motor de ADR 025 no cambia.
-  - CON: ADR 024 descartó copiar derivados, y una edición movería en cascada otras filas, su `version` y los avisos.
+- **Compute on read, in batch (chosen for version 1).**
+  - PRO: the result is always fresh and is per reader naturally (permissions, `now()` and zone work without separate rules). There is no table, data migration, invalidation or "pending" response.
+  - CON: filtering, sorting, grouping or aggregating by a computed value evaluates the candidates on every query. Its cost grows with the collection, and that is why it is measured.
+- **Results table validated on read with `changeXid` (next plan, with a trigger).**
+  - PRO: SQL filters and sorts on typed columns.
+  - CON: two tables, invalidation per row and per related rows, separate per-reader values, budget and a "pending" response.
+- **Copy to `properties.values` or invalidate on write.**
+  - PRO: the ADR 025 engine does not change.
+  - CON: ADR 024 ruled out copying derived values, and an edit would cascade to other rows, their `version` and the notices.
 
-### Cómo se filtra, ordena y agrega un valor calculado
+### How a computed value is filtered, sorted and aggregated
 
-- **Traer toda la colección y evaluarla en TypeScript.**
+- **Bring the whole collection and evaluate it in TypeScript.**
   - PRO: simple.
-  - CON: reintroduce el corte que ADR 025 eliminó, si no hay un filtro previo.
-- **Un prefiltro en SQL más evaluación exacta en TypeScript (elegida).**
-  - PRO: el SQL recorta con lo que sí sabe y la semántica final es la del motor compartido.
-  - CON: dos pasos, y un tope de candidatos.
+  - CON: it reintroduces the cut that ADR 025 eliminated, if there is no prior filter.
+- **A SQL prefilter plus exact evaluation in TypeScript (chosen).**
+  - PRO: SQL trims with what it does know and the final semantics are those of the shared engine.
+  - CON: two steps, and a cap on candidates.
 
 ## Decision
 
-### El lenguaje
+### The language
 
-Un módulo `packages/shared/src/page-formula/` con analizador, comprobador de tipos, evaluador y catálogo de funciones. Lo usan el servidor (evaluar, guardar y probar) y el portal (editor, validación, vista previa y recálculo optimista). Sin dependencias, sin interpretar JavaScript.
+A `packages/shared/src/page-formula/` module with parser, type checker, evaluator and function catalog. It is used by the server (evaluate, save and test) and the portal (editor, validation, preview and optimistic recomputation). No dependencies, no JavaScript interpretation.
 
-| Grupo | Contenido |
+| Group | Contents |
 |---|---|
-| Operadores | `+ - * / %`, `== != < <= > >=`, `and`, `or`, `not` (y `&& \|\| !`), negación unaria |
-| Condición | `if(condición, a, b)` |
-| Propiedades | `prop("Nombre")`: texto, número, casilla, fecha, selección, estado, persona, creación y edición, id único, otra fórmula o un rollup |
-| Números | `abs ceil floor round sqrt pow sign min max toNumber` |
-| Texto | `concat length lower upper trim contains startsWith endsWith replace replaceAll slice format join empty` |
-| Fechas | `now today date dateAdd dateSubtract dateBetween start end year month day weekday hour minute formatDate timestamp fromTimestamp` |
-| Listas (lectura) | `length join first last contains empty` sobre relaciones y rollups de «mostrar original». Sin `map`, `filter` ni funciones anónimas |
+| Operators | `+ - * / %`, `== != < <= > >=`, `and`, `or`, `not` (and `&& \|\| !`), unary negation |
+| Condition | `if(condition, a, b)` |
+| Properties | `prop("Name")`: text, number, checkbox, date, select, status, person, creation and edit, unique id, another formula or a rollup |
+| Numbers | `abs ceil floor round sqrt pow sign min max toNumber` |
+| Text | `concat length lower upper trim contains startsWith endsWith replace replaceAll slice format join empty` |
+| Dates | `now today date dateAdd dateSubtract dateBetween start end year month day weekday hour minute formatDate timestamp fromTimestamp` |
+| Lists (read) | `length join first last contains empty` on relations and "show original" rollups. No `map`, `filter` or anonymous functions |
 
-- Fuera de la versión 1: bucles, recursión, funciones anónimas, variables, expresiones regulares (ReDoS) y acceso a otras filas que no sea un rollup.
-- **Tipos.** Número, texto, casilla, fecha (con fin opcional) y lista. El comprobador infiere el tipo al guardar y rechaza lo que no cuadra. El resultado de una fórmula es un escalar. Un valor vacío se propaga por la aritmética y las comparaciones; `empty(x)`, `if`, `and` y `or` lo reciben sin propagarlo. La tabla exacta se fija primero en las pruebas.
-- **Guardado.** `PageSchemaProperty.config` guarda `source` (texto), `ast` (con ids de propiedad), `resultType` y `references`. Renombrar una propiedad reescribe solo los tramos de `source` que la citan. Escribir una celda de fórmula o de rollup se rechaza, como en creación y edición.
-- **Límites.** Texto de hasta 2.000 caracteres, árbol de hasta 500 nodos y profundidad 24. Presupuesto de 10.000 pasos por celda (por nodo evaluado y por elemento o carácter procesado), determinista y no de reloj. Resultado de texto de hasta 10.000 caracteres. La relación ya tiene tope de 100 ids por celda (ADR 024).
-- **Errores tipados.** Al guardar se rechaza con `Result` y código: `FORMULA_SYNTAX`, `FORMULA_UNKNOWN_FUNCTION`, `FORMULA_UNKNOWN_PROPERTY`, `FORMULA_TYPE_MISMATCH`, `FORMULA_CYCLE`, `FORMULA_TOO_LARGE`, con posición (`from`, `to`) y mensaje; el desconocido propone las dos etiquetas más cercanas. Al evaluar, el error pertenece a la celda y no rompe la fila: `FORMULA_DIVISION_BY_ZERO`, `FORMULA_INVALID_ARGUMENT`, `FORMULA_WORK_LIMIT`, `FORMULA_DEPENDENCY_ERROR` y `ROLLUP_TARGET_UNAVAILABLE`. El portal pinta el código y el mensaje. Un error no cumple ningún filtro, va al final del orden y se cuenta aparte en las agregaciones (`errorCount`).
-- **Cambios de esquema rechazados.** Borrar o cambiar de tipo una propiedad que cita una fórmula o un rollup (de la misma colección o de otra) falla con `PROPERTY_IN_USE` y la lista de dependientes. Un ciclo falla al guardar. Una cadena de rollups sobre rollups o fórmulas tiene tope de 3 colecciones (`ROLLUP_DEPTH_EXCEEDED`).
+- Out of version 1: loops, recursion, anonymous functions, variables, regular expressions (ReDoS) and access to other rows other than through a rollup.
+- **Types.** Number, text, checkbox, date (with optional end) and list. The checker infers the type on save and rejects what does not fit. A formula's result is a scalar. An empty value propagates through arithmetic and comparisons; `empty(x)`, `if`, `and` and `or` receive it without propagating it. The exact table is fixed first in the tests.
+- **Storage.** `PageSchemaProperty.config` stores `source` (text), `ast` (with property ids), `resultType` and `references`. Renaming a property rewrites only the stretches of `source` that cite it. Writing a formula or rollup cell is rejected, as with creation and edit.
+- **Limits.** Text of up to 2,000 characters, tree of up to 500 nodes and depth 24. Budget of 10,000 steps per cell (per evaluated node and per element or character processed), deterministic and not clock-based. Text result of up to 10,000 characters. Relation already has a cap of 100 ids per cell (ADR 024).
+- **Typed errors.** On save, it is rejected with a `Result` and code: `FORMULA_SYNTAX`, `FORMULA_UNKNOWN_FUNCTION`, `FORMULA_UNKNOWN_PROPERTY`, `FORMULA_TYPE_MISMATCH`, `FORMULA_CYCLE`, `FORMULA_TOO_LARGE`, with position (`from`, `to`) and message; the unknown one proposes the two closest labels. On evaluation, the error belongs to the cell and does not break the row: `FORMULA_DIVISION_BY_ZERO`, `FORMULA_INVALID_ARGUMENT`, `FORMULA_WORK_LIMIT`, `FORMULA_DEPENDENCY_ERROR` and `ROLLUP_TARGET_UNAVAILABLE`. The portal paints the code and the message. An error meets no filter, goes to the end of the order and is counted separately in the aggregations (`errorCount`).
+- **Rejected schema changes.** Deleting or changing the type of a property cited by a formula or a rollup (of the same collection or another) fails with `PROPERTY_IN_USE` and the list of dependents. A cycle fails on save. A chain of rollups over rollups or formulas has a cap of 3 collections (`ROLLUP_DEPTH_EXCEEDED`).
 
-### El rollup
+### The rollup
 
-`config` guarda `relationPropertyId`, `targetPropertyId`, `calculation` y `resultType`; la colección destino sale de la relación.
+`config` stores `relationPropertyId`, `targetPropertyId`, `calculation` and `resultType`; the target collection comes from the relation.
 
-| Cálculo | Resultado |
+| Calculation | Result |
 |---|---|
-| `COUNT_ALL` (filas relacionadas), `COUNT_FILLED`, `COUNT_EMPTY` | número |
-| `PERCENT_FILLED`, `PERCENT_EMPTY` | número (misma convención que `PERCENT_CHECKED`) |
-| `SUM`, `AVERAGE`, `MEDIAN` | número |
-| `MINIMUM`, `MAXIMUM` | número, o fecha si el destino es una fecha |
-| `SHOW_ORIGINAL` | lista de los valores del destino |
+| `COUNT_ALL` (related rows), `COUNT_FILLED`, `COUNT_EMPTY` | number |
+| `PERCENT_FILLED`, `PERCENT_EMPTY` | number (same convention as `PERCENT_CHECKED`) |
+| `SUM`, `AVERAGE`, `MEDIAN` | number |
+| `MINIMUM`, `MAXIMUM` | number, or date if the target is a date |
+| `SHOW_ORIGINAL` | list of the target's values |
 
-- Los cálculos válidos salen de `listPageCalculationsFor(tipo del destino)`. `PERCENT_FILLED` y `PERCENT_EMPTY` pasan a ser cálculos de esa tabla (también de los pies de tabla), con su caso en el compilador SQL de agregaciones de ADR 025 y en la prueba de paridad. Las funciones de `page-view.calculation.lib` se reutilizan, no hay segunda implementación.
-- Sin filas relacionadas, los conteos y la suma valen 0; el promedio, mínimo, máximo, mediana y porcentajes quedan vacíos.
-- `SHOW_ORIGINAL` se muestra, se lee por el MCP y se usa desde otra fórmula, pero **no se filtra, ordena ni agrupa en la versión 1** (`VIEW_QUERY_INVALID` con un mensaje claro).
+- The valid calculations come from `listPageCalculationsFor(target type)`. `PERCENT_FILLED` and `PERCENT_EMPTY` become calculations of that table (also of the table footers), with their case in the ADR 025 SQL aggregation compiler and in the parity test. The functions of `page-view.calculation.lib` are reused, there is no second implementation.
+- Without related rows, counts and sum are 0; average, minimum, maximum, median and percentages are empty.
+- `SHOW_ORIGINAL` is shown, is read through the MCP and is used from another formula, but **is not filtered, sorted or grouped in version 1** (`VIEW_QUERY_INVALID` with a clear message).
 
-### Calcular al leer
+### Computing on read
 
-Un **contexto de cálculo** por petición carga, en lotes y sin una consulta por fila:
+A **computation context** per request loads, in batches and without one query per row:
 
-1. las filas candidatas, con sus valores;
-2. los ids de relación de las propiedades que la fórmula o el rollup citan, ya sin los que el lector no puede leer (el conjunto denegado de ADR 025, mismo tope de 5.000 y mismo error tipado);
-3. las filas relacionadas distintas, en una consulta `id = ANY($ids)` por colección destino y por bloque de 500 fuentes, solo con las claves necesarias;
-4. si el destino es otra fórmula o un rollup, se evalúa primero en ese contexto (hasta el tope de profundidad).
+1. the candidate rows, with their values;
+2. the relation ids of the properties that the formula or rollup cite, already without those the reader cannot read (the ADR 025 denied set, same cap of 5,000 and same typed error);
+3. the distinct related rows, in one `id = ANY($ids)` query per target collection and per block of 500 sources, only with the needed keys;
+4. if the target is another formula or a rollup, it is evaluated first in that context (up to the depth cap).
 
-Los cálculos corren con el motor compartido. Como cada petición evalúa para su lector, con su reloj (`PAGE_QUERY_CLOCK`) y su zona (`timeZone`), el resultado es el que ese lector debe ver: un rollup nunca cuenta una fila ilegible y `now()` es el de la respuesta. Un lector sin acceso a la colección destino ve el rollup como si la relación estuviera vacía. Ninguna respuesta informa cuántas filas se excluyeron.
+The computations run with the shared engine. Since each request evaluates for its reader, with its clock (`PAGE_QUERY_CLOCK`) and its zone (`timeZone`), the result is what that reader should see: a rollup never counts an unreadable row and `now()` is that of the response. A reader without access to the target collection sees the rollup as if the relation were empty. No response reports how many rows were excluded.
 
-**Pantalla.** Para las filas de una página (de `results`, `groupResults` o la lectura de una fila) solo se evalúan las columnas calculadas pedidas.
+**Screen.** For the rows of a page (from `results`, `groupResults` or the read of a row) only the requested computed columns are evaluated.
 
-### Filtrar, ordenar, agrupar y agregar
+### Filtering, sorting, grouping and aggregating
 
-El compilador de ADR 025 sigue haciendo en SQL todo lo que no depende de un valor calculado. Cuando la consulta toca una columna calculada en el filtro, el orden, los grupos o las agregaciones, el servidor hace dos pasos:
+The ADR 025 compiler keeps doing in SQL everything that does not depend on a computed value. When the query touches a computed column in the filter, the sort, the groups or the aggregations, the server does two steps:
 
-1. **Prefiltro SQL.** Compila el filtro reemplazando por «verdadero» cada condición sobre una columna calculada, y aplica la búsqueda, el conjunto denegado y el resto. Es un superconjunto del resultado.
-2. **Evaluación exacta.** Carga los candidatos en lotes, calcula las columnas calculadas necesarias, aplica el filtro completo con `matchesPageFilter`, ordena con `comparePageRowsBySorts`, agrupa con `groupPageRows` y agrega con las funciones de `page-view.calculation.lib`, todos del motor compartido. Pagina con el mismo cursor opaco de ADR 025 (valores de orden de la última fila más `id`).
+1. **SQL prefilter.** It compiles the filter replacing with "true" each condition on a computed column, and applies the search, the denied set and the rest. It is a superset of the result.
+2. **Exact evaluation.** It loads the candidates in batches, computes the necessary computed columns, applies the full filter with `matchesPageFilter`, sorts with `comparePageRowsBySorts`, groups with `groupPageRows` and aggregates with the functions of `page-view.calculation.lib`, all from the shared engine. It paginates with the same opaque cursor as ADR 025 (sort values of the last row plus `id`).
 
-- **Tope.** Hasta 20.000 candidatos. Por encima, `VIEW_QUERY_COMPUTED_TOO_LARGE` con un mensaje que indica cuántos candidatos hay y que un filtro por propiedades almacenadas los reduce. Nunca una respuesta truncada.
-- **Una consulta que no toca columnas calculadas no cambia**: sigue entera en SQL.
-- **Semántica única.** El valor calculado entra al motor compartido igual que los derivados de creación y edición (`withDerivedValues`). El paso 2 usa el oráculo directamente. La paridad con SQL se prueba donde hay SQL: el prefiltro debe ser un superconjunto del resultado exacto (propiedad probada con colecciones generadas), y `PERCENT_FILLED` y `PERCENT_EMPTY` entran a la paridad de las agregaciones.
+- **Cap.** Up to 20,000 candidates. Above that, `VIEW_QUERY_COMPUTED_TOO_LARGE` with a message saying how many candidates there are and that a filter on stored properties reduces them. Never a truncated response.
+- **A query that does not touch computed columns does not change**: it stays entirely in SQL.
+- **A single semantics.** The computed value enters the shared engine like the derived creation and edit values (`withDerivedValues`). Step 2 uses the oracle directly. Parity with SQL is tested where there is SQL: the prefilter must be a superset of the exact result (property tested with generated collections), and `PERCENT_FILLED` and `PERCENT_EMPTY` enter the aggregation parity.
 
-### Medición y disparador del caché
+### Measurement and cache trigger
 
-Los datos esperados de Neuma son pequeños (unos cientos de páginas), y una colección de 10.000 filas con 10 relaciones por fila filtrada por una columna calculada es el caso de estrés, no el común. Los presupuestos son por eso dos. Una página de 50 filas con sus valores calculados tiene **p95 de API de 300 ms o menos**. Filtrar, ordenar, agrupar o totalizar por columnas calculadas sobre 10.000 filas con 10 relaciones tiene **p95 de 600 ms o menos**. La prueba `formulas-and-rollups.performance.integration.spec.ts` los vigila y se mide sola, sin otro proceso pesado: con el servidor de desarrollo de otra sesión en marcha los tiempos se duplican. Medido así en una máquina de desarrollo cargada, la página tardó 114 ms y las consultas calculadas entre 193 y 374 ms. El caché **solo se añade si un p95 medido sobre datos reales (o en la VM de producción) supera esos presupuestos**; la prueba de estrés en una máquina compartida no basta. El siguiente paso planeado es una tabla de resultados por `(fila, propiedad)`, validada al leer con `changeXid` como cursor (ADR 026), con `asOf` por entrada, huella de versiones de esquema, marca `hasRestrictedInputs` para las celdas que dependen de filas con permisos propios (que seguirían calculándose por lector), presupuesto de relleno por petición y una respuesta `COMPUTED_VALUES_PENDING`. Ese diseño se escribe en un ADR nuevo cuando el disparador se cumpla.
+Neuma's expected data is small (a few hundred pages), and a 10,000-row collection with 10 relations per row filtered by a computed column is the stress case, not the common one. There are therefore two budgets. A page of 50 rows with their computed values has an **API p95 of 300 ms or less**. Filtering, sorting, grouping or totaling by computed columns over 10,000 rows with 10 relations has a **p95 of 600 ms or less**. The test `formulas-and-rollups.performance.integration.spec.ts` watches them and is measured alone, without another heavy process: with another session's development server running, the times double. Measured that way on a loaded development machine, the page took 114 ms and the computed queries between 193 and 374 ms. The cache is **only added if a p95 measured on real data (or on the production VM) exceeds those budgets**; the stress test on a shared machine is not enough. The planned next step is a results table per `(row, property)`, validated on read with `changeXid` as the cursor (ADR 026), with `asOf` per entry, a fingerprint of schema versions, a `hasRestrictedInputs` mark for cells that depend on rows with their own permissions (which would keep being computed per reader), a fill budget per request and a `COMPUTED_VALUES_PENDING` response. That design is written in a new ADR when the trigger is met.
 
-### Avisos y portal
+### Notices and portal
 
-- **Una fila cambia y su dependiente no se toca.** La consulta responde `computedDependsOn`, las colecciones destino de los rollups. El portal las sigue por el canal en vivo (cuentan en el tope de 20) y, ante un aviso, dibuja la página otra vez desde el servidor: las vistas no colocan esas filas porque no son suyas. Hoy el portal toma esas colecciones del esquema, así que sigue solo las directas: un rollup sobre un rollup de otra colección no se sigue hasta la tercera. Pedir por ids solo los valores calculados de las filas cargadas queda como mejora.
-- **Optimista.** Mientras se escribe una celda de la tabla, el portal recalcula en local con el mismo motor las fórmulas de la fila que leen solo propiedades almacenadas u otras fórmulas así, y no usan el reloj. El resto espera al servidor.
-- **Fila abierta en su página.** La lista de páginas no trae valores calculados (costaría calcularlos para todo el espacio), así que la página de una fila que pertenece a una colección con fórmulas o rollups los pide aparte con `GET` de la página, que los calcula para el lector.
-- **Editor.** Valida mientras se escribe, con el mismo motor, y dice el tipo que da la fórmula. La prueba sobre filas reales es de `test_formula` para los agentes; el portal no la tiene todavía.
-- **Para la etapa 11.** Un valor calculado no es parte de la `version` de la fila, porque puede cambiar con la fila intacta. Un registro cacheado en el navegador no debe darlos por buenos solo por la misma `version`.
+- **A row changes and its dependent is not touched.** The query responds `computedDependsOn`, the target collections of the rollups. The portal follows them through the live channel (they count toward the cap of 20) and, on a notice, draws the page again from the server: the views do not place those rows because they are not theirs. Today the portal takes those collections from the schema, so it follows only the direct ones: a rollup over a rollup of another collection is not followed until the third. Requesting by ids only the computed values of the loaded rows remains as an improvement.
+- **Optimistic.** While a table cell is being written, the portal recomputes locally with the same engine the row's formulas that read only stored properties or other such formulas, and do not use the clock. The rest waits for the server.
+- **Row open on its page.** The page list does not bring computed values (computing them for the whole space would be costly), so the page of a row that belongs to a collection with formulas or rollups requests them separately with a `GET` of the page, which computes them for the reader.
+- **Editor.** It validates while typing, with the same engine, and says the type the formula yields. The test on real rows is `test_formula` for agents; the portal does not have it yet.
+- **For stage 11.** A computed value is not part of the row's `version`, because it can change with the row untouched. A record cached in the browser must not take them as good just because of the same `version`.
 
-### Herramientas del MCP
+### MCP tools
 
-- **`update_collection_columns`** acepta `FORMULA` con `{ formula }` (texto con nombres de columna) y `ROLLUP` con `{ relation, property, calculation }`. Responde `resultType` y `references`, y si falla, el código, la posición y las etiquetas más cercanas.
-- **`test_formula`** (nueva, solo lectura): `{ collection, formula | rollup, rows?, trace? }`. Comprueba una definición sin guardarla y la evalúa en hasta 5 filas. Devuelve `resultType`, `references`, los valores o errores por fila y, con `trace`, el valor de cada subexpresión. Es idempotente.
-- **`query_collection`** y `get_collection` devuelven las columnas calculadas como `{ value }` o `{ error: { code, message } }` y aceptan `where`, `sort`, `groupBy`, `aggregate` y `columns` sobre ellas por nombre. Ante `VIEW_QUERY_COMPUTED_TOO_LARGE`, el mensaje dice cómo acotar.
-- **`collection_changes`** (ADR 026), sin caché, no puede saber qué valor calculado cambió. Para cada colección con rollups, además de las filas de bloque tocado, devuelve como `possiblyChanged` las filas fuente cuya relación apunta a una fila destino que cambió desde `since` (se buscan por los ids de relación con una pasada por la colección, del orden de 3 ms con 10.000 filas según ADR 025). Van marcadas como posibles, completas y con sus valores actuales, y el agente deduplica por `id` y valor. Para fórmulas, una fila cambia solo si su bloque cambió, así que ya está cubierta.
-- La guía de funciones y errores vive en las instrucciones del MCP y en la descripción de `test_formula`.
-- Un agente tiene los permisos de su persona: los mismos rollups por lector y el mismo conjunto denegado.
+- **`update_collection_columns`** accepts `FORMULA` with `{ formula }` (text with column names) and `ROLLUP` with `{ relation, property, calculation }`. It responds `resultType` and `references`, and if it fails, the code, the position and the closest labels.
+- **`test_formula`** (new, read only): `{ collection, formula | rollup, rows?, trace? }`. It checks a definition without saving it and evaluates it on up to 5 rows. It returns `resultType`, `references`, the values or errors per row and, with `trace`, the value of each subexpression. It is idempotent.
+- **`query_collection`** and `get_collection` return the computed columns as `{ value }` or `{ error: { code, message } }` and accept `where`, `sort`, `groupBy`, `aggregate` and `columns` on them by name. On `VIEW_QUERY_COMPUTED_TOO_LARGE`, the message says how to narrow.
+- **`collection_changes`** (ADR 026), without a cache, cannot know which computed value changed. For each collection with rollups, in addition to the touched-block rows, it returns as `possiblyChanged` the source rows whose relation points to a target row that changed since `since` (they are found by the relation ids with one pass over the collection, in the order of 3 ms with 10,000 rows according to ADR 025). They are marked as possible, complete and with their current values, and the agent deduplicates by `id` and value. For formulas, a row changes only if its block changed, so it is already covered.
+- The guide to functions and errors lives in the MCP instructions and in the description of `test_formula`.
+- An agent has the permissions of its person: the same per-reader rollups and the same denied set.
 
-### Otras superficies
+### Other surfaces
 
-- **Exportación** (Markdown, CSV): escribe el valor calculado para el lector, por la misma vía.
-- **Totales con celdas fallidas**: `errorCounts` dice cuántas celdas de una columna totalizada fallaron entre las filas evaluadas, que son las que pasan las condiciones sobre columnas guardadas; es una cifra aproximada para no leer el total como si lo fuera todo.
-- **Plantillas y valor por defecto**: no aplican a fórmulas ni rollups, y `required` se rechaza.
-- **Fila en la papelera**: deja de contar en los rollups porque la relación ya la excluye (ADR 025).
+- **Export** (Markdown, CSV): writes the computed value for the reader, through the same path.
+- **Totals with failed cells**: `errorCounts` says how many cells of a totaled column failed among the evaluated rows, which are those that pass the conditions on stored columns; it is an approximate figure so that the total is not read as if it were everything.
+- **Templates and default value**: they do not apply to formulas or rollups, and `required` is rejected.
+- **Row in the trash**: it stops counting in rollups because the relation already excludes it (ADR 025).
 
-### Migración
+### Migration
 
-Solo la que el enum necesita: una migración pequeña (`packages/db`, conforme a su `AGENTS.md`) que agrega `FORMULA` y `ROLLUP` a `DatabasePropertyType`. No hay tablas nuevas. Antes de crearla se revisa `ls packages/db/migrations/app` por si otra etapa tiene una sin aplicar. Se prueba en una base desechable y luego se aplica a `company-brain`.
+Only what the enum needs: a small migration (`packages/db`, per its `AGENTS.md`) that adds `FORMULA` and `ROLLUP` to `DatabasePropertyType`. There are no new tables. Before creating it, `ls packages/db/migrations/app` is checked in case another stage has an unapplied one. It is tested on a disposable database and then applied to `company-brain`.
 
 ## Consequences
 
-- Positivas:
-  - un solo lenguaje que corre igual en servidor, portal y MCP, con trabajo acotado por celda;
-  - sin tablas de caché, sin invalidación y sin estado «pendiente». Los valores son siempre frescos y por lector, con los permisos correctos;
-  - la escritura no paga nada por fórmulas ni rollups;
-  - el agente prueba una fórmula antes de guardarla, ve el código y la posición del error, y se entera de qué filas pueden haber cambiado.
-- Negativas:
-  - filtrar, ordenar, agrupar o agregar por un valor calculado evalúa los candidatos en cada consulta, con tope de 20.000 y una medición que puede obligar a añadir el caché;
-  - `SHOW_ORIGINAL` no se filtra ni ordena;
-  - `collection_changes` puede devolver filas que no cambiaron de valor (`possiblyChanged`);
-  - el portal gasta suscripciones del tope de 20 en colecciones destino;
-  - el lenguaje no importa fórmulas de otras herramientas y no tiene listas funcionales ni expresiones regulares.
-- Cambios de comportamiento existente:
-  - borrar o cambiar de tipo una propiedad citada por una fórmula o un rollup falla con `PROPERTY_IN_USE`;
-  - la tabla de cálculos gana `PERCENT_FILLED` y `PERCENT_EMPTY`.
+- Positive:
+  - a single language that runs the same on server, portal and MCP, with work bounded per cell;
+  - no cache tables, no invalidation and no "pending" state. Values are always fresh and per reader, with the correct permissions;
+  - writing pays nothing for formulas or rollups;
+  - the agent tests a formula before saving it, sees the code and position of the error, and finds out which rows may have changed.
+- Negative:
+  - filtering, sorting, grouping or aggregating by a computed value evaluates the candidates on every query, with a cap of 20,000 and a measurement that may force adding the cache;
+  - `SHOW_ORIGINAL` is not filtered or sorted;
+  - `collection_changes` can return rows whose value did not change (`possiblyChanged`);
+  - the portal spends subscriptions from the cap of 20 on target collections;
+  - the language does not import formulas from other tools and has no functional lists or regular expressions.
+- Changes to existing behavior:
+  - deleting or changing the type of a property cited by a formula or a rollup fails with `PROPERTY_IN_USE`;
+  - the calculations table gains `PERCENT_FILLED` and `PERCENT_EMPTY`.
 
 ## Governance
 
-- Pruebas primero (TDD). Cada función del catálogo y cada regla de vacío tiene su caso antes del código. El analizador y el renombre tienen pruebas de propiedades.
-- **Permisos.** Una prueba de fuga por rollup: un lector sin acceso a una fila relacionada obtiene el mismo valor que si no existiera, en celda, filtro, orden, grupo, agregación, exportación y MCP, y lo mismo con un lector sin acceso a la colección destino.
-- **Prefiltro.** Prueba con colecciones generadas de que el resultado del SQL es siempre superconjunto del exacto.
-- **Rendimiento.** Colección de 10.000 filas con 10 relaciones por fila: p95 de API de 300 ms o menos para una página de 50 filas con sus valores calculados y de 600 ms o menos para filtrar, ordenar, agrupar o totalizar por columnas calculadas, sin consultas por fila. Si un valor medido sobre datos reales los supera, se avisa con las cifras antes de añadir el caché.
-- **Errores.** Todo error de consulta es un `Result` con código; un fallo inesperado deja un `ERROR` con traza y nunca una lista vacía.
-- **Reglas de negocio** (`FEA-CLC`, con `rules:add`): fórmulas y rollups, errores de celda, permisos, `PROPERTY_IN_USE`, `VIEW_QUERY_COMPUTED_TOO_LARGE`.
-- Una función, operador o cálculo nuevos no entran sin su caso de paridad. Añadir el caché se decide en un ADR nuevo.
+- Tests first (TDD). Each catalog function and each empty rule has its case before the code. The parser and the rename have property tests.
+- **Permissions.** A leak test per rollup: a reader without access to a related row obtains the same value as if it did not exist, in cell, filter, sort, group, aggregation, export and MCP, and the same with a reader without access to the target collection.
+- **Prefilter.** A test with generated collections that the SQL result is always a superset of the exact one.
+- **Performance.** A 10,000-row collection with 10 relations per row: API p95 of 300 ms or less for a page of 50 rows with their computed values and 600 ms or less for filtering, sorting, grouping or totaling by computed columns, without queries per row. If a value measured on real data exceeds them, a warning with the figures is given before adding the cache.
+- **Errors.** Every query error is a `Result` with a code; an unexpected failure leaves an `ERROR` with a trace and never an empty list.
+- **Business rules** (`FEA-CLC`, with `rules:add`): formulas and rollups, cell errors, permissions, `PROPERTY_IN_USE`, `VIEW_QUERY_COMPUTED_TOO_LARGE`.
+- A new function, operator or calculation does not enter without its parity case. Adding the cache is decided in a new ADR.
 
 ## Notes
 
-- Author: El-Vitas, con Claude
+- Author: El-Vitas, with Claude
 - Created: 2026-10-21
 - Approved by: El-Vitas, 2026-10-21
-- Modified: 2026-10-21. Aprobado con un cambio estructural: sin tablas de caché ni validación al leer en la versión 1. Se calcula al leer, en lote, con el motor compartido, y el caché queda como plan siguiente con su disparador (p95 de 300 ms sobre 10.000 filas con relaciones). Se mantienen el lenguaje propio sin regex, `SHOW_ORIGINAL` solo de lectura, `PROPERTY_IN_USE`, el recálculo optimista, `PERCENT_FILLED` y `PERCENT_EMPTY`, y los avisos por colecciones destino.
-- Modified: 2026-10-24. La evaluación exacta quedó distinta de lo escrito en Decisión: el servidor calcula las columnas calculadas sobre los candidatos que dejan pasar las condiciones guardadas, y entrega esos valores al SQL como si estuvieran guardados (`materializeComputed` en `page-query.service.ts`). Así el filtro, el orden, los grupos, el cursor y los totales siguen corriendo en el compilador de ADR 025, sin una segunda implementación en TypeScript.
-- Referencia: `docs/superpowers/plans/2026-10-20-trabajo-diario.md` (etapa 10)
+- Modified: 2026-10-21. Approved with one structural change: no cache tables or validation on read in version 1. It is computed on read, in batch, with the shared engine, and the cache remains as the next plan with its trigger (p95 of 300 ms over 10,000 rows with relations). The own language without regex, read-only `SHOW_ORIGINAL`, `PROPERTY_IN_USE`, optimistic recomputation, `PERCENT_FILLED` and `PERCENT_EMPTY`, and the notices through target collections are kept.
+- Modified: 2026-10-24. The exact evaluation ended up different from what is written in Decision: the server computes the computed columns over the candidates that the stored conditions let through, and hands those values to SQL as if they were stored (`materializeComputed` in `page-query.service.ts`). That way the filter, sort, groups, cursor and totals keep running in the ADR 025 compiler, without a second implementation in TypeScript.
+- Reference: `docs/superpowers/plans/2026-10-20-daily-work.md` (stage 10)

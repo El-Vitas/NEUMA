@@ -1,113 +1,110 @@
 id: FEA-AUT
 name: Authentication
-purpose: Define las reglas de autenticación y control de acceso
+purpose: Defines the authentication and access control rules
 scope: auth
 rules:
   - id: BR-001
     status: active
-    title: Credenciales inválidas
-    rule: El sistema debe rechazar credenciales inválidas sin revelar cuál campo (email o password) es incorrecto.
-    why: Seguridad — no dar pistas sobre qué cuentas existen.
+    title: Invalid credentials
+    rule: The system must reject invalid credentials without revealing which field (email or password) is incorrect.
+    why: Security — do not give clues about which accounts exist.
     context: >-
-      Aplica al endpoint de inicio de sesión. Tanto email inexistente como password incorrecto deben producir el mismo
-      error sin revelar cuál campo es incorrecto.
+      Applies to the sign-in endpoint. Both a nonexistent email and an incorrect password must produce the same error
+      without revealing which field is incorrect.
     scenarios:
-      - title: Login con password incorrecto
-        given: Un usuario registrado con email test@test.com
-        when: Intenta iniciar sesión con email correcto y password incorrecto
-        then: El sistema rechaza el inicio de sesión sin indicar si el email existe
+      - title: Login with an incorrect password
+        given: A user registered with email test@test.com
+        when: They try to sign in with a correct email and an incorrect password
+        then: The system rejects the sign-in without indicating whether the email exists
   - id: BR-002
     status: active
-    title: Usuario inactivo
-    rule: 'Un usuario con isActive: false no puede iniciar sesión.'
-    why: El administrador desactivó la cuenta; se debe bloquear el acceso.
+    title: Inactive user
+    rule: 'A user with isActive: false cannot sign in.'
+    why: The administrator deactivated the account; access must be blocked.
     scenarios:
-      - title: Usuario desactivado intenta login
-        given: 'Un usuario con isActive: false'
-        when: Intenta iniciar sesión con credenciales correctas
-        then: El sistema rechaza el inicio de sesión indicando que la cuenta está inactiva
+      - title: Deactivated user tries to log in
+        given: 'A user with isActive: false'
+        when: They try to sign in with correct credentials
+        then: The system rejects the sign-in, indicating that the account is inactive
   - id: BR-003
     status: active
-    title: Longitud de contraseña
-    rule: La contraseña debe tener entre 8 y 100 caracteres.
-    why: Mínimo de seguridad sin penalizar UX con límites excesivos.
+    title: Password length
+    rule: The password must be between 8 and 100 characters long.
+    why: Security minimum without penalizing UX with excessive limits.
   - id: BR-004
     status: active
-    title: Roles del sistema
-    rule: 'Existen tres roles de usuario: ADMIN, WORKER y CLIENT.'
-    why: Define los niveles de acceso y responsabilidad dentro del sistema.
+    title: System roles
+    rule: 'There are three user roles: ADMIN, WORKER and CLIENT.'
+    why: Defines the levels of access and responsibility within the system.
   - id: BR-005
     status: active
-    title: Permisos de ADMIN
-    rule: El rol ADMIN tiene permiso total sobre el módulo User y permiso Read + Update sobre Account.
-    why: El administrador necesita control total sobre las cuentas del sistema.
+    title: ADMIN permissions
+    rule: The ADMIN role has full permission over the User module and Read + Update permission over Account.
+    why: The administrator needs full control over the system's accounts.
   - id: BR-006
     status: active
-    title: Permisos de WORKER
-    rule: El rol WORKER tiene permiso Read + Update sobre Account (su propia cuenta).
-    why: Un usuario operativo gestiona su propia cuenta pero no administra a otros usuarios.
+    title: WORKER permissions
+    rule: The WORKER role has Read + Update permission over Account (their own account).
+    why: An operational user manages their own account but does not administer other users.
   - id: BR-007
     status: active
-    title: Acceso de CLIENT
+    title: CLIENT access
     rule: >-
-      El rol CLIENT no tiene permisos administrativos; solo puede autenticarse y acceder a los recursos propios que cada
-      proyecto defina.
-    why: Punto de extensión — cada proyecto define qué recursos posee un cliente.
+      The CLIENT role has no administrative permissions; it can only authenticate and access the own resources that each
+      project defines.
+    why: Extension point — each project defines which resources a client owns.
   - id: BR-008
     status: active
-    title: Payload del JWT
-    rule: El token de sesión debe contener el id, email, nombre y rol del usuario autenticado.
-    why: La aplicación necesita estos datos del usuario sin hacer una llamada adicional al servidor.
+    title: JWT payload
+    rule: The session token must contain the id, email, name and role of the authenticated user.
+    why: The application needs this user data without making an additional call to the server.
   - id: BR-ea307b3
     status: active
-    title: Un token de sesión solo sirve como sesión
+    title: A session token only works as a session
     rule: >-
-      El token que abre una sesión dice que es de sesión, y la API solo acepta como sesión un token que lo diga. Un
-      token firmado para otra cosa, como el que deja editar una página en vivo, no abre la API aunque esté vigente y sea
-      del mismo usuario.
-    why: Un token de alcance corto que sirviera como sesión daría más de lo que se pidió al emitirlo.
-    context: Una sesión iniciada antes de este cambio deja de valer y hay que volver a entrar.
+      The token that opens a session says that it is a session token, and the API only accepts as a session a token that
+      says so. A token signed for something else, such as the one that allows editing a page live, does not open the API
+      even if it is valid and belongs to the same user.
+    why: A short-scope token that worked as a session would give more than was asked for when it was issued.
+    context: A session started before this change stops being valid and one has to sign in again.
     scenarios:
-      - title: El token de edición en vivo no abre la API
-        given: Un usuario con un token de edición en vivo vigente
-        when: Lo usa para llamar a la API
-        then: La API responde que no está autenticado
+      - title: The live-editing token does not open the API
+        given: A user with a valid live-editing token
+        when: They use it to call the API
+        then: The API responds that they are not authenticated
   - id: BR-f22be9d
     status: active
-    title: Cada renovación cambia el token, y reutilizar uno gastado corta ese dispositivo
+    title: Each renewal changes the token, and reusing a spent one cuts off that device
     rule: >-
-      Cada vez que se renueva una sesión, el token de renovación presentado se gasta y se entrega uno nuevo. Un token ya
-      gastado que vuelve a presentarse después de 10 segundos corta la sesión de ese dispositivo, con todos los tokens
-      que había emitido, y los demás dispositivos siguen abiertos. Cerrar sesión corta solo el dispositivo donde se
-      cierra. Cambiar la contraseña corta todos los dispositivos de la cuenta, salvo el navegador donde se cambió, que
-      inicia sesión de nuevo.
+      Each time a session is renewed, the presented refresh token is spent and a new one is delivered. An already spent
+      token that is presented again after 10 seconds cuts off that device's session, with all the tokens it had issued,
+      and the other devices stay open. Signing out cuts off only the device where it is done. Changing the password cuts
+      off all of the account's devices, except the browser where it was changed, which signs in again.
     why: >-
-      Un token de renovación robado deja de servir en cuanto el dueño legítimo se renueva, y un cierre de sesión en un
-      equipo no debería sacar a la persona de los demás.
+      A stolen refresh token stops working as soon as the legitimate owner renews, and signing out on one machine should
+      not sign the person out of the others.
     context: >-
-      Durante los 10 segundos posteriores al gasto, el mismo token vuelve a recibir el mismo token nuevo, porque dos
-      peticiones de un mismo navegador pueden cruzarse antes de que llegue la cookie. El token de acceso que ya está en
-      uso vale hasta que vence, unos minutos. Los tokens de renovación anteriores a este cambio no sirven y hay que
-      iniciar sesión una vez.
+      During the 10 seconds after being spent, the same token receives the same new token again, because two requests
+      from the same browser can cross before the cookie arrives. The access token already in use is valid until it
+      expires, a few minutes. Refresh tokens from before this change do not work and one has to sign in once.
     supersedes: BR-99902bf
   - id: BR-99902bf
     status: superseded
-    title: Cerrar sesión o cambiar la contraseña corta todas las sesiones de la cuenta
+    title: Signing out or changing the password cuts off all of the account's sessions
     rule: >-
-      Al cerrar sesión o cambiar la contraseña, ningún token de renovación emitido antes vuelve a servir, en ningún
-      dispositivo. Quien cambia su contraseña sigue con la sesión abierta en el navegador donde la cambió; los demás
-      dispositivos deben iniciar sesión otra vez.
+      When signing out or changing the password, no refresh token issued earlier works again, on any device. Whoever
+      changes their password stays signed in in the browser where they changed it; the other devices must sign in again.
     why: >-
-      Una sesión que no se puede cortar sigue abierta siete días aunque la contraseña se haya filtrado o el equipo se
-      haya perdido. Cambiar la contraseña tiene que dejar afuera a quien la usaba.
-    context: El token de acceso que ya está en uso vale hasta que vence, unos minutos. Lo que se corta es la renovación.
+      A session that cannot be cut off stays open for seven days even if the password has leaked or the machine has been
+      lost. Changing the password has to lock out whoever was using it.
+    context: The access token already in use is valid until it expires, a few minutes. What is cut off is the renewal.
     superseded_by: BR-f22be9d
     scenarios:
-      - title: Cierre de sesión
-        given: Una persona con sesión abierta en dos equipos
-        when: Cierra sesión en uno
-        then: En los dos equipos la sesión deja de renovarse
-      - title: Cambio de contraseña
-        given: Una persona con sesión abierta
-        when: Cambia su contraseña
-        then: Los tokens de renovación anteriores se rechazan y el navegador donde la cambió sigue con sesión
+      - title: Sign-out
+        given: A person with a session open on two machines
+        when: They sign out on one
+        then: On both machines the session stops renewing
+      - title: Password change
+        given: A person with an open session
+        when: They change their password
+        then: The earlier refresh tokens are rejected and the browser where they changed it stays signed in

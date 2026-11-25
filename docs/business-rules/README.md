@@ -1,38 +1,38 @@
 # Business Rules Registry
 
-Registro versionado de reglas de negocio del proyecto. Cada feature tiene un YAML (`fea-XXX.yaml`) con reglas identificadas (`BR-NNN`), su razón de negocio y escenarios Given/When/Then que sirven como base para tests de aceptación.
+Versioned registry of the project's business rules. Each feature has a YAML file (`fea-XXX.yaml`) with identified rules (`BR-NNN`), their business reason and Given/When/Then scenarios that serve as the basis for acceptance tests.
 
-## Archivos
+## Files
 
-- `fea-aut.yaml` - reglas de autenticación y control de acceso (ejemplo real, funcional con Company Brain).
-- `fea-usr.yaml` - reglas de gestión de usuarios (ejemplo real, funcional con Company Brain).
-- `fea-template.yaml` - plantilla para crear el YAML de un feature nuevo (copiar, renombrar y completar; no se indexa como regla real hasta asignarle ids definitivos).
+- `fea-aut.yaml` - authentication and access control rules (real example, working with Company Brain).
+- `fea-usr.yaml` - user management rules (real example, working with Company Brain).
+- `fea-template.yaml` - template for creating the YAML of a new feature (copy, rename and fill in; it is not indexed as a real rule until it is given definitive ids).
 
-## Convenciones
+## Conventions
 
-- `id` de feature: `FEA-` + 3 letras (`FEA-ORD`, `FEA-PAG`).
-- `id` de regla: `BR-NNN`, correlativo global (no por feature).
+- Feature `id`: `FEA-` + 3 letters (`FEA-ORD`, `FEA-PAG`).
+- Rule `id`: `BR-NNN`, globally sequential (not per feature).
 - `status`: `draft` | `active` | `deprecated`.
-- Toda regla nueva nace con `why`; una regla sin razón de negocio no se acepta.
-- Las reglas se escriben en el idioma del dominio del proyecto; los ids y estados en inglés.
+- Every new rule is born with a `why`; a rule without a business reason is not accepted.
+- Rules are written in English, ids and statuses included.
 
 ## CLI
 
-El registro se indexa en SQLite con `packages/rules-cli` (skill asociada en `.agents/skills/business-rules`):
+The registry is indexed into SQLite with `packages/rules-cli` (associated skill in `.agents/skills/business-rules`):
 
 ```bash
-bun run rules:build          # reconstruye rules.db desde los YAML
-bun run rules:query <texto>  # busca reglas
-bun run rules:add            # agrega una regla vía CLI
-bun run rules:dump           # exporta el registro
-bun run rules:delete --id BR-xxx   # borra una regla puesta por error
+bun run rules:build          # rebuilds rules.db from the YAML files
+bun run rules:query <text>   # searches rules
+bun run rules:add            # adds a rule via the CLI
+bun run rules:dump           # exports the registry
+bun run rules:delete --id BR-xxx   # deletes a rule entered by mistake
 ```
 
-`rules:delete` no es la manera de retirar una regla. Una regla que se pensó mal se
-reemplaza con `supersedes`, y la vieja queda marcada y enlazada a la nueva: haberse
-equivocado al pensar es parte de la historia del producto y se conserva. `delete`
-es para un error material —el feature equivocado, la misma regla enviada dos
-veces, un envío a medias—, y se niega a tocar una regla de la que cuelgue el
-histórico.
+`rules:delete` is not the way to retire a rule. A rule that was badly thought out is
+replaced with `supersedes`, and the old one stays marked and linked to the new one:
+having been wrong in our thinking is part of the product's history and is kept.
+`delete` is for a material mistake (the wrong feature, the same rule submitted twice,
+a half-written submission), and it refuses to touch a rule that has history hanging
+from it.
 
-`rules.db` es un artefacto generado: no se versiona, se reconstruye con `rules:build`.
+`rules.db` is a generated artifact: it is not versioned, it is rebuilt with `rules:build`.

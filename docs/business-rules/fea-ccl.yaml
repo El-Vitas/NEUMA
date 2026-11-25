@@ -1,241 +1,238 @@
 id: FEA-CCL
-name: Caché local en el navegador
-purpose: Que lo ya leído y lo recién escrito no se pierda ni se filtre, y que el tablero siga a los demás sin recargarse.
+name: Local cache in the browser
+purpose: That what has already been read and what has just been written is neither lost nor leaked, and that the board follows the others without reloading.
 scope: collections
 rules:
   - id: BR-0322339
     status: active
-    title: La copia local es de una sola persona y se borra al salir
+    title: The local copy belongs to one person and is deleted on sign-out
     rule: >-
-      El navegador guarda una copia local de lo que una persona leyó y escribió, y esa copia es solo de ella. Cerrar
-      sesión la borra. Si otra persona inicia sesión en el mismo navegador, la copia de la anterior se borra antes de
-      mostrar nada.
+      The browser keeps a local copy of what a person read and wrote, and that copy is theirs alone. Signing out deletes
+      it. If another person signs in on the same browser, the previous person's copy is deleted before anything is shown.
     why: >-
-      Un navegador compartido no debe mostrar a una persona lo que leyó otra, aunque la sesión anterior haya terminado
-      sin salir.
+      A shared browser must not show one person what another read, even if the previous session ended without signing
+      out.
     context: >-
-      La copia no está cifrada, igual que las cookies de sesión del mismo navegador. Sin almacenamiento disponible, la
-      copia vive solo en la pestaña y la interfaz lo dice cuando hay cambios sin enviar.
+      The copy is not encrypted, just like the session cookies of the same browser. Without storage available, the copy
+      lives only in the tab and the interface says so when there are unsent changes.
     scenarios:
-      - title: Otra persona entra al mismo navegador
-        given: Ana cerró la pestaña sin salir y su copia local sigue en el navegador
-        when: Beto inicia sesión y abre una página
-        then: La copia de Ana se borra y Beto solo ve la suya
-      - title: Salir borra la copia
-        given: Ana tiene una copia local
-        when: Ana cierra sesión
-        then: El navegador ya no guarda nada de Ana
+      - title: Another person enters the same browser
+        given: Ana closed the tab without signing out and her local copy is still in the browser
+        when: Beto signs in and opens a page
+        then: Ana's copy is deleted and Beto only sees his own
+      - title: Signing out deletes the copy
+        given: Ana has a local copy
+        when: Ana signs out
+        then: The browser no longer keeps anything of Ana's
   - id: BR-141db89
     status: active
-    title: Una colección de hasta 10.000 filas la filtra, ordena, agrupa y cuenta el navegador
+    title: A collection of up to 10,000 rows is filtered, sorted, grouped and counted by the browser
     rule: >-
-      Una colección con hasta 10.000 filas visibles para quien la abre, cuyo filtro, orden y agrupación no usan
-      fórmulas, rollups ni relaciones y sin búsqueda de texto activa, se trae completa una sola vez, ordenada por su
-      orden manual. A partir de ahí el navegador filtra, ordena, agrupa, cuenta y calcula los pies de tabla sin pedir
-      nada al servidor, con el mismo resultado que el servidor. Por encima del umbral, con una búsqueda de texto, o con
-      un filtro, orden o agrupación que solo el servidor sabe resolver, la vista sigue pidiendo al servidor.
+      A collection with up to 10,000 rows visible to whoever opens it, whose filter, sort and grouping do not use
+      formulas, rollups or relations and with no text search active, is fetched complete just once, ordered by its
+      manual order. From there the browser filters, sorts, groups, counts and computes the table footers without asking
+      the server for anything, with the same result as the server. Above the threshold, with a text search, or with a
+      filter, sort or grouping that only the server knows how to resolve, the view keeps asking the server.
     why: >-
-      Con filas ya en el navegador, cambiar un filtro rápido o pedir más filas no tiene por qué costar una ida y vuelta,
-      y una colección de 100.000 filas no cabe en la pestaña.
+      With rows already in the browser, changing a quick filter or asking for more rows does not have to cost a round
+      trip, and a collection of 100,000 rows does not fit in the tab.
     context: >-
-      La primera carga sigue dibujándose en el servidor y, desde ahí, el navegador pasa a su propio cálculo sin
-      parpadeo. Cambiar el filtro guardado de la vista, un reinicio de los cambios, una pérdida de acceso o un cambio
-      del orden manual por otra persona vuelven a traer las filas.
+      The first load is still drawn on the server and, from there, the browser switches to its own computation without
+      flicker. Changing the view's saved filter, a reset of the changes, a loss of access or a change of the manual order
+      by another person fetch the rows again.
     scenarios:
-      - title: Colección de 2.000 filas
-        given: Un tablero de 2.000 tarjetas sin búsqueda
-        when: La persona cambia el filtro rápido
-        then: Las tarjetas se filtran y los conteos de columna cambian sin ninguna petición
-      - title: Colección grande
-        given: Una tabla de 10.001 filas
-        when: La persona la abre
-        then: La vista pide al servidor las filas por páginas, como antes
-      - title: Búsqueda de texto
-        given: Una colección pequeña con una búsqueda de texto activa
-        when: La persona busca una palabra con acentos
-        then: El servidor responde, porque solo él normaliza acentos y mayúsculas
+      - title: Collection of 2,000 rows
+        given: A board of 2,000 cards with no search
+        when: The person changes the quick filter
+        then: The cards are filtered and the column counts change without any request
+      - title: Large collection
+        given: A table of 10,001 rows
+        when: The person opens it
+        then: The view asks the server for the rows in pages, as before
+      - title: Text search
+        given: A small collection with a text search active
+        when: The person searches for a word with accents
+        then: The server responds, because only it normalizes accents and capitalization
   - id: BR-44999db
     status: active
-    title: Los cambios de una vista esperan la conexión salvo los de listas
+    title: A view's changes wait for the connection except those involving lists
     rule: >-
-      Cambiar el valor único de una celda, mover una tarjeta o una fila sin tocar listas y crear una fila se muestran al
-      instante, se guardan en el navegador antes de enviarse y se envían en orden cuando hay conexión, cada uno con el
-      mismo identificador en cada intento. Un cambio que depende de lo que entra y sale de una lista (varias opciones,
-      personas, relaciones o archivos) necesita conexión; sin ella se deshace en pantalla y se avisa que no se guardó.
-      Un cambio que el servidor rechaza se aparta con su texto para que la persona decida.
+      Changing a cell's single value, moving a card or a row without touching lists and creating a row are shown
+      instantly, are saved in the browser before being sent and are sent in order when there is a connection, each one
+      with the same identifier on every attempt. A change that depends on what enters and leaves a list (several
+      options, people, relations or files) needs a connection; without one it is undone on screen and the person is told
+      it was not saved. A change that the server rejects is set aside with its text so that the person can decide.
     why: >-
-      Una persona que edita una tabla sin conexión no debe perder lo que escribió ni quedar con una pantalla que miente,
-      y una lista solo se puede cambiar sin pisar a otra persona si la aplica el servidor.
+      A person editing a table without a connection must not lose what they wrote nor be left with a screen that lies,
+      and a list can only be changed without overwriting another person if the server applies it.
     context: >-
-      Un rechazo no retiene los cambios siguientes, porque cada celda o lugar es independiente de los demás, a
-      diferencia del texto de un documento. Tras un rechazo la vista vuelve a leer las filas del servidor.
+      A rejection does not hold back the following changes, because each cell or place is independent of the others,
+      unlike the text of a document. After a rejection the view reads the server's rows again.
     scenarios:
-      - title: Editar una celda sin conexión
-        given: Una persona edita el estado de una fila y no hay conexión
-        when: Vuelve la conexión
-        then: El cambio se envía una vez y la fila muestra el estado nuevo
-      - title: Cambiar una selección múltiple sin conexión
-        given: Una persona agrega una opción a una celda de selección múltiple y no hay conexión
-        when: Confirma la opción
-        then: La celda vuelve a su valor anterior y la persona ve que el cambio necesita conexión
+      - title: Editing a cell without a connection
+        given: A person edits the status of a row and there is no connection
+        when: The connection returns
+        then: The change is sent once and the row shows the new status
+      - title: Changing a multiple selection without a connection
+        given: A person adds an option to a multiple-selection cell and there is no connection
+        when: They confirm the option
+        then: The cell goes back to its previous value and the person sees that the change needs a connection
   - id: BR-59740bf
     status: active
-    title: Lo escrito y no respondido sobrevive a cerrar la pestaña
+    title: What was written and not answered survives closing the tab
     rule: >-
-      Todo cambio que una persona escribe se guarda en el navegador antes de enviarse y se borra solo cuando el servidor
-      responde. Si la conexión falla o la pestaña se cierra, al abrir la página otra vez con conexión el cambio se envía
-      tal como estaba. Al cerrar sesión con cambios sin enviar, la persona ve cuántos son y decide si los pierde.
-    why: Escribir sin conexión no puede costar texto, y perderlo debe ser siempre una decisión de la persona.
-    context: Se envía con el mismo identificador que ya tenía, así que enviarlo dos veces no lo aplica dos veces.
+      Every change a person writes is saved in the browser before being sent and is deleted only when the server
+      responds. If the connection fails or the tab is closed, when the page is opened again with a connection the change
+      is sent exactly as it was. When signing out with unsent changes, the person sees how many there are and decides
+      whether to lose them.
+    why: Writing without a connection cannot cost text, and losing it must always be the person's decision.
+    context: It is sent with the same identifier it already had, so sending it twice does not apply it twice.
     scenarios:
-      - title: Edición sin conexión
-        given: La conexión se cayó mientras Ana editaba una página
-        when: Ana cierra la pestaña y vuelve a abrir la página con conexión
-        then: El texto que escribió aparece en la página y no queda nada pendiente en el navegador
-      - title: Salir con cambios sin enviar
-        given: Ana tiene 3 cambios sin enviar
-        when: Ana elige cerrar sesión
-        then: Se le dice que son 3 y que se pierden, y no sale hasta que lo confirme
+      - title: Editing without a connection
+        given: The connection dropped while Ana was editing a page
+        when: Ana closes the tab and opens the page again with a connection
+        then: The text she wrote appears on the page and nothing is left pending in the browser
+      - title: Signing out with unsent changes
+        given: Ana has 3 unsent changes
+        when: Ana chooses to sign out
+        then: She is told there are 3 and that they will be lost, and she does not sign out until she confirms
   - id: BR-6429f99
     status: active
-    title: La fila que otra persona cambia se coloca sin recargar la vista
+    title: A row that another person changes is placed without reloading the view
     rule: >-
-      Cuando otra persona cambia una fila, la vista de quien mira (tabla, lista, galería, tablero, calendario o línea de
-      tiempo) coloca esa fila en su grupo, su lugar o sus días sin dibujarse de nuevo, con las mismas reglas de filtro y
-      de orden que usa el servidor. Si el navegador no puede saber dónde va la fila (hay una búsqueda, el filtro o el
-      orden dependen de otras filas, el grupo no está dibujado, la ventana de días solo muestra las primeras filas o el
-      orden es manual), pide al servidor la vista otra vez, y solo las columnas afectadas cuando el orden es manual.
+      When another person changes a row, the view of whoever is looking (table, list, gallery, board, calendar or
+      timeline) places that row in its group, its position or its days without redrawing, with the same filter and sort
+      rules the server uses. If the browser cannot know where the row goes (there is a search, the filter or the sort
+      depend on other rows, the group is not drawn, the days window only shows the first rows or the order is manual), it
+      asks the server for the view again, and only for the affected columns when the order is manual.
     why: >-
-      Ver cambiar una fila no debe costar una consulta de toda la vista por cada persona que mira, ni hacer saltar lo
-      que la otra persona tiene en pantalla.
+      Watching a row change must not cost a query for the whole view for each person looking, nor make what the other
+      person has on screen jump.
     context: >-
-      Los conteos de los grupos y el número de filas sin fecha se vuelven a pedir al servidor cuando cambia el contenido
-      de algún grupo. El gráfico solo muestra conteos, así que se dibuja otra vez desde el servidor.
+      The group counts and the number of rows without a date are requested again from the server when the content of any
+      group changes. The chart only shows counts, so it is redrawn from the server.
     supersedes: BR-4950377
     scenarios:
-      - title: Fila cambiada de fecha en un calendario
-        given: Un calendario muestra septiembre y otra persona mueve una fila a octubre
-        when: Llega el aviso del cambio
-        then: La fila sale de septiembre sin recargar el calendario y el conteo de filas sin fecha se actualiza
-      - title: Ventana truncada
-        given: Una línea de tiempo muestra solo las primeras filas de su ventana
-        when: Otra persona crea una fila dentro de la ventana
-        then: El navegador pide al servidor la vista otra vez
+      - title: Row with a changed date in a calendar
+        given: A calendar shows September and another person moves a row to October
+        when: The change notice arrives
+        then: The row leaves September without reloading the calendar and the count of rows without a date is updated
+      - title: Truncated window
+        given: A timeline shows only the first rows of its window
+        when: Another person creates a row inside the window
+        then: The browser asks the server for the view again
   - id: BR-6beb537
     status: active
-    title: Una colección ya vista se pinta desde la copia local y se pone al día después
+    title: A collection already seen is painted from the local copy and brought up to date afterwards
     rule: >-
-      Al abrir una colección que la persona ya vio, la vista se dibuja de inmediato con lo último que vio, marcada como
-      en actualización, mientras el servidor responde. Después se piden solo los cambios desde la última lectura y se
-      colocan en la copia con las mismas reglas que usa el servidor. Si el servidor no puede describir los cambios, o un
-      lugar depende de un orden que solo el servidor conoce, la respuesta del servidor reemplaza la copia.
-    why: Volver a una colección no debe mostrar una página vacía ni repetir la lectura completa de lo que no cambió.
+      When opening a collection the person has already seen, the view is drawn immediately with what they last saw,
+      marked as updating, while the server responds. Afterwards only the changes since the last read are requested and
+      are placed in the copy with the same rules the server uses. If the server cannot describe the changes, or a place
+      depends on an order that only the server knows, the server's response replaces the copy.
+    why: Returning to a collection must not show an empty page nor repeat the full read of what did not change.
     context: >-
-      Una copia que lleva 30 días sin confirmarse con el servidor no se muestra. La primera visita sin copia se dibuja
-      con lo que lee el servidor, sin página en blanco.
+      A copy that has gone 30 days without being confirmed with the server is not shown. The first visit without a copy
+      is drawn with what the server reads, with no blank page.
     scenarios:
-      - title: Volver a un tablero visto
-        given: Una persona vio el tablero ayer y otra movió una tarjeta desde entonces
-        when: La primera vuelve a abrirlo
-        then: Ve el tablero de ayer al instante con la tarjeta ya movida, sin esperar la lectura completa
-      - title: Orden manual
-        given: Una tarjeta nueva llegó a una columna con orden manual
-        when: La persona abre el tablero desde la copia
-        then: La copia no coloca esa tarjeta y espera la respuesta del servidor
+      - title: Returning to a board already seen
+        given: A person saw the board yesterday and another has moved a card since then
+        when: The first one opens it again
+        then: They see yesterday's board instantly with the card already moved, without waiting for the full read
+      - title: Manual order
+        given: A new card arrived in a column with manual order
+        when: The person opens the board from the copy
+        then: The copy does not place that card and waits for the server's response
   - id: BR-8f1fc0c
     status: active
-    title: Los valores calculados no se confían de la copia local
+    title: Computed values are not trusted to the local copy
     rule: >-
-      Las fórmulas y los rollups se calculan cada vez que se leen y la copia local no los guarda. Una vista pintada
-      desde la copia muestra esas celdas vacías hasta que llega la lectura del servidor. Cuando cambia una colección que
-      alimenta un rollup, la vista vuelve a leer las filas completas.
+      Formulas and rollups are computed every time they are read and the local copy does not store them. A view painted
+      from the copy shows those cells empty until the server's read arrives. When a collection that feeds a rollup
+      changes, the view reads the complete rows again.
     why: >-
-      Un valor calculado depende de otras filas que la copia no ve, así que mostrarlo guardado podría enseñar un
-      resultado que ya no es cierto.
+      A computed value depends on other rows that the copy does not see, so showing it stored could display a result that
+      is no longer true.
     context: >-
-      Ninguna fórmula ni rollup participa en el filtro, el orden o la agrupación de una vista que el navegador resuelve
-      solo.
+      No formula or rollup takes part in the filter, sort or grouping of a view that the browser resolves on its own.
     scenarios:
-      - title: Fórmula en una vista pintada desde la copia
-        given: Una colección con una columna de fórmula ya vista
-        when: La persona vuelve a abrirla
-        then: La columna aparece vacía al principio y se llena con el valor que calcula el servidor
+      - title: Formula in a view painted from the copy
+        given: A collection with a formula column already seen
+        when: The person opens it again
+        then: The column appears empty at first and is filled with the value the server computes
   - id: BR-97a194c
     status: active
-    title: Una fila que una lectura nueva deja de citar se confirma con el servidor
+    title: A row that a new read stops citing is confirmed with the server
     rule: >-
-      Cuando el servidor dibuja de nuevo una vista y ya no incluye filas que la copia local guardaba para esa misma
-      pregunta, el navegador pregunta al servidor, con la versión que guarda de cada una, cuáles de esas filas la
-      persona ya no puede abrir y borra de inmediato las que el servidor señala. Las filas que solo salieron de la
-      vista, pero siguen siendo legibles, se conservan. Cada fila guardada lleva la versión que el servidor le dio y
-      nunca una versión inventada por el navegador.
+      When the server redraws a view and no longer includes rows that the local copy stored for that same question, the
+      browser asks the server, with the version it stores for each one, which of those rows the person can no longer open
+      and immediately deletes the ones the server points out. Rows that merely left the view but are still readable are
+      kept. Each stored row carries the version the server gave it and never a version invented by the browser.
     why: >-
-      Quitar un permiso no avisa a quien ya leyó la fila, y una copia local no puede seguir enseñando lo que dejó de
-      estar permitido.
+      Removing a permission does not notify whoever already read the row, and a local copy cannot keep showing what is no
+      longer allowed.
     context: >-
-      Si el servidor no responde no se borra nada, porque no se sabe; la próxima lectura vuelve a preguntar. Un
-      calendario o una línea de tiempo pintados desde la copia se ponen al día igual que el resto de vistas.
+      If the server does not respond nothing is deleted, because it is not known; the next read asks again. A calendar or
+      a timeline painted from the copy is brought up to date just like the rest of the views.
     scenarios:
-      - title: Fila cerrada a una persona
-        given: Una persona tiene en su copia una tabla con una fila que otra deja de compartir con ella
-        when: La persona vuelve a abrir la tabla y el servidor la dibuja sin esa fila
-        then: La fila desaparece de la vista y de la copia, y las demás filas siguen guardadas
-      - title: Fila que solo salió del filtro
-        given: Una fila dejó de cumplir el filtro de la vista pero la persona aún puede abrirla
-        when: El servidor dibuja la vista sin ella
-        then: La fila sigue guardada en la copia
+      - title: Row closed to a person
+        given: A person has in their copy a table with a row that another person stops sharing with them
+        when: The person opens the table again and the server draws it without that row
+        then: The row disappears from the view and from the copy, and the other rows stay stored
+      - title: Row that merely left the filter
+        given: A row stopped meeting the view's filter but the person can still open it
+        when: The server draws the view without it
+        then: The row stays stored in the copy
   - id: BR-c60e45e
     status: active
-    title: Lo que ya no se puede leer se borra de la copia local
+    title: What can no longer be read is deleted from the local copy
     rule: >-
-      Si el servidor dice que la persona perdió el acceso a una colección o a una fila, o no puede describir qué filas
-      cambiaron, el navegador borra de inmediato lo que guardaba de esa colección y deja de mostrarlo. Las filas que
-      siguen siendo legibles se vuelven a guardar con la siguiente lectura. Sin conexión no se puede saber, así que se
-      muestra lo último que se vio hasta que vuelva la conexión o pasen 30 días.
-    why: Una copia no puede seguir enseñando lo que ya no está permitido ver, aunque haya sido legítimo verlo antes.
+      If the server says the person lost access to a collection or a row, or cannot describe which rows changed, the
+      browser immediately deletes what it stored of that collection and stops showing it. Rows that are still readable
+      are stored again with the next read. Without a connection it cannot be known, so the last thing seen is shown
+      until the connection returns or 30 days pass.
+    why: A copy cannot keep showing what is no longer allowed to be seen, even if seeing it was legitimate before.
     context: >-
-      Sin conexión es una limitación conocida y aceptada, no un caso resuelto. El conteo de filas legibles que informa
-      el servidor no revela filas que la persona no puede abrir.
+      Being without a connection is a known and accepted limitation, not a solved case. The count of readable rows that
+      the server reports does not reveal rows the person cannot open.
     scenarios:
-      - title: Fila que se vuelve ilegible
-        given: Una persona tiene en la copia una colección con una fila que otra deja de compartir
-        when: El servidor avisa que debe reconstruir lo que sabe de la colección
-        then: La fila desaparece de la vista y de la copia
+      - title: Row that becomes unreadable
+        given: A person has in the copy a collection with a row that another person stops sharing
+        when: The server warns that it must rebuild what it knows of the collection
+        then: The row disappears from the view and from the copy
   - id: BR-cf0c9df
     status: active
-    title: Un cambio que el servidor rechaza no se descarta
+    title: A change that the server rejects is not discarded
     rule: >-
-      Un cambio que el servidor rechaza (por permisos, por validación o porque lo que tocaba ya no existe) se guarda
-      aparte con el motivo y no se reenvía. Sigue ahí hasta que la persona decida qué hacer con él.
-    why: Que el servidor rechace un cambio no autoriza a tirar lo que la persona escribió.
-    context: Un cambio guardado que el navegador ya no puede leer tampoco se descarta; se aparta con el motivo y se avisa.
+      A change that the server rejects (for permissions, for validation or because what it touched no longer exists) is
+      stored separately with the reason and is not resent. It stays there until the person decides what to do with it.
+    why: The server rejecting a change does not authorize throwing away what the person wrote.
+    context: A stored change that the browser can no longer read is not discarded either; it is set aside with the reason and the person is told.
     scenarios:
-      - title: Permiso quitado mientras no había conexión
-        given: Ana escribió sin conexión y mientras tanto perdió el permiso de editar la página
-        when: Su navegador vuelve a conectarse y envía el cambio
-        then: El servidor lo rechaza, el cambio queda apartado con el motivo y no se reenvía
+      - title: Permission removed while there was no connection
+        given: Ana wrote without a connection and in the meantime lost permission to edit the page
+        when: Her browser reconnects and sends the change
+        then: The server rejects it, the change is set aside with the reason and is not resent
   - id: BR-4950377
     status: superseded
-    title: La tarjeta que otra persona mueve se coloca sin recargar el tablero
+    title: A card that another person moves is placed without reloading the board
     rule: >-
-      Cuando otra persona cambia una tarjeta del tablero, el tablero de quien lo mira coloca esa tarjeta en su columna y
-      su lugar sin dibujarse de nuevo, con las mismas reglas de filtro y de orden que usa el servidor. Si el navegador
-      no puede saber dónde va la tarjeta (hay una búsqueda, el filtro o el orden dependen de otras filas, o la columna
-      no está dibujada), pide al servidor la vista otra vez. Cuando el orden es manual, solo se vuelven a leer las
-      columnas afectadas.
+      When another person changes a card on the board, the board of whoever is looking places that card in its column and
+      its position without redrawing, with the same filter and sort rules the server uses. If the browser cannot know
+      where the card goes (there is a search, the filter or the sort depend on other rows, or the column is not drawn),
+      it asks the server for the view again. When the order is manual, only the affected columns are read again.
     why: >-
-      Ver moverse una tarjeta no debe costar una consulta de toda la vista por cada persona que mira, ni hacer saltar lo
-      que la otra persona tiene en pantalla.
-    context: Los conteos de las columnas se vuelven a pedir al servidor cuando cambia el contenido de alguna columna.
+      Watching a card move must not cost a query for the whole view for each person looking, nor make what the other
+      person has on screen jump.
+    context: The column counts are requested again from the server when the content of any column changes.
     superseded_by: BR-6429f99
     scenarios:
-      - title: Mover una tarjeta de columna
-        given: Ana y Beto miran el mismo tablero ordenado por prioridad
-        when: Beto mueve una tarjeta de Pendiente a Hecho
+      - title: Moving a card between columns
+        given: Ana and Beto look at the same board sorted by priority
+        when: Beto moves a card from Pendiente to Hecho
         then: >-
-          Ana ve la tarjeta en Hecho, en el lugar que le corresponde por prioridad, sin que el tablero se redibuje
-          entero
-      - title: Búsqueda activa
-        given: Ana busca una palabra en el tablero
-        when: Beto mueve una tarjeta
-        then: El tablero de Ana pide la vista al servidor otra vez
+          Ana sees the card in Hecho, in the place that corresponds to it by priority, without the whole board being
+          redrawn
+      - title: Active search
+        given: Ana searches for a word on the board
+        when: Beto moves a card
+        then: Ana's board asks the server for the view again

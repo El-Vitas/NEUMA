@@ -107,7 +107,7 @@ Creating a template must be idempotent within the requested database creation tr
 
 - Configuration names one select property as the grouping key.
 - Columns derive from configured select options.
-- Records without a value appear in an explicit `Sin estado` column.
+- Records without a value appear in an explicit `Unassigned` column.
 - Drag/drop mutations are deferred until the record update contract is verified; the first board is read-only grouping plus normal record editing.
 
 ## TDD Requirements
