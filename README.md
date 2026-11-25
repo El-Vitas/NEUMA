@@ -1,44 +1,46 @@
 # Neuma
 
-**Neural Enterprise Unified Memory & Agents.** El cerebro de la empresa: cada bloque es una neurona, cada enlace una sinapsis, y los agentes piensan con él.
+**English** · [Español](./README.es.md)
+
+**Neural Enterprise Unified Memory & Agents.** The company brain: every block is a neuron, every link a synapse, and agents think with it.
 
 <p align="center">
-  <img src="docs/media/neuma.webp" alt="Un agente busca en NEUMA la decisión de precios, escribe el borrador del correo en la página de Camila citando la fuente y marca la tarea como lista." width="960">
+  <img src="docs/media/neuma.webp" alt="An agent searches NEUMA for the pricing decision, writes the draft email on Camila's page citing the source and marks the task as done." width="960">
 </p>
 
-Neuma es la memoria interna de una organización. Todo es un bloque, incluso la página: espacios con páginas que se editan en vivo entre varias personas, colecciones con vistas, búsqueda de texto completo y retroenlaces. Los agentes de IA trabajan en ella como una persona más, a través de un servidor MCP con los mismos permisos que la aplicación.
+Neuma is an organization's internal memory. Everything is a block, even the page: spaces with pages that several people edit live, collections with views, full-text search and backlinks. AI agents work in it like one more person, through an MCP server with the same permissions as the application.
 
-**Primero los agentes.** Neuma se diseña antes para agentes de IA que para personas. No basta con que un agente pueda hacer lo mismo que una persona: Neuma inventa herramientas, algoritmos y estructuras pensadas para cómo trabaja un agente, con contexto preciso y citable, cambios desde su última visita y acciones que se pueden previsualizar. El portal existe y se usa, pero el producto es una memoria con la que los agentes piensan (ver «Product Principle: Agent First» en `AGENTS.md`).
+**Agents first.** Neuma is designed for AI agents before people. It is not enough for an agent to be able to do what a person does: Neuma invents tools, algorithms and structures built around how an agent works, with precise, citable context, changes since its last visit and actions that can be previewed. The portal exists and is used, but the product is a memory that agents think with (see "Product Principle: Agent First" in `AGENTS.md`).
 
-Para los agentes, Neuma es una arquitectura de memoria unificada (*Neural Enterprise Unified Memory Architecture*): cada conocimiento tiene un id estable que se puede citar, se enlaza con otros y se encuentra con una búsqueda, y cada agente solo ve lo que puede leer la persona dueña de su token.
+For agents, Neuma is a unified memory architecture (*Neural Enterprise Unified Memory Architecture*): every piece of knowledge has a stable id that can be cited, is linked to others and is found with a search, and each agent only sees what the person who owns its token can read.
 
-El nombre también viene de los neumas, la primera notación musical: signos pequeños que, juntos, forman el canto. Aquí cada bloque es un neuma.
+The name also comes from neumes, the first musical notation: small signs that, together, form the chant. Here every block is a neume.
 
-Cada despliegue atiende a una sola organización, y solo entran las personas a las que un administrador les crea una cuenta.
+Each deployment serves a single organization, and only people for whom an administrator creates an account get in.
 
-## Qué hace
+## What it does
 
-- **Páginas y espacios.** Jerarquía de páginas con historial de versiones, papelera, favoritas, íconos y exportación. Los espacios pueden ser internos, restringidos o privados.
-- **Editor en vivo.** Editor ProseMirror sobre bloques, con un canal en vivo y Yjs para el texto de cada bloque, con diagramas Mermaid, fórmulas, tablas, adjuntos y menciones entre páginas.
-- **Colecciones.** Una página puede llevar un esquema de propiedades, y sus páginas hijas se ven como tabla, tablero, lista, galería o calendario.
-- **Búsqueda y retroenlaces.** Búsqueda de texto completo en PostgreSQL por página y por bloque, y la sección «Vinculado desde». Las dos salen de los bloques y están al día apenas se confirma el cambio.
-- **Agentes.** Servidor MCP en `/api/v1/mcp` con tokens de acceso de alcance limitado. Cada acción de un agente queda auditada.
+- **Pages and spaces.** A hierarchy of pages with version history, trash, favorites, icons and export. Spaces can be internal, restricted or private.
+- **Live editor.** A ProseMirror editor over blocks, with a live channel and Yjs for the text of each block, with Mermaid diagrams, formulas, tables, attachments and mentions between pages.
+- **Collections.** A page can carry a property schema, and its child pages are seen as a table, board, list, gallery or calendar.
+- **Search and backlinks.** PostgreSQL full-text search by page and by block, and the "Linked from" section. Both come from the blocks and are up to date as soon as the change is confirmed.
+- **Agents.** An MCP server at `/api/v1/mcp` with limited-scope access tokens. Every action of an agent is audited.
 
-## Estructura
+## Structure
 
-| Workspace | Qué es | Puerto |
+| Workspace | What it is | Port |
 |---|---|---|
-| `apps/backend` | API NestJS 11 sobre Fastify y Bun, el servidor MCP y el canal en vivo del editor | 3000 |
-| `apps/portal` | Next.js 16 (App Router), React 19 y Tailwind 4 | 3010 |
-| `packages/db` | Contrato de Prisma ORM 8, migraciones y seed para PostgreSQL 18 | — |
-| `packages/shared` | Tipos, esquemas y lógica compartida entre backend y portal | — |
-| `packages/design` | Tokens de diseño en modo claro y oscuro | — |
-| `packages/eslint-rules` | Reglas de ESLint que hacen cumplir la arquitectura del repo | — |
-| `packages/rules-cli` | CLI del registro de reglas de negocio en `docs/business-rules/` | — |
+| `apps/backend` | NestJS 11 API on Fastify and Bun, the MCP server and the editor's live channel | 3000 |
+| `apps/portal` | Next.js 16 (App Router), React 19 and Tailwind 4 | 3010 |
+| `packages/db` | Prisma ORM 8 contract, migrations and seed for PostgreSQL 18 | — |
+| `packages/shared` | Types, schemas and logic shared between backend and portal | — |
+| `packages/design` | Design tokens in light and dark mode | — |
+| `packages/eslint-rules` | ESLint rules that enforce the repo's architecture | — |
+| `packages/rules-cli` | CLI for the business rules registry in `docs/business-rules/` | — |
 
-## Desarrollo local
+## Local development
 
-Requiere Bun 1.4 y Docker o Podman para PostgreSQL.
+Requires Bun 1.4 and Docker or Podman for PostgreSQL.
 
 ```bash
 bun install
@@ -48,34 +50,34 @@ cd packages/db && bun run db:migrate:deploy && bun run db:seed && cd ../..
 bun run dev
 ```
 
-`bun run dev` levanta el backend y el portal; no hace falta ningún otro proceso.
+`bun run dev` starts the backend and the portal; no other process is needed.
 
-El seed crea tres usuarios, `admin@example.com`, `worker@example.com` y `client@example.com`, con la contraseña definida en `packages/db/prisma/seed/users.seed.ts`.
+The seed creates three users, `admin@example.com`, `worker@example.com` and `client@example.com`, with the password defined in `packages/db/prisma/seed/users.seed.ts`.
 
-## Comandos
-
-```bash
-bun run dev          # backend y portal en modo watch
-bun run check        # formato, lint y tipos de todo el monorepo
-bun run check:ramless  # lo mismo, de a una tarea, para máquinas con poca memoria
-bun run test:ramless  # pruebas de todos los workspaces
-bun run rules:query  # consultar las reglas de negocio
-```
-
-## Con Docker
-
-`docker-compose.yml` levanta PostgreSQL, las migraciones (una vez), el backend y el portal.
-
-No hay registro abierto. En una instalación nueva, el primer administrador se crea una sola vez desde el servidor, y después los administradores crean las cuentas desde «Usuarios»:
+## Commands
 
 ```bash
-read -rs CLAVE && printf '%s' "$CLAVE" | docker compose exec -T backend \
-  bun run admin:create --email tu@example.com --name "Tu Nombre"; unset CLAVE
+bun run dev          # backend and portal in watch mode
+bun run check        # format, lint and types for the whole monorepo
+bun run check:ramless  # the same, one task at a time, for low-memory machines
+bun run test:ramless  # tests for all workspaces
+bun run rules:query  # query the business rules
 ```
 
-## Documentación
+## With Docker
 
-- `AGENTS.md`, en la raíz y en cada app: las convenciones de ingeniería, para personas y agentes.
-- `docs/architecture/adr/`: las decisiones de arquitectura y por qué se tomaron.
-- `docs/business-rules/`: las reglas de negocio, versionadas y consultables con `bun run rules:query`.
-- `docs/scope/`: el alcance actual y lo que queda fuera.
+`docker-compose.yml` starts PostgreSQL, the migrations (once), the backend and the portal.
+
+There is no open sign-up. On a fresh install, the first administrator is created once from the server, and afterwards administrators create accounts from "Users":
+
+```bash
+read -rs PASSWORD && printf '%s' "$PASSWORD" | docker compose exec -T backend \
+  bun run admin:create --email you@example.com --name "Your Name"; unset PASSWORD
+```
+
+## Documentation
+
+- `AGENTS.md`, at the root and in each app: the engineering conventions, for people and agents.
+- `docs/architecture/adr/`: the architecture decisions and why they were made.
+- `docs/business-rules/`: the business rules, versioned and queryable with `bun run rules:query`.
+- `docs/scope/`: the current scope and what is left out.

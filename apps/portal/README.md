@@ -1,23 +1,23 @@
 # Portal
 
-La aplicación web de Neuma: Next.js 16 con App Router, React 19 y Tailwind 4. Corre en el puerto 3010 y habla con el backend por HTTP y por el canal en vivo.
+Neuma's web application: Next.js 16 with App Router, React 19 and Tailwind 4. It runs on port 3010 and talks to the backend over HTTP and over the live channel.
 
-## Comandos
+## Commands
 
 ```bash
-bun run dev        # servidor de desarrollo en http://localhost:3010
-bun run build      # compila para producción
-bun run check      # dependencias, formato, lint y tipos
-bun run test       # pruebas unitarias con bun test
+bun run dev        # development server at http://localhost:3010
+bun run build      # builds for production
+bun run check      # dependencies, format, lint and types
+bun run test       # unit tests with bun test
 ```
 
-## Estructura
+## Structure
 
-- `app/`: rutas del App Router, por idioma.
-- `modules/`: cada área del producto (páginas, editor, colecciones, búsqueda, usuarios) con sus componentes, hooks, tipos y lógica.
-- `shared/`: lo que usan varios módulos.
-- `messages/`: los textos de la interfaz en español e inglés.
-- `content/docs/`: el manual de uso que se muestra dentro del portal.
-- `tests/`: las pruebas, con la misma estructura que el código.
+- `app/`: App Router routes, by language.
+- `modules/`: each area of the product (pages, editor, collections, search, users) with its components, hooks, types and logic.
+- `shared/`: what several modules use.
+- `messages/`: the interface texts in Spanish and English.
+- `content/docs/`: the user manual shown inside the portal.
+- `tests/`: the tests, with the same structure as the code.
 
-Las convenciones están en `AGENTS.md` y el sistema visual en `DESIGN.md`.
+The conventions are in `AGENTS.md` and the visual system in `DESIGN.md`.

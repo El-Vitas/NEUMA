@@ -1,320 +1,320 @@
-# 025: Las vistas son consultas por reductores
+# 025: Views are reducer queries
 
 **Status:** Accepted
 **Date:** 2026-10-21
 **Depends on:** `021-everything-is-a-block.md`, `024-collection-property-types.md`
-**Precedes:** las etapas 5 (aviso de cambios por colección), 7 (vistas que faltan) y 8 (fechas relativas y «yo») del plan `2026-10-20-trabajo-diario.md`, que se apoyan en el contrato que fija este ADR.
+**Precedes:** stages 5 (change notices per collection), 7 (missing views) and 8 (relative dates and "me") of the plan `2026-10-20-daily-work.md`, which build on the contract this ADR fixes.
 
 ## Context
 
-Hoy una vista es una fila `PageSchemaView` con su configuración en JSON. Para mostrarla, el servidor lee todas las filas de la colección con `readPagesUnder`, comprueba el acceso de cada una en memoria, las corta en 500 (`COLLECTION_ROW_LIMIT`) y filtra, ordena y agrupa en TypeScript. Una consulta del agente recorre hasta 5.000 antes de filtrar. Esto tiene cinco límites que el producto ya no acepta:
+Today a view is a `PageSchemaView` row with its configuration in JSON. To display it, the server reads all the rows of the collection with `readPagesUnder`, checks each one's access in memory, cuts them off at 500 (`COLLECTION_ROW_LIMIT`) and filters, sorts and groups in TypeScript. An agent query walks up to 5,000 before filtering. This has five limits the product no longer accepts:
 
-- una colección de 10.000 filas se ve cortada en 500, y el corte no se puede continuar. No hay cursor ni «cargar más»;
-- cada lectura cuesta en proporción a toda la colección, aunque la pantalla muestre veinte filas;
-- los conteos y las sumas salen de las filas cargadas, así que con el corte son falsos;
-- el orden manual de las tarjetas es el orden de `children` de la colección. Lo comparten todas las vistas y el árbol lateral, y mover una tarjeta de columna son dos escrituras separadas (el valor y el orden);
-- la configuración de una vista se guarda completa. BR-22dc232 lo parcha leyendo y fundiendo antes de escribir, pero dos personas que editan la misma vista a la vez todavía pueden pisarse entre la lectura y la escritura.
+- a collection of 10,000 rows is seen cut off at 500, and the cut cannot be continued. There is no cursor or "load more";
+- each read costs in proportion to the whole collection, even if the screen shows twenty rows;
+- counts and sums come from the loaded rows, so with the cut they are wrong;
+- the manual order of the cards is the `children` order of the collection. All views and the side tree share it, and moving a card between columns is two separate writes (the value and the order);
+- a view's configuration is saved in full. BR-22dc232 patches this by reading and merging before writing, but two people editing the same view at once can still step on each other between the read and the write.
 
-Las etapas siguientes añaden vistas, filtros relativos y avisos en vivo. Cada una necesita una consulta que el servidor sepa paginar, contar y resolver para quien mira. La forma que se propone: la consulta es el id de la vista más reductores con nombre, el orden manual es una lista plana de ids con operaciones relativas, y las escrituras de la vista son finas. Lo que se evita: guardar el formato entero de una vez y agrupar por nombre de opción.
+The following stages add views, relative filters and live notices. Each one needs a query that the server knows how to paginate, count and resolve for whoever is looking. The proposed shape: the query is the view id plus named reducers, the manual order is a flat list of ids with relative operations, and view writes are fine-grained. What is avoided: saving the entire format at once and grouping by option name.
 
-Medición previa, hecha para este ADR en una base desechable de Postgres 18.4 con 65.000 bloques (una colección de 10.000 filas, once de 5.000, 1 % de las filas con permisos propios) y caché caliente:
+Prior measurement, done for this ADR on a disposable Postgres 18.4 database with 65,000 blocks (one collection of 10,000 rows, eleven of 5,000, 1% of the rows with their own permissions) and a warm cache:
 
-| Consulta sobre la colección de 10.000 filas | Índices | Tiempo |
+| Query on the 10,000-row collection | Indexes | Time |
 |---|---|---|
-| Primera página por `createdAt, id`, 50 filas | `parentId` | 2,6 ms |
-| Igual | `(parentId, createdAt, id)` parcial | 0,05 ms |
-| Filtro por estado y prioridad, orden por número, 50 filas | `parentId` | 2,3 ms |
-| Conteo por grupo (`GROUP BY` del estado) | `parentId` | 2,5 ms |
-| Suma, promedio, mínimo y máximo de un número | `parentId` | 5,5 ms |
-| «Contiene» sobre una lista (persona), 50 filas | `parentId` | 2,3 ms |
-| Siguiente página con cursor por número y `id` | `parentId` | 4,3 ms |
-| Una columna de tablero en orden manual (unión con la lista del orden) | `parentId` | 15 ms |
-| La misma columna con `array_position` por fila | `parentId` | 391 ms |
-| Filas con permisos propios de la colección | `parentId` | 0,6 ms |
-| Con 100.000 filas: filtro y orden / conteo por grupo | `parentId` | 25 ms / 28 ms |
+| First page by `createdAt, id`, 50 rows | `parentId` | 2.6 ms |
+| Same | `(parentId, createdAt, id)` partial | 0.05 ms |
+| Filter by status and priority, sort by number, 50 rows | `parentId` | 2.3 ms |
+| Count per group (`GROUP BY` of status) | `parentId` | 2.5 ms |
+| Sum, average, minimum and maximum of a number | `parentId` | 5.5 ms |
+| "Contains" on a list (person), 50 rows | `parentId` | 2.3 ms |
+| Next page with cursor by number and `id` | `parentId` | 4.3 ms |
+| One board column in manual order (join with the order list) | `parentId` | 15 ms |
+| The same column with `array_position` per row | `parentId` | 391 ms |
+| Rows of the collection with their own permissions | `parentId` | 0.6 ms |
+| With 100,000 rows: filter and sort / count per group | `parentId` | 25 ms / 28 ms |
 
-Un índice GIN sobre `(parentId, properties->'values')` solo cambió el plan de las consultas muy selectivas (6 ms con 100.000 filas), y no cambió los conteos. Las cifras son de una máquina de desarrollo y se repiten en las pruebas de rendimiento de la implementación.
+A GIN index on `(parentId, properties->'values')` only changed the plan of highly selective queries (6 ms with 100,000 rows), and did not change the counts. The figures are from a development machine and are repeated in the implementation's performance tests.
 
 ## Alternatives Considered
 
-### Quién arma la consulta
+### Who builds the query
 
-- **Subir el tope y seguir agrupando en memoria.**
-  - PRO: cero cambio de contrato.
-  - CON: el costo sigue creciendo con la colección, el corte sigue sin poder continuarse y los conteos siguen siendo falsos pasado el tope.
-- **El cliente manda filtro, orden y grupos completos.**
-  - PRO: sirve para vistas efímeras sin guardar nada.
-  - CON: dos fuentes de verdad para la configuración, y el servidor tiene que validar y autorizar cada filtro que llega. Un agente tendría que releer la vista para saber qué consulta hace la persona.
-- **El cliente manda el id de la vista y reductores con nombre; el servidor compila desde la vista guardada (elegida).**
-  - PRO: una sola fuente de verdad, un contrato pequeño, y lo temporal (filtro rápido, búsqueda, orden de encabezado) viaja aparte.
-  - CON: una consulta sin vista (la del agente) necesita sus propios campos temporales.
+- **Raise the cap and keep grouping in memory.**
+  - PRO: zero contract change.
+  - CON: the cost keeps growing with the collection, the cut still cannot be continued and counts are still wrong past the cap.
+- **The client sends the full filter, sort and groups.**
+  - PRO: it works for ephemeral views without saving anything.
+  - CON: two sources of truth for the configuration, and the server has to validate and authorize every filter that arrives. An agent would have to re-read the view to know which query the person is running.
+- **The client sends the view id and named reducers; the server compiles from the saved view (chosen).**
+  - PRO: a single source of truth, a small contract, and what is temporary (quick filter, search, header sort) travels separately.
+  - CON: a query without a view (the agent's) needs its own temporary fields.
 
-### Paginación
+### Pagination
 
-- **Subir el límite del reductor en cada «cargar más».**
-  - PRO: el servidor no guarda estado.
-  - CON: cada página relee todo lo anterior. Después de diez páginas se han leído cincuenta y cinco.
+- **Raise the reducer limit on every "load more".**
+  - PRO: the server keeps no state.
+  - CON: each page re-reads everything before it. After ten pages, fifty-five have been read.
 - **Offset.**
   - PRO: trivial.
-  - CON: salta o repite filas si alguien edita entre páginas, y el costo crece con el desplazamiento.
-- **Cursor por claves (elegida).**
-  - PRO: costo constante por página, y una edición ajena no repite ni salta filas ordenadas por una clave estable.
-  - CON: el cursor lleva los valores de orden de la última fila, y el compilador debe generar la comparación con valores vacíos y direcciones mezcladas.
+  - CON: it skips or repeats rows if someone edits between pages, and the cost grows with the offset.
+- **Key cursor (chosen).**
+  - PRO: constant cost per page, and someone else's edit does not repeat or skip rows sorted by a stable key.
+  - CON: the cursor carries the sort values of the last row, and the compiler must generate the comparison with empty values and mixed directions.
 
-### Permisos en conteos y agregados
+### Permissions in counts and aggregates
 
-- **Filtrar las filas en TypeScript después de la consulta (como hoy).**
-  - PRO: reutiliza `keepAccessible`.
-  - CON: los conteos y las páginas dejan de coincidir con lo que se ve. Una página de 50 puede llegar con 38.
-- **Calcular el acceso de cada fila en SQL con una consulta recursiva por ancestros.**
-  - PRO: exacto sin estado intermedio.
-  - CON: cada fila paga un recorrido de ancestros, y la lógica de `describePageAccess` quedaría duplicada en SQL.
-- **Resolver primero el conjunto de filas que el lector no puede leer y empujarlo a la consulta (elegida).**
-  - PRO: una fila hija de la colección hereda el acceso de la colección salvo que declare permisos propios. Esas filas son pocas (0,6 ms para encontrarlas entre 10.000), se evalúan con el código existente y todo conteo, página y agregado las excluye.
-  - CON: el conjunto viaja como parámetro y tiene tope. Una colección con miles de filas restringidas necesita otra estrategia.
+- **Filter the rows in TypeScript after the query (as today).**
+  - PRO: reuses `keepAccessible`.
+  - CON: counts and pages stop matching what is seen. A page of 50 can arrive with 38.
+- **Compute each row's access in SQL with a recursive ancestor query.**
+  - PRO: exact with no intermediate state.
+  - CON: each row pays an ancestor walk, and the logic of `describePageAccess` would be duplicated in SQL.
+- **First resolve the set of rows the reader cannot read and push it into the query (chosen).**
+  - PRO: a row that is a child of the collection inherits the collection's access unless it declares its own permissions. Those rows are few (0.6 ms to find them among 10,000), they are evaluated with the existing code and every count, page and aggregate excludes them.
+  - CON: the set travels as a parameter and has a cap. A collection with thousands of restricted rows needs another strategy.
 
-### Índices sobre `properties.values`
+### Indexes on `properties.values`
 
-- **Un índice de expresión por propiedad (DDL desde la aplicación).**
-  - PRO: orden y filtro por esa propiedad sin ordenar en memoria.
-  - CON: las claves de propiedad son de cada colección, así que habría que crear y borrar índices al editar el esquema. Las filas se actualizan sin HOT en cada edición.
-- **GIN sobre `(parentId, values)` con `btree_gin`.**
-  - PRO: acelera «contiene» selectivo.
-  - CON: no mejora conteos ni ordenes, y cuesta escritura en cada edición de una fila. Los bloques ya llevan dos GIN de texto.
-- **Una tabla de valores tipados (una fila por celda).**
-  - PRO: índices normales por tipo, escala a millones.
-  - CON: duplica `properties.values` y obliga a mantener las dos copias. Es otra reescritura del modelo de ADR 021.
-- **El índice por `parentId` que ya existe, más uno parcial para el orden por defecto (elegida).**
-  - PRO: lo medido cabe en 30 ms hasta 100.000 filas, el índice parcial no impide las actualizaciones HOT, y no hay estructura que mantener.
-  - CON: cada orden por propiedad ordena en memoria las filas ya filtradas. El umbral para reabrir esta decisión es una colección sobre 100.000 filas o un p95 sobre 50 ms.
+- **An expression index per property (DDL from the application).**
+  - PRO: sort and filter by that property without sorting in memory.
+  - CON: property keys belong to each collection, so indexes would have to be created and dropped when editing the schema. Rows are updated without HOT on every edit.
+- **GIN on `(parentId, values)` with `btree_gin`.**
+  - PRO: speeds up selective "contains".
+  - CON: it does not improve counts or sorts, and costs a write on every row edit. Blocks already carry two text GINs.
+- **A table of typed values (one row per cell).**
+  - PRO: normal indexes per type, scales to millions.
+  - CON: it duplicates `properties.values` and forces maintaining both copies. It is another rewrite of the ADR 021 model.
+- **The existing `parentId` index, plus a partial one for the default order (chosen).**
+  - PRO: what was measured fits in 30 ms up to 100,000 rows, the partial index does not prevent HOT updates, and there is no structure to maintain.
+  - CON: each sort by property sorts the already filtered rows in memory. The threshold to reopen this decision is a collection over 100,000 rows or a p95 over 50 ms.
 
-### Orden manual
+### Manual order
 
-- **Seguir con `children` de la colección.**
-  - PRO: ya existe, está completo y es seguro ante concurrencia.
-  - CON: lo comparten todas las vistas y el árbol lateral. Reordenar una tarjeta del tablero mueve la fila en la tabla de otro equipo.
-- **Índice fraccional en cada fila.**
-  - PRO: mover es escribir una fila.
-  - CON: dos personas que sueltan en el mismo hueco generan la misma clave, y la lista necesita reequilibrarse.
-- **Una lista de ids por grupo.**
-  - PRO: el orden de una columna es directo.
-  - CON: mover entre columnas cambia dos listas, y si el valor de la fila cambia por otro camino, la fila queda en la lista equivocada.
-- **Una lista plana de ids por vista, con operaciones relativas a un id (elegida).**
-  - PRO: el orden de una columna es la subsecuencia de la lista, mover es una operación y dos movimientos con anclas distintas no se anulan.
-  - CON: la lista de una vista tiene tope, y las filas nuevas hay que agregarlas a las listas que existen.
+- **Keep using the collection's `children`.**
+  - PRO: it already exists, is complete and is safe under concurrency.
+  - CON: all views and the side tree share it. Reordering a board card moves the row in another team's table.
+- **Fractional index on each row.**
+  - PRO: moving is writing one row.
+  - CON: two people dropping into the same gap generate the same key, and the list needs rebalancing.
+- **A list of ids per group.**
+  - PRO: a column's order is direct.
+  - CON: moving between columns changes two lists, and if the row's value changes by another path, the row ends up in the wrong list.
+- **A flat list of ids per view, with operations relative to an id (chosen).**
+  - PRO: a column's order is the subsequence of the list, moving is one operation and two moves with different anchors do not cancel each other.
+  - CON: a view's list has a cap, and new rows have to be added to the lists that exist.
 
-### Escrituras de la configuración de una vista
+### Writes of a view's configuration
 
-- **Seguir guardando la configuración completa con lectura y fusión previas.**
-  - PRO: ya funciona.
-  - CON: queda una ventana entre leer y escribir, y cada pantalla de configuración tiene su propia lógica de fusión.
-- **Parches JSON genéricos.**
-  - PRO: un solo mecanismo.
-  - CON: direccionan listas por posición, que es justo lo que no resiste dos escritores.
-- **Un vocabulario cerrado de operaciones, cada una sobre una clave o un elemento con id (elegida).**
-  - PRO: dos personas que tocan claves distintas no se pisan, y cada operación se valida sola.
-  - CON: hay que definir y probar cada operación, y los nodos del filtro necesitan ids.
+- **Keep saving the full configuration with a prior read and merge.**
+  - PRO: it already works.
+  - CON: a window remains between reading and writing, and each configuration screen has its own merge logic.
+- **Generic JSON patches.**
+  - PRO: a single mechanism.
+  - CON: they address lists by position, which is exactly what does not withstand two writers.
+- **A closed vocabulary of operations, each on a key or an element with an id (chosen).**
+  - PRO: two people touching different keys do not step on each other, and each operation validates itself.
+  - CON: each operation has to be defined and tested, and the filter nodes need ids.
 
 ## Decision
 
-### El contrato de consulta
+### The query contract
 
-`POST /api/v1/collections/:collectionId/query`, con este cuerpo:
+`POST /api/v1/collections/:collectionId/query`, with this body:
 
-| Campo | Qué es |
+| Field | What it is |
 |---|---|
-| `viewId` | La vista guardada. Opcional. Sin vista no hay filtro, orden ni grupos propios. |
-| `quickFilter` | Un filtro que se suma con AND al de la vista. No se guarda. |
-| `search` | Texto que busca en el título de la fila (`Block.text`) y en sus respuestas de texto (texto enriquecido, enlace, correo y teléfono), sin distinguir mayúsculas ni acentos. No busca en números, fechas ni en los nombres de las opciones. No se guarda. |
-| `sorts` | Reemplaza los de la vista solo para esta consulta (orden de encabezado, consulta del agente). |
-| `timeZone` | La zona de quien mira. Se acepta y se reserva para la etapa 8 («hoy», «yo»). Hoy las fechas sin hora se comparan como UTC, igual que el oráculo de `packages/shared`, para que el SQL y el motor compartido no discrepen. |
-| `reducers` | Lista de `{ id, kind, ... }`. El cliente elige el `id` y la respuesta lo devuelve. |
+| `viewId` | The saved view. Optional. Without a view there is no filter, sort or groups of its own. |
+| `quickFilter` | A filter that is added with AND to the view's. It is not saved. |
+| `search` | Text that searches the row's title (`Block.text`) and its text answers (rich text, link, email and phone), case- and accent-insensitive. It does not search numbers, dates or option names. It is not saved. |
+| `sorts` | Replaces the view's only for this query (header sort, agent query). |
+| `timeZone` | The viewer's zone. It is accepted and reserved for stage 8 ("today", "me"). Today dates without time are compared as UTC, like the `packages/shared` oracle, so that SQL and the shared engine do not disagree. |
+| `reducers` | List of `{ id, kind, ... }`. The client chooses the `id` and the response returns it. |
 
-El servidor compila filtro, orden y grupos desde la vista guardada. El cliente nunca manda los de la vista. La zona, el lector y la hora entran al compilador como contexto, de modo que la etapa 8 resuelva «yo» y «hoy» ahí sin cambiar el contrato.
+The server compiles filter, sort and groups from the saved view. The client never sends those of the view. The zone, the reader and the time enter the compiler as context, so that stage 8 resolves "me" and "today" there without changing the contract.
 
-Cuatro reductores:
+Four reducers:
 
-| `kind` | Entrada | Salida |
+| `kind` | Input | Output |
 |---|---|---|
-| `results` | `limit` (por defecto 50, tope 100), `cursor`, `properties` (valores que se devuelven) | `{ ids, nextCursor }` |
-| `groups` | `groupBy` (por defecto el de la vista), `subGroupBy`, `rowsPerGroup` (por defecto 25, tope 50), `groupLimit` (por defecto 100), `includeHidden` | `{ groups: [{ key, hidden, ids, nextCursor }], hasMoreGroups }` |
-| `groupResults` | `group: { key, subKey? }`, `limit`, `cursor` | `{ ids, nextCursor }`. Es el «cargar más» de una columna. |
-| `aggregations` | `by` (`NONE` o `GROUP`), `items: [{ id, propertyKey, calculation }]` | un valor por ítem, y por grupo si `by` es `GROUP` |
+| `results` | `limit` (default 50, cap 100), `cursor`, `properties` (values that are returned) | `{ ids, nextCursor }` |
+| `groups` | `groupBy` (default the view's), `subGroupBy`, `rowsPerGroup` (default 25, cap 50), `groupLimit` (default 100), `includeHidden` | `{ groups: [{ key, hidden, ids, nextCursor }], hasMoreGroups }` |
+| `groupResults` | `group: { key, subKey? }`, `limit`, `cursor` | `{ ids, nextCursor }`. It is the "load more" of a column. |
+| `aggregations` | `by` (`NONE` or `GROUP`), `items: [{ id, propertyKey, calculation }]` | one value per item, and per group if `by` is `GROUP` |
 
-- `groupBy` y `subGroupBy` dentro de `groups` permiten que el agente agrupe sin tocar la vista.
-- Una respuesta no puede traer más de 1.000 ids entre todos los reductores. Pedir más se rechaza con `VIEW_QUERY_INVALID`.
-- Las agregaciones son las que ya existen: contar todo, vacíos y llenos, suma, promedio, mínimo, máximo, mediana y porcentaje marcado. Cada propiedad admite las que su tipo permite en la tabla de ADR 024. Contar es una agregación sin propiedad, y el conteo de cada columna del tablero es una agregación `COUNT_ALL` con `by: GROUP`. Las sumas se hacen en `numeric`.
-- La respuesta lleva `view` (id, versión y configuración compilada), `rows` (un registro por fila, una sola vez aunque esté en varios grupos, con los valores de las propiedades pedidas o visibles), `lookups` (títulos de filas relacionadas y nombres de archivos, como hoy) y `reducers` (un resultado por `id`).
-- El lector de una fila sin permiso no recibe ni su id ni su registro. Lo mismo vale para los ids de relación de cada celda.
-- Todos los reductores de una petición corren en una transacción de solo lectura con un solo snapshot y `statement_timeout` de 5 s. Dos peticiones distintas pueden ver estados distintos.
+- `groupBy` and `subGroupBy` inside `groups` let the agent group without touching the view.
+- A response cannot carry more than 1,000 ids across all reducers. Asking for more is rejected with `VIEW_QUERY_INVALID`.
+- The aggregations are the ones that already exist: count all, empty and filled, sum, average, minimum, maximum, median and percent checked. Each property admits those its type allows in the ADR 024 table. Counting is an aggregation without a property, and the count of each board column is a `COUNT_ALL` aggregation with `by: GROUP`. Sums are done in `numeric`.
+- The response carries `view` (id, version and compiled configuration), `rows` (one record per row, once even if it is in several groups, with the values of the requested or visible properties), `lookups` (titles of related rows and file names, as today) and `reducers` (one result per `id`).
+- The reader of a row without permission receives neither its id nor its record. The same goes for the relation ids in each cell.
+- All the reducers of a request run in a read-only transaction with a single snapshot and a `statement_timeout` of 5 s. Two different requests may see different states.
 
-**Carga en dos fases.** El cliente pide primero `results` o `groups` y pinta. Después, en una segunda petición independiente, pide `aggregations` y muestra «calculando» hasta que llega. El servidor no guarda estado entre las dos. Los conteos de columna y los pies de tabla son siempre de la segunda fase.
+**Two-phase loading.** The client first requests `results` or `groups` and renders. Then, in a second independent request, it requests `aggregations` and shows "calculating" until it arrives. The server keeps no state between the two. Column counts and table footers always come from the second phase.
 
-**Gráficos y calendario.** El gráfico usa solo `aggregations` con `by: GROUP`, sin filas. El calendario pide `results` con un `quickFilter` sobre el rango visible, con límite 100 y aviso si hay más.
+**Charts and calendar.** The chart uses only `aggregations` with `by: GROUP`, without rows. The calendar requests `results` with a `quickFilter` on the visible range, with limit 100 and a notice if there are more.
 
-### Cursores y paginación
+### Cursors and pagination
 
-El cursor es opaco (JSON en base64url) y lleva la versión de la vista, un resumen del orden efectivo y el valor de cada clave de orden de la última fila, más su posición y su `id`. El orden siempre termina en `(posición, id)`, así que es total y estable. Los valores vacíos van al final en ambas direcciones.
+The cursor is opaque (JSON in base64url) and carries the view version, a summary of the effective order and the value of each sort key of the last row, plus its position and its `id`. The order always ends in `(position, id)`, so it is total and stable. Empty values go last in both directions.
 
-- El compilador expande la comparación como una cadena de `OR` y `AND`, que cubre direcciones mezcladas y valores vacíos. La comparación por tupla de Postgres no los cubre.
-- Si el orden efectivo cambió desde que se emitió el cursor, la respuesta es `VIEW_QUERY_CURSOR_STALE` y el cliente reinicia desde la primera página.
-- Si una fila cambia de valor entre páginas, puede aparecer dos veces o no aparecer en esa carga. El cliente deduplica por id y repite la consulta cuando le avisen (etapa 5).
+- The compiler expands the comparison as a chain of `OR` and `AND`, which covers mixed directions and empty values. Postgres tuple comparison does not cover them.
+- If the effective order changed since the cursor was issued, the response is `VIEW_QUERY_CURSOR_STALE` and the client restarts from the first page.
+- If a row changes value between pages, it may appear twice or not appear in that load. The client deduplicates by id and repeats the query when notified (stage 5).
 
-### SQL sobre `Block.properties.values`
+### SQL over `Block.properties.values`
 
-- Las consultas siempre fijan `parentId = colección`, `type = 'page'` y `lifecycle = 'ACTIVE'`, y comparan sobre expresiones tipadas de `properties->'values'->key`. Cada extracción lleva una guarda de tipo (`jsonb_typeof`) para que una celda corrupta no tumbe la consulta.
-- Opciones y estado comparan el id. Selección múltiple y persona usan contención (`@>`). La relación usa contención de un id. La fecha compara `start` y `end` como instantes. Creación y edición leen las columnas del bloque, como fija ADR 024.
-- Agrupar por una propiedad de varios valores expande la celda con `jsonb_array_elements_text` y repite la fila en cada grupo. El reductor `aggregations` informa aparte `distinctRowCount`, para que un total no se infle.
-- **Índices.** La migración añade uno solo: `Block_rows_order_idx` sobre `(parentId, createdAt, id)` con `WHERE type = 'page' AND lifecycle = 'ACTIVE'`. No se añade GIN ni índices por propiedad. Las pruebas de rendimiento (`page-query.performance.integration.spec.ts`) miden con `EXPLAIN` una colección de 10.000 filas, rodeada de 40.000 filas de otras colecciones, y un tablero de 2.000 tarjetas. Fallan si el plan lee `Block` entero en lugar de usar `Block_parentId_idx` o `Block_rows_order_idx`, si el p95 de la base supera 50 ms o si el p95 de la API supera 150 ms (solas, las consultas responden en 45 a 65 ms).
-- **El orden por defecto no usa el índice parcial.** Una vista sin orden propio sigue el orden de `children`, que se lee como una lista de posiciones (`unnest ... WITH ORDINALITY`) unida a las filas: 6 ms con 2.000 filas y unos 15 ms con 10.000. El índice parcial sirve al orden por fecha de creación. Para que el planificador una las posiciones con un hash y no con un bucle anidado (que las recorre una vez por fila: 223 ms con 2.000 filas, 2,8 s con 10.000), la transacción de lectura fija `enable_nestloop = off`. La prueba de rendimiento lo descubrió y lo vigila.
-- **Semántica única.** El motor de `packages/shared` (`matchesPageFilter`, `comparePageRowsBySorts`) sigue siendo el oráculo de qué significa cada operador. El compilador SQL se prueba contra él con colecciones generadas, por cada tipo y operador de la tabla de ADR 024. El portal lo sigue usando para decidir dónde cae localmente una tarjeta que acaba de moverse.
+- Queries always fix `parentId = collection`, `type = 'page'` and `lifecycle = 'ACTIVE'`, and compare on typed expressions of `properties->'values'->key`. Each extraction carries a type guard (`jsonb_typeof`) so that a corrupt cell does not take the query down.
+- Options and status compare the id. Multi-select and person use containment (`@>`). Relation uses containment of one id. Date compares `start` and `end` as instants. Creation and edit read the block's columns, as ADR 024 fixes.
+- Grouping by a multi-value property expands the cell with `jsonb_array_elements_text` and repeats the row in each group. The `aggregations` reducer reports `distinctRowCount` separately, so that a total does not get inflated.
+- **Indexes.** The migration adds only one: `Block_rows_order_idx` on `(parentId, createdAt, id)` with `WHERE type = 'page' AND lifecycle = 'ACTIVE'`. No GIN or per-property indexes are added. The performance tests (`page-query.performance.integration.spec.ts`) measure with `EXPLAIN` a collection of 10,000 rows, surrounded by 40,000 rows of other collections, and a board of 2,000 cards. They fail if the plan reads the whole of `Block` instead of using `Block_parentId_idx` or `Block_rows_order_idx`, if the database p95 exceeds 50 ms or if the API p95 exceeds 150 ms (on their own, the queries respond in 45 to 65 ms).
+- **The default order does not use the partial index.** A view without its own order follows the order of `children`, which is read as a list of positions (`unnest ... WITH ORDINALITY`) joined to the rows: 6 ms with 2,000 rows and about 15 ms with 10,000. The partial index serves the order by creation date. So that the planner joins the positions with a hash and not with a nested loop (which walks them once per row: 223 ms with 2,000 rows, 2.8 s with 10,000), the read transaction sets `enable_nestloop = off`. The performance test discovered it and watches it.
+- **A single semantics.** The `packages/shared` engine (`matchesPageFilter`, `comparePageRowsBySorts`) remains the oracle of what each operator means. The SQL compiler is tested against it with generated collections, for each type and operator of the ADR 024 table. The portal keeps using it to decide where a card that has just been moved lands locally.
 
-### Permisos
+### Permissions
 
-Antes de compilar, el servidor calcula el **conjunto denegado** de la colección:
+Before compiling, the server computes the collection's **denied set**:
 
-1. busca las filas con `permissions IS NOT NULL`, que son las únicas que pueden diferir de la colección (el lector ya pasó el control de acceso de la colección);
-2. evalúa esas filas con `keepAccessible`, el mismo código que usan hoy las lecturas;
-3. pasa los ids que el lector no puede leer como `id <> ALL($ids)` a cada reductor.
+1. it looks for the rows with `permissions IS NOT NULL`, which are the only ones that can differ from the collection (the reader has already passed the collection's access control);
+2. it evaluates those rows with `keepAccessible`, the same code today's reads use;
+3. it passes the ids the reader cannot read as `id <> ALL($ids)` to each reducer.
 
-Así los conteos, las páginas, los agregados y los grupos excluyen esas filas, y un conteo nunca revela que existen. El tope es 5.000 ids denegados. Pasado el tope, la consulta falla con `VIEW_QUERY_TOO_MANY_RESTRICTED_ROWS` y un log `ERROR` con el id de la colección, y no se degrada en silencio.
+That way counts, pages, aggregates and groups exclude those rows, and a count never reveals that they exist. The cap is 5,000 denied ids. Past the cap, the query fails with `VIEW_QUERY_TOO_MANY_RESTRICTED_ROWS` and an `ERROR` log with the collection id, and does not degrade silently.
 
-**Valores de relación.** Para cada propiedad de relación que la consulta toque (como filtro, orden o agregado), el servidor calcula el conjunto de filas de la colección destino que el lector no puede leer o que están en la papelera, con el mismo tope. La consulta resta ese conjunto de la celda antes de comparar o contar (`values->key - $ids::text[]`). Un filtro cuyo valor es un id que el lector no puede leer no coincide con nada. Purgar una fila quita su id de las celdas de relación de las demás filas en la misma transacción de la purga, así que no quedan ids colgantes y los conteos son exactos. La relación admite como agregación contar llenos y vacíos, no sumas ni medianas, porque sus valores no son números.
+**Relation values.** For each relation property that the query touches (as a filter, sort or aggregate), the server computes the set of rows of the target collection that the reader cannot read or that are in the trash, with the same cap. The query subtracts that set from the cell before comparing or counting (`values->key - $ids::text[]`). A filter whose value is an id the reader cannot read matches nothing. Purging a row removes its id from the relation cells of the other rows in the same purge transaction, so there are no dangling ids and the counts are exact. Relation admits as aggregations counting filled and empty, not sums or medians, because its values are not numbers.
 
-### Orden manual
+### Manual order
 
-`PageSchemaView` gana `manualOrder`, una lista de ids de filas que puede ser nula.
+`PageSchemaView` gains `manualOrder`, a list of row ids that can be null.
 
-- **Nula** significa que la vista sigue el orden de `children` de la colección, que es el comportamiento de hoy. Ninguna vista existente cambia de aspecto.
-- **Con lista**, el orden de una vista sin `sorts` es esa lista. Una vista con `sorts` ordena por ellos y usa la lista solo para desempatar. Una fila que no está en la lista va después de las que sí, por `createdAt` y `id`.
-- **Se materializa en la primera operación de orden.** El servidor copia a la lista las filas vivas en el orden de `children`, dentro de la misma transacción que aplica la operación. El tope es 20.000 ids. Más allá, reordenar a mano se rechaza con un mensaje claro.
-- **Las operaciones** son `listAfter`, `listBefore` y `listRemove` sobre el puntero de la vista, con la misma semántica que sobre `children`: mover quita el id si estaba y lo inserta tras el ancla, o al final si el ancla ya no está. Son idempotentes y relativas a un id.
-- **Filas nuevas.** La transacción que crea una fila la agrega al final de las listas no nulas de las vistas de su colección. Una fila a la papelera conserva su lugar y vuelve a él al restaurarse. Purgarla la quita de las listas.
-- **Posición en SQL.** La consulta une las filas con `unnest(manualOrder) WITH ORDINALITY`. Esa unión cuesta 15 ms con 10.000 filas, contra 391 ms de `array_position` por fila.
-- **Es una sola lista para toda la vista**, no una por grupo. El orden de una columna es la subsecuencia de las tarjetas que caen en ella.
+- **Null** means the view follows the collection's `children` order, which is today's behavior. No existing view changes appearance.
+- **With a list**, the order of a view without `sorts` is that list. A view with `sorts` sorts by them and uses the list only as a tiebreaker. A row that is not in the list goes after those that are, by `createdAt` and `id`.
+- **It is materialized on the first order operation.** The server copies the live rows into the list in `children` order, inside the same transaction that applies the operation. The cap is 20,000 ids. Beyond that, manual reordering is rejected with a clear message.
+- **The operations** are `listAfter`, `listBefore` and `listRemove` on the view pointer, with the same semantics as on `children`: moving removes the id if it was there and inserts it after the anchor, or at the end if the anchor is gone. They are idempotent and relative to an id.
+- **New rows.** The transaction that creates a row adds it to the end of the non-null lists of its collection's views. A row sent to the trash keeps its place and returns to it when restored. Purging it removes it from the lists.
+- **Position in SQL.** The query joins the rows with `unnest(manualOrder) WITH ORDINALITY`. That join costs 15 ms with 10,000 rows, against 391 ms for `array_position` per row.
+- **It is a single list for the whole view**, not one per group. A column's order is the subsequence of the cards that fall in it.
 
-**Mover una tarjeta de columna es una sola transacción** del canal de bloques, con dos operaciones: la que cambia el valor de la fila y una `listAfter` (o `listBefore`) sobre la vista, anclada a la tarjeta vecina de la columna destino. Si la columna destino está vacía, no hay operación de orden. Con tablero de subgrupos, el movimiento diagonal cambia los dos valores en esa misma transacción. Si cualquier operación falla, no queda nada a medias. La tarjeta se mueve en pantalla antes de la respuesta, y si la transacción falla el cliente vuelve a pedir la columna.
+**Moving a card between columns is a single transaction** of the block channel, with two operations: the one that changes the row's value and a `listAfter` (or `listBefore`) on the view, anchored to the neighboring card of the destination column. If the destination column is empty, there is no order operation. With a subgroup board, the diagonal move changes both values in that same transaction. If any operation fails, nothing is left half done. The card moves on screen before the response, and if the transaction fails the client requests the column again.
 
-Las propiedades de varios valores (selección múltiple, persona) se mueven con un comando nuevo del bloque, `changeValueList` con `{ property, add, remove }`, en lugar de los dos previstos (`addValue` y `removeValue`): una tarjeta que cambia de columna quita una entrada y agrega otra, y un solo comando lo hace en un paso. Es idempotente y relativo a lo que la celda guarda al escribir, como `addRelation`: primero quita, luego agrega tras las entradas que se quedan y sin repetir. Arrastrar una tarjeta de la columna A a la B quita A y agrega B sin tocar los demás valores de la celda, aunque otra persona los haya cambiado en el intervalo. `move-row` lo recibe como `listChanges` y lo valida con las reglas de la propiedad antes de escribir. El comando solo lo envía el backend (es de los de página); un cliente cambia una celda con `set`.
+Multi-value properties (multi-select, person) move with a new block command, `changeValueList` with `{ property, add, remove }`, instead of the two foreseen (`addValue` and `removeValue`): a card that changes column removes one entry and adds another, and a single command does it in one step. It is idempotent and relative to what the cell stores at write time, like `addRelation`: first it removes, then it adds after the entries that stay and without repeating. Dragging a card from column A to B removes A and adds B without touching the other values of the cell, even if someone else changed them in the meantime. `move-row` receives it as `listChanges` and validates it with the property's rules before writing. The command is only sent by the backend (it is a page one); a client changes a cell with `set`.
 
-Cambiar el orden de una vista exige poder editar la colección, como cambiar su configuración. Un editor de la fila sin permiso sobre la colección puede cambiar el valor de la tarjeta, pero no moverla de lugar, y la transacción conjunta se rechaza entera.
+Changing a view's order requires being able to edit the collection, like changing its configuration. An editor of the row without permission on the collection can change the card's value, but not move it from its place, and the joint transaction is rejected entirely.
 
-### La configuración de una vista se escribe por operaciones
+### A view's configuration is written by operations
 
-`PageSchemaView` gana `version` (entero, sube con cada operación) y el canal de bloques acepta una tabla nueva, `view`, con estos comandos. Cada uno toca una clave o un elemento, nunca la configuración entera:
+`PageSchemaView` gains `version` (integer, bumped with each operation) and the block channel accepts a new table, `view`, with these commands. Each touches one key or one element, never the entire configuration:
 
-| Comando | Sobre | Efecto |
+| Command | On | Effect |
 |---|---|---|
-| `set` | una clave escalar (`groupBy`, `rowHeight`, `frozenColumns`, `icon`, `visibleProperties` y las demás de la configuración) | reemplaza ese valor. `name` e `isDefault` no son operaciones: siguen cambiando con la forma de la colección. |
-| `setEntry`, `removeEntry` | un mapa por clave (`calculations`, `columnWidths`, `columnAlignments`, `columnLimits`) | cambia o quita la entrada de una clave |
-| `listAfter`, `listBefore`, `listRemove` | una lista de claves (`visibleProperties`, `collapsedGroups`, `hiddenGroups`, `manualOrder`) | inserta relativo a un id |
-| `sortSet`, `sortRemove` | `sorts`, que se identifica por `propertyKey` | cambia la dirección o quita un orden |
-| `filterInsert`, `filterUpdate`, `filterRemove` | un nodo del filtro, por su `id` | agrega, cambia o quita un nodo sin tocar los demás |
+| `set` | a scalar key (`groupBy`, `rowHeight`, `frozenColumns`, `icon`, `visibleProperties` and the other configuration keys) | replaces that value. `name` and `isDefault` are not operations: they keep changing with the collection's shape. |
+| `setEntry`, `removeEntry` | a per-key map (`calculations`, `columnWidths`, `columnAlignments`, `columnLimits`) | changes or removes the entry of a key |
+| `listAfter`, `listBefore`, `listRemove` | a list of keys (`visibleProperties`, `collapsedGroups`, `hiddenGroups`, `manualOrder`) | inserts relative to an id |
+| `sortSet`, `sortRemove` | `sorts`, which is identified by `propertyKey` | changes the direction or removes a sort |
+| `filterInsert`, `filterUpdate`, `filterRemove` | a filter node, by its `id` | adds, changes or removes a node without touching the others |
 
-- Cada nodo del filtro (condición o grupo) lleva un `id`. El servidor lo asigna si falta.
-- `visibleProperties` nulo significa «todas». La primera operación sobre la lista la materializa con las propiedades actuales.
-- Tras aplicar las operaciones, el servidor valida la vista resultante con `validateSchemaView`, como hoy, y rechaza la transacción entera si no es válida.
-- Dos personas que cambian claves distintas no se pisan. Dos que cambian la misma clave escalar conservan la última, como en el resto de los campos del bloque.
-- La escritura de la configuración completa queda solo para crear una vista. `update_view` del MCP y las pantallas del portal pasan a las operaciones.
+- Each filter node (condition or group) carries an `id`. The server assigns it if missing.
+- A null `visibleProperties` means "all". The first operation on the list materializes it with the current properties.
+- After applying the operations, the server validates the resulting view with `validateSchemaView`, as today, and rejects the whole transaction if it is not valid.
+- Two people who change different keys do not step on each other. Two who change the same scalar key keep the last one, as in the rest of the block's fields.
+- Writing the full configuration remains only for creating a view. The MCP's `update_view` and the portal screens move to operations.
 
-### Agrupar
+### Grouping
 
-- Las vistas citan opciones por id (ADR 024). Una columna de tablero es una opción, y el grupo «sin valor» es la clave `UNASSIGNED_GROUP_KEY`.
-- El estado agrupa por opción o por grupo con una clave nueva, `groupByMode` (`OPTION` o `GROUP`), que solo vale para estado. Soltar una tarjeta en un grupo de estado le da la primera opción de ese grupo, la misma regla que ADR 024 usa al quitar una opción. El estado no tiene grupo «sin valor».
-- Persona y selección múltiple agrupan por cada valor, con las filas repetidas. El tablero deja de excluirlas, lo que cambia la nota de ADR 024.
-- Las propiedades sin opciones declaradas (fecha, número, casilla, creación y edición) toman los grupos de los valores que las filas tienen, ordenados, hasta `groupLimit`. Si hay más, `hasMoreGroups` es verdadero y la interfaz lo dice.
-- **Grupos ocultos.** `hiddenGroups` es una lista de claves de la vista. Sus filas no salen de `groups` salvo que se pida `includeHidden`, y la interfaz las ofrece en una lista con su conteo. `hidesEmptyGroups` y `hidesUnassignedColumn` siguen como están.
-- **Orden de los grupos.** Sigue viviendo en la propiedad (el orden de sus opciones), como hoy, y no en la vista. No cambia.
-- **Subgrupos.** Una celda del tablero con subgrupos es `{ key, subKey }`. Los reductores `groups`, `groupResults` y `aggregations` la aceptan, y la etapa 7 no cambia el contrato.
+- Views quote options by id (ADR 024). A board column is an option, and the "no value" group is the key `UNASSIGNED_GROUP_KEY`.
+- Status groups by option or by group with a new key, `groupByMode` (`OPTION` or `GROUP`), which only applies to status. Dropping a card into a status group gives it the first option of that group, the same rule ADR 024 uses when removing an option. Status has no "no value" group.
+- Person and multi-select group by each value, with repeated rows. The board stops excluding them, which changes the ADR 024 note.
+- Properties without declared options (date, number, checkbox, creation and edit) take their groups from the values the rows have, sorted, up to `groupLimit`. If there are more, `hasMoreGroups` is true and the interface says so.
+- **Hidden groups.** `hiddenGroups` is a list of view keys. Their rows do not come out of `groups` unless `includeHidden` is requested, and the interface offers them in a list with their count. `hidesEmptyGroups` and `hidesUnassignedColumn` remain as they are.
+- **Group order.** It still lives in the property (the order of its options), as today, and not in the view. It does not change.
+- **Subgroups.** A board cell with subgroups is `{ key, subKey }`. The `groups`, `groupResults` and `aggregations` reducers accept it, and stage 7 does not change the contract.
 
 ### Portal
 
-- Las vistas se piden por **id**, no por nombre. El nombre sigue siendo único por colección.
-- La primera carga la hace el servidor de Next con la fase uno. La fase dos y el «cargar más» van por acciones del cliente. Cada columna de tablero, cada grupo de tabla y la lista de una galería pagina por su cuenta.
-- **Virtualización** de tabla, lista y tablero con una ventana propia (`usePagesWindowVirtualizer`): sigue el desplazamiento del área principal del portal, dibuja las filas visibles más un margen de diez, mide cada fila después de dibujarla y mantiene siempre montada la tarjeta que se arrastra. Una lista de hasta sesenta elementos se dibuja entera. En el tablero se virtualizan las tarjetas de cada columna. El arrastre se resuelve contra el orden de los datos y no contra el DOM. Se probó `@tanstack/react-virtual` y se retiró: sus funciones no son compatibles con las reglas de React de este repositorio (`react-hooks/incompatible-library`, `react-hooks/refs`), y la única salida era una directiva que las silencia, que `AGENTS.md` no permite. La ventana propia son unas ochenta líneas puras con pruebas, y no añade ninguna dependencia.
-- «Seleccionar todo» selecciona las filas cargadas. Ofrece «seleccionar las N que coinciden», que trae solo ids con un tope de 1.000.
-- Antes de pedir una consulta, el cliente espera a que se envíen sus escrituras pendientes sobre esa colección, para que el resultado ya las contenga.
+- Views are requested by **id**, not by name. The name remains unique per collection.
+- The first load is done by the Next server with phase one. Phase two and "load more" go through client actions. Each board column, each table group and a gallery's list paginates on its own.
+- **Virtualization** of table, list and board with a window of our own (`usePagesWindowVirtualizer`): it follows the scrolling of the portal's main area, draws the visible rows plus a margin of ten, measures each row after drawing it and always keeps the card being dragged mounted. A list of up to sixty elements is drawn in full. On the board, the cards of each column are virtualized. Dragging is resolved against the data order and not against the DOM. `@tanstack/react-virtual` was tried and withdrawn: its functions are not compatible with this repository's React rules (`react-hooks/incompatible-library`, `react-hooks/refs`), and the only way out was a directive that silences them, which `AGENTS.md` does not allow. The own window is about eighty pure lines with tests, and adds no dependency.
+- "Select all" selects the loaded rows. It offers "select the N that match", which fetches only ids with a cap of 1,000.
+- Before requesting a query, the client waits for its pending writes on that collection to be sent, so that the result already contains them.
 
-### Herramientas del MCP
+### MCP tools
 
-`query_collection` conserva su nombre y cambia de forma para que un agente pida exactamente lo que necesita, con nombres de columna y de opción en vez de ids:
+`query_collection` keeps its name and changes shape so that an agent asks for exactly what it needs, with column and option names instead of ids:
 
-| Campo | Qué hace |
+| Field | What it does |
 |---|---|
-| `collection`, `view?` | La colección y, si se da, la vista cuyo filtro y orden se aplican. |
-| `where?`, `sort?` | Filtro (se suma al de la vista) y orden (reemplaza el de la vista). Es lo que hoy ya existe. |
-| `search?` | Busca en el título y en las respuestas de texto de las filas. |
-| `columns?` | Qué columnas devolver. Por defecto, las visibles de la vista, con un tope. |
-| `limit?`, `cursor?` | Una página de filas. `limit: 0` no devuelve filas. |
-| `group?` | El nombre de un grupo, para leer solo sus filas con su propio cursor. |
-| `groupBy?` | Devuelve los grupos con su conteo y sus primeras filas. |
-| `aggregate?` | Una lista de `{ column, calculation }`, con `by: group` opcional. |
+| `collection`, `view?` | The collection and, if given, the view whose filter and sort apply. |
+| `where?`, `sort?` | Filter (added to the view's) and sort (replaces the view's). This is what already exists today. |
+| `search?` | Searches the title and the text answers of the rows. |
+| `columns?` | Which columns to return. By default, those visible in the view, with a cap. |
+| `limit?`, `cursor?` | One page of rows. `limit: 0` returns no rows. |
+| `group?` | The name of a group, to read only its rows with its own cursor. |
+| `groupBy?` | Returns the groups with their count and their first rows. |
+| `aggregate?` | A list of `{ column, calculation }`, with an optional `by: group`. |
 
-- Lo que se implementó: `groupBy` agrupa y trae el conteo de cada grupo; `group` lee las filas de un solo grupo con su cursor; `aggregate` es una lista de `{ calculation, column? }` sobre todas las filas que pasan el filtro (con `groupBy`, también por grupo); `columns` recorta las columnas de cada fila (el título siempre va); `limit: 0` devuelve solo conteos. Sin `groupBy` la respuesta no se agrupa aunque la vista agrupe, y con `view` y sin `where` ni `sort` se lee con el orden manual de esa vista. La descripción de la herramienta explica cómo pedir solo conteos, un grupo o una página con las columnas necesarias.
-- El cursor del MCP es el del servidor. `truncated` desaparece, y `total` sale de una agregación exacta: todas las filas que el token puede leer y que pasan el filtro. Las filas que una regla del token cierra se excluyen de la consulta, no se descartan después.
-- Una escritura nueva, `move_row`, recibe `{ collection, view, row, properties?, before?, after? }` y la ejecuta como la transacción única de arriba. `update_view` conserva sus campos de alto nivel (dónde filtra, cómo ordena, por qué agrupa) pero ya no manda la configuración completa: calcula la diferencia con la vista y la manda como operaciones. Los títulos de las filas que una relación enlaza se buscan por id o por título exacto en el servidor, no listando la colección.
-- Salida: no se hizo una forma compacta de lista de valores; cada fila trae sus propiedades con nombre, y `columns` es la forma de acortarla.
+- What was implemented: `groupBy` groups and brings each group's count; `group` reads the rows of a single group with its cursor; `aggregate` is a list of `{ calculation, column? }` over all the rows that pass the filter (with `groupBy`, also per group); `columns` trims the columns of each row (the title always goes); `limit: 0` returns only counts. Without `groupBy` the response is not grouped even if the view groups, and with `view` and without `where` or `sort` it is read in that view's manual order. The tool's description explains how to ask for only counts, one group, or a page with the needed columns.
+- The MCP cursor is the server's. `truncated` disappears, and `total` comes from an exact aggregation: all the rows the token can read that pass the filter. Rows that a token rule closes are excluded from the query, not discarded afterwards.
+- One new write, `move_row`, receives `{ collection, view, row, properties?, before?, after? }` and runs it as the single transaction above. `update_view` keeps its high-level fields (where it filters, how it sorts, what it groups by) but no longer sends the full configuration: it computes the difference with the view and sends it as operations. The titles of the rows that a relation links are looked up by id or by exact title on the server, not by listing the collection.
+- Output: a compact form of value list was not made; each row brings its properties by name, and `columns` is the way to shorten it.
 
-### Migración
+### Migration
 
-Una sola migración (`packages/db`, conforme a su `AGENTS.md`), en una transacción:
-1. agrega `PageSchemaView.manualOrder` (lista de texto nula) y `PageSchemaView.version` (entero, 0 por defecto);
-2. crea `Block_rows_order_idx`;
-3. asigna `id` a cada nodo de filtro de cada configuración y agrega `hiddenGroups: []` y `groupByMode: 'OPTION'`;
-4. cuenta vistas y nodos de filtro antes y después, y falla si no coinciden.
+A single migration (`packages/db`, per its `AGENTS.md`), in one transaction:
+1. adds `PageSchemaView.manualOrder` (nullable text list) and `PageSchemaView.version` (integer, 0 by default);
+2. creates `Block_rows_order_idx`;
+3. assigns `id` to each filter node of each configuration and adds `hiddenGroups: []` and `groupByMode: 'OPTION'`;
+4. counts views and filter nodes before and after, and fails if they do not match.
 
-Se prueba primero en una base desechable y después se aplica a `company-brain`. El orden de `children` no se toca.
+It is tested first on a disposable database and then applied to `company-brain`. The `children` order is not touched.
 
 ## Consequences
 
-- Positivas:
-  - una colección de 10.000 filas se recorre por páginas de costo constante, y 100.000 filas siguen en unos 30 ms según lo medido;
-  - los conteos y los agregados son exactos y excluyen lo que el lector no puede leer;
-  - el tablero deja de ser un caso especial: cada columna es un `results` con su cursor;
-  - mover una tarjeta cambia valor y orden en una transacción, y dos personas que reordenan o que cambian ajustes distintos de la misma vista no se pisan;
-  - las vistas dejan de compartir el orden de las filas;
-  - un agente pide una página, una columna o solo los conteos, con una salida corta;
-  - las etapas 5, 7 y 8 reciben el punto de entrada: versión de la vista, celdas `{ key, subKey }` y un compilador con contexto de lector, zona y hora.
-- Negativas:
-  - hay dos implementaciones de la semántica de filtro, la de TypeScript y la de SQL, y solo la prueba de paridad evita que se separen;
-  - el conjunto denegado tiene tope, y una colección con más de 5.000 filas restringidas falla en vez de degradarse;
-  - la purga de una fila recorre las celdas de relación que la citan, y eso suma trabajo a la transacción de purga;
-  - cada orden por propiedad ordena en memoria las filas filtradas, con un umbral conocido para reabrir la decisión;
-  - la lista de orden manual de una vista tiene tope de 20.000 ids y cada fila nueva se agrega a ella;
-  - una fila que cambia de valor entre dos páginas puede repetirse o faltar hasta la siguiente consulta;
-  - la fase dos obliga a una segunda petición por vista;
-  - el filtro cambia de forma (ids en los nodos), y todo código que lo construye o lo lee se actualiza.
-- Cambios de comportamiento existente:
-  - arrastrar una tarjeta ya no reordena la fila en las demás vistas ni en el árbol lateral;
-  - el tope de 500 filas y el de 5.000 de la consulta desaparecen, junto con `hasMore` y `truncated`;
-  - el tablero agrupa por persona y selección múltiple, que ADR 024 había dejado fuera, y por grupo de estado;
-  - las vistas se direccionan por id y no por nombre en el contrato;
-  - la configuración completa deja de escribirse desde las pantallas y el MCP;
-  - `query_collection` cambia de forma y gana `move_row` como herramienta de escritura.
-- Aceptado como costo: un modo cliente (el servidor devuelve todos los ids y el cliente filtra en local) queda fuera. Se evalúa con la etapa 5, cuando haya canal de cambios por colección.
+- Positive:
+  - a collection of 10,000 rows is walked in pages of constant cost, and 100,000 rows remain at about 30 ms as measured;
+  - counts and aggregates are exact and exclude what the reader cannot read;
+  - the board stops being a special case: each column is a `results` with its cursor;
+  - moving a card changes value and order in one transaction, and two people who reorder or who change different settings of the same view do not step on each other;
+  - views stop sharing the order of the rows;
+  - an agent asks for a page, a column or only the counts, with a short output;
+  - stages 5, 7 and 8 receive the entry point: view version, `{ key, subKey }` cells and a compiler with reader, zone and time context.
+- Negative:
+  - there are two implementations of the filter semantics, the TypeScript one and the SQL one, and only the parity test keeps them from drifting apart;
+  - the denied set has a cap, and a collection with more than 5,000 restricted rows fails instead of degrading;
+  - purging a row walks the relation cells that cite it, and that adds work to the purge transaction;
+  - each sort by property sorts the filtered rows in memory, with a known threshold to reopen the decision;
+  - a view's manual order list has a cap of 20,000 ids and each new row is added to it;
+  - a row that changes value between two pages can repeat or be missing until the next query;
+  - phase two forces a second request per view;
+  - the filter changes shape (ids in the nodes), and all code that builds or reads it is updated.
+- Changes to existing behavior:
+  - dragging a card no longer reorders the row in the other views or in the side tree;
+  - the 500-row cap and the 5,000 query cap disappear, along with `hasMore` and `truncated`;
+  - the board groups by person and multi-select, which ADR 024 had left out, and by status group;
+  - views are addressed by id and not by name in the contract;
+  - the full configuration is no longer written from the screens and the MCP;
+  - `query_collection` changes shape and `move_row` is added as a write tool.
+- Accepted as a cost: a client mode (the server returns all the ids and the client filters locally) stays out. It is evaluated with stage 5, when there is a change channel per collection.
 
 ## Governance
 
-- La prueba de paridad entre el compilador SQL y el motor de `packages/shared` cubre cada operador de cada tipo de la tabla de ADR 024. Un operador nuevo no entra sin ese caso.
-- Las pruebas de rendimiento (colección de 10.000 filas y tablero de 2.000 tarjetas) comprueban con `EXPLAIN` que el plan use `Block_rows_order_idx` y `Block_parentId_idx`, y miden el tiempo. Un plan con `Seq Scan` sobre `Block` rompe la prueba.
-- Las pruebas de permisos comprueban que un lector con una fila oculta ve el mismo conteo en `groups`, `aggregations` y `results`, y que una celda de relación no cuenta ids ilegibles.
-- Reglas de negocio de `FEA-CLC` que este ADR cambia, a reemplazar con `rules:add` y `supersedes` al implementar:
-  - BR-3c85c11 (el tope de filas y su aviso);
-  - BR-22dc232 (guardar la configuración fundiendo lo que hay);
-  - BR-5a97271 (una tarjeta soltada solo escribe el valor: ahora también el lugar);
-  - BR-f707396 (un cambio de columnas no pisa el de otro), si su alcance cubre las vistas.
-  Se añaden reglas para el orden manual por vista, el conjunto denegado en conteos y agregados, y las operaciones de configuración.
-- Todo error del compilador es un `Result` con código (`VIEW_NOT_FOUND`, `VIEW_QUERY_INVALID`, `VIEW_QUERY_CURSOR_STALE`, `VIEW_QUERY_TIMEOUT`, `VIEW_QUERY_TOO_MANY_RESTRICTED_ROWS`). Un fallo inesperado deja un `ERROR` con traza y nunca una lista vacía.
-- Una decisión de abrir el tope de 100.000 filas por colección o de añadir índices por propiedad se toma en un ADR nuevo.
+- The parity test between the SQL compiler and the `packages/shared` engine covers each operator of each type in the ADR 024 table. A new operator does not enter without that case.
+- The performance tests (10,000-row collection and 2,000-card board) check with `EXPLAIN` that the plan uses `Block_rows_order_idx` and `Block_parentId_idx`, and measure the time. A plan with a `Seq Scan` on `Block` breaks the test.
+- The permissions tests check that a reader with a hidden row sees the same count in `groups`, `aggregations` and `results`, and that a relation cell does not count unreadable ids.
+- `FEA-CLC` business rules that this ADR changes, to be replaced with `rules:add` and `supersedes` on implementation:
+  - BR-3c85c11 (the row cap and its notice);
+  - BR-22dc232 (saving the configuration by merging what is there);
+  - BR-5a97271 (a dropped card writes only the value: now also the place);
+  - BR-f707396 (a change of columns does not overwrite another's), if its scope covers the views.
+  Rules are added for the per-view manual order, the denied set in counts and aggregates, and the configuration operations.
+- Every compiler error is a `Result` with a code (`VIEW_NOT_FOUND`, `VIEW_QUERY_INVALID`, `VIEW_QUERY_CURSOR_STALE`, `VIEW_QUERY_TIMEOUT`, `VIEW_QUERY_TOO_MANY_RESTRICTED_ROWS`). An unexpected failure leaves an `ERROR` with a trace and never an empty list.
+- A decision to raise the 100,000-rows-per-collection cap or to add per-property indexes is made in a new ADR.
 
 ## Notes
 
-- Author: El-Vitas, con Claude
+- Author: El-Vitas, with Claude
 - Created: 2026-10-21
 - Approved by: El-Vitas, 2026-10-21
-- Modified: 2026-10-21. Aprobado con cuatro precisiones. El orden manual es por vista y una lista nula sigue el orden de `children`. Superar el tope de 5.000 ids denegados falla con error tipado y deja un log `ERROR` con el id de la colección. `@tanstack/react-virtual` se aprobó para `apps/portal` con versión fija (después no se usó, ver Portal) y `addValue`/`removeValue` quedan aprobados (se implementaron como un solo comando, `changeValueList`). Purgar una fila quita su id de las celdas de relación en la misma transacción, así que no quedan ids colgantes.
-- Modified: 2026-10-21 (cierre de limitaciones). La búsqueda del portal ya no filtra en la pantalla lo cargado: las palabras viajan en la dirección (`q`) y se mandan como `search`, que mira el título de la fila y sus respuestas de texto (lo mismo que miraba la búsqueda de la pantalla), a las filas, a los conteos y a las páginas siguientes de la tabla, la lista, la galería y el tablero. El calendario lee con `quickFilter` las filas que empiezan en los días de la cuadrícula del mes (`month` en la dirección; hasta mil, y la pantalla avisa si hay más), y cuenta aparte las filas sin fecha. Lo que una columna o una tabla cargó con «cargar más» se conserva cuando el servidor la dibuja de nuevo: la ventana se lee otra vez desde el nuevo final (`refreshPageRowsAction`) y reemplaza lo anterior. «Seleccionar las N que coinciden» pide los ids al servidor, hasta mil, y avisa si son más.
-- Modified: 2026-10-21 (etapa 8, fechas relativas y «yo»). `timeZone` deja de estar reservado. El servidor resuelve el filtro para quien consulta antes de compilarlo: `@me` pasa a ser el id del lector (el dueño del token en el MCP) en las propiedades de persona, creada por y editada por, y las fechas relativas (`@today`, `@yesterday`, `@tomorrow`, `@this_week`, `@last_week`, `@next_week`, `@this_month`, `@last_month`, `@next_month`, `@past_days:N`, `@next_days:N`, con N de 1 a 365) pasan a ser un rango de días en la zona dada, sobre fecha, fecha de creación y fecha de edición. Se guardan como texto en el nodo del filtro, y un marcador que no existe se rechaza al guardar la vista y al consultar. Las semanas van de lunes a domingo y los últimos y próximos N días incluyen hoy. Una fecha sin hora se compara por días y una con hora por instantes de la zona (el motor compartido y el SQL calculan los límites con los mismos valores, y la prueba de paridad corre en cuatro zonas). Se agregan los operadores `IS_ON_OR_BEFORE` e `IS_ON_OR_AFTER` para fechas. Cambio de comportamiento: una fila sin valor en la propiedad ya no pasa cualquier condición sobre ella; solo cumple las que piden la ausencia (`IS_NOT`, `NOT_CONTAINS`, `IS_NOT_IN_GROUP`), y una casilla sin tocar vale «sin marcar», porque de otro modo «responsable contiene yo» mostraba las filas sin responsable. El filtro rápido del portal usa el `quickFilter` del contrato y viaja en la dirección (`filter`); la zona del navegador viaja en una cookie que el servidor de Next lee y manda como `timeZone`. El servidor lee la hora de un reloj inyectable (`PAGE_QUERY_CLOCK`) para que las pruebas se queden quietas en un instante.
-- Modified: 2026-10-21 (etapa 7, vistas que faltaban). Se agrega el tipo de vista `TIMELINE` (un valor más del enum de la base, con su migración) y estas claves de la configuración, todas escritas por las operaciones de esta decisión y nunca por la configuración entera: `endDateProperty` (la propiedad donde termina cada fila; nula lee el final del rango de `dateProperty`), `dateScale` (`DAY`, `WEEK` o `MONTH`; el calendario toma las dos últimas), `cardSize` (`SMALL`, `MEDIUM` o `LARGE`), `coverProperty` y el mapa `columnWraps` (columnas que ajustan su texto). El contrato de consulta no cambia, con una sola ampliación: el valor de una condición sobre una fecha puede ser un rango de días `{ start, end }`, y `IS` lo entiende como «las fechas de la fila se superponen con esos días», que es la pregunta de una ventana de calendario o de línea de tiempo (el motor compartido ya lo definía así y el compilador SQL lo repite). La ventana viaja como `quickFilter`, y `andQuickFilters` ya no anida el filtro de la persona un nivel más cuando es un grupo «y», porque el servidor acepta tres niveles. Con el final en otra propiedad la ventana son dos preguntas (inicio antes de que termine la ventana y final después de que empiece, e inicio dentro de la ventana sin final) y no una «o», que ya no cabría en tres niveles; el portal junta las respuestas. Una línea de tiempo lee hasta 2.000 filas de su ventana (20 páginas) y dice cuántas dibuja si hay más; las filas sin inicio se piden aparte, 100 y el total. **Portada de tarjeta: sale de una propiedad de archivos, no del contenido de la página.** Las filas ya traen esa propiedad y sus archivos (con el tipo MIME) en la misma respuesta, mientras que la primera imagen del cuerpo pediría leer el cuerpo de cada fila y obligaría a avisar de sus cambios, que ADR 026 deja fuera del aviso a propósito; una portada desde el contenido queda pendiente de ese aviso. Ocultar un grupo ya estaba en el servidor (`hiddenGroups`, `includeHidden`) y ahora lo ofrece el tablero: el menú de la columna oculta, y una lista aparte, con el conteo que sale de las agregaciones por grupo, las muestra de nuevo. La validación de una vista exige que `dateProperty` y `endDateProperty` apunten a una propiedad de fecha y `coverProperty` a una de archivos, y deja pasar una clave de una propiedad que ya no existe, para que la vista siga pudiéndose cambiar. Las lecturas y escrituras de orden manual de la tabla usan `move-row` con solo el vecino, sin valores.
-- Referencia: `docs/superpowers/plans/2026-10-20-trabajo-diario.md` (etapa 4)
-- La medición se hizo en una base desechable (`adr025_scratch`, ya borrada) con los scripts de la sesión, y se repite en las pruebas de la implementación.
+- Modified: 2026-10-21. Approved with four clarifications. Manual order is per view and a null list follows the `children` order. Exceeding the cap of 5,000 denied ids fails with a typed error and leaves an `ERROR` log with the collection id. `@tanstack/react-virtual` was approved for `apps/portal` with a pinned version (it was later not used, see Portal) and `addValue`/`removeValue` remain approved (they were implemented as a single command, `changeValueList`). Purging a row removes its id from the relation cells in the same transaction, so there are no dangling ids.
+- Modified: 2026-10-21 (closing of limitations). The portal's search no longer filters what is loaded on the screen: the words travel in the address (`q`) and are sent as `search`, which looks at the row's title and its text answers (the same thing the screen search looked at), over the rows, the counts and the following pages of the table, list, gallery and board. The calendar reads with `quickFilter` the rows that start on the days of the month grid (`month` in the address; up to a thousand, and the screen warns if there are more), and counts separately the rows without a date. What a column or a table loaded with "load more" is kept when the server draws it again: the window is read again from the new end (`refreshPageRowsAction`) and replaces the previous one. "Select the N that match" asks the server for the ids, up to a thousand, and warns if there are more.
+- Modified: 2026-10-21 (stage 8, relative dates and "me"). `timeZone` is no longer reserved. The server resolves the filter for whoever queries before compiling it: `@me` becomes the reader's id (the token owner in the MCP) in person, created by and edited by properties, and the relative dates (`@today`, `@yesterday`, `@tomorrow`, `@this_week`, `@last_week`, `@next_week`, `@this_month`, `@last_month`, `@next_month`, `@past_days:N`, `@next_days:N`, with N from 1 to 365) become a range of days in the given zone, over date, creation date and edit date. They are stored as text in the filter node, and a marker that does not exist is rejected when saving the view and when querying. Weeks run from Monday to Sunday and the past and next N days include today. A date without time is compared by days and one with time by instants of the zone (the shared engine and SQL compute the limits with the same values, and the parity test runs in four zones). The operators `IS_ON_OR_BEFORE` and `IS_ON_OR_AFTER` are added for dates. Change in behavior: a row without a value in the property no longer passes any condition on it; it only meets those that ask for absence (`IS_NOT`, `NOT_CONTAINS`, `IS_NOT_IN_GROUP`), and an untouched checkbox counts as "unchecked", because otherwise "assignee contains me" showed the rows without an assignee. The portal's quick filter uses the contract's `quickFilter` and travels in the address (`filter`); the browser's zone travels in a cookie that the Next server reads and sends as `timeZone`. The server reads the time from an injectable clock (`PAGE_QUERY_CLOCK`) so that tests stay still at an instant.
+- Modified: 2026-10-21 (stage 7, missing views). The `TIMELINE` view type is added (one more value in the database enum, with its migration) and these configuration keys, all written by the operations of this decision and never by the entire configuration: `endDateProperty` (the property where each row ends; null reads the end of the `dateProperty` range), `dateScale` (`DAY`, `WEEK` or `MONTH`; the calendar takes the last two), `cardSize` (`SMALL`, `MEDIUM` or `LARGE`), `coverProperty` and the `columnWraps` map (columns that wrap their text). The query contract does not change, with a single extension: the value of a condition on a date can be a range of days `{ start, end }`, and `IS` understands it as "the row's dates overlap with those days", which is the question of a calendar or timeline window (the shared engine already defined it that way and the SQL compiler repeats it). The window travels as `quickFilter`, and `andQuickFilters` no longer nests the person's filter one level deeper when it is an "and" group, because the server accepts three levels. With the end in another property the window is two questions (start before the window ends and end after it starts, and start within the window without an end) and not an "or", which would no longer fit in three levels; the portal joins the answers. A timeline reads up to 2,000 rows of its window (20 pages) and says how many it draws if there are more; rows without a start are requested separately, 100 and the total. **Card cover: it comes from a files property, not from the page content.** Rows already bring that property and its files (with the MIME type) in the same response, whereas the first image in the body would require reading each row's body and force notifying about its changes, which ADR 026 leaves out of the notice on purpose; a cover from the content is pending that notice. Hiding a group was already on the server (`hiddenGroups`, `includeHidden`) and the board now offers it: the column menu hides it, and a separate list, with the count that comes from the per-group aggregations, shows them again. View validation requires `dateProperty` and `endDateProperty` to point to a date property and `coverProperty` to a files one, and lets through a key of a property that no longer exists, so that the view can still be changed. Manual-order reads and writes of the table use `move-row` with only the neighbor, without values.
+- Reference: `docs/superpowers/plans/2026-10-20-daily-work.md` (stage 4)
+- The measurement was done on a disposable database (`adr025_scratch`, already dropped) with the session's scripts, and is repeated in the implementation's tests.
