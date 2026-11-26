@@ -1,48 +1,48 @@
-# 018: Revocar sesiones con una versión de token por usuario
+# 018: Revoke sessions with a per-user token version
 
 **Status:** Accepted
 **Date:** 2026-10-19
 
 ## Context
 
-El token de renovación duraba siete días y no tenía estado: cerrar sesión no hacía nada en el servidor y cambiar la contraseña tampoco invalidaba los tokens anteriores. Una contraseña filtrada o un equipo perdido dejaban la sesión abierta toda la semana.
+The refresh token lasted seven days and was stateless: signing out did nothing on the server, and changing the password did not invalidate the previous tokens either. A leaked password or a lost device left the session open for the whole week.
 
 ## Alternatives Considered
 
-- **Guardar cada token de renovación y rotarlo en cada uso.** PRO: revoca un dispositivo puntual y detecta la reutilización de un token robado. CON: una tabla nueva con escrituras en cada renovación, limpieza de tokens vencidos y un caso de carrera cuando dos pestañas renuevan a la vez.
-- **Versión por usuario dentro del token.** PRO: una columna entera y una comparación; el cambio de contraseña y el cierre de sesión la suben en la misma sentencia. CON: corta todos los dispositivos a la vez; no revoca uno solo.
-- **Lista negra de tokens.** PRO: revoca un token puntual. CON: hay que guardar cada token revocado hasta que vence y consultarla en cada renovación.
+- **Store each refresh token and rotate it on every use.** PRO: revokes a specific device and detects reuse of a stolen token. CON: a new table with writes on every refresh, cleanup of expired tokens and a race case when two tabs refresh at the same time.
+- **Per-user version inside the token.** PRO: one integer column and one comparison; the password change and the sign-out bump it in the same statement. CON: it cuts all devices at once; it does not revoke a single one.
+- **Token blocklist.** PRO: revokes a specific token. CON: every revoked token has to be stored until it expires and checked on every refresh.
 
 ## Decision
 
-`User.tokenVersion` empieza en 0. Cada token de renovación lleva la versión con que se emitió (`ver`) y la renovación solo procede si coincide con la de la cuenta. Cerrar sesión sube la versión con un incremento atómico, y cambiar la contraseña la sube en la misma sentencia que guarda la contraseña nueva. Después del cambio, el portal vuelve a iniciar sesión con la contraseña nueva para no dejar fuera a quien la cambió.
+`User.tokenVersion` starts at 0. Each refresh token carries the version it was issued with (`ver`) and the refresh only proceeds if it matches the account's. Signing out bumps the version with an atomic increment, and changing the password bumps it in the same statement that saves the new password. After the change, the portal signs in again with the new password so as not to lock out the person who changed it.
 
 ## Consequences
 
-- Positivas: cerrar sesión y cambiar la contraseña cortan la renovación en todos los dispositivos; no hay tabla nueva ni escrituras en cada renovación.
-- Negativas: el token de acceso que ya circula vale hasta que vence, unos minutos. (La limitación de cerrar sesión en todos los equipos se levantó el 2026-10-24, ver más abajo.)
+- Positive: signing out and changing the password cut off refresh on all devices; there is no new table or writes on every refresh.
+- Negative: the access token already in circulation is valid until it expires, a few minutes. (The limitation of signing out on all devices was lifted on 2026-10-24, see below.)
 
 ## Governance
 
-Las pruebas de integración de sesiones verifican el 401 del token anterior tras cerrar sesión y tras cambiar la contraseña. La regla de negocio vive en FEA-AUT. Si hace falta revocar un solo dispositivo, se reemplaza por la primera alternativa.
+The session integration tests verify the 401 of the previous token after signing out and after changing the password. The business rule lives in FEA-AUT. If a single device needs to be revoked, this is replaced by the first alternative.
 
-## Rotación del token de renovación (2026-10-24)
+## Refresh token rotation (2026-10-24)
 
-La primera alternativa descartada arriba pasó a ser la decisión para el cierre de sesión y la renovación. La versión por usuario se mantiene como segundo freno. El ADR sigue en este archivo porque no cambia el problema, solo completa la solución.
+The first alternative discarded above became the decision for sign-out and refresh. The per-user version stays as a second brake. The ADR stays in this file because the problem does not change, this only completes the solution.
 
-- **Tabla `RefreshSession`.** Cada token de renovación es una fila. El `id` de la fila es el `jti` del token. Cada inicio de sesión abre una familia (`familyId`) y cada renovación agrega una fila a esa familia. Las columnas `usedAt`, `replacedById` y `expiresAt` dicen si el token se gastó, quién lo reemplazó y cuándo vence.
-- **Cada renovación gasta el token presentado y emite uno nuevo.** El gasto es una sola sentencia `UPDATE ... WHERE usedAt IS NULL AND expiresAt > ahora` dentro de la misma transacción que inserta el sucesor. Si dos peticiones llegan con el mismo token, solo una gana la fila; la otra espera su commit y ve el token ya gastado.
-- **Reutilización.** Un token gastado hace más de 10 segundos que vuelve a presentarse se trata como robo. Se borra toda su familia y la respuesta es 401. Los demás dispositivos tienen otra familia y siguen con la sesión abierta.
-- **Ventana de gracia de 10 segundos.** El portal agrupa las renovaciones paralelas de un mismo proceso, pero dos pestañas o dos peticiones que cruzan el cambio de cookie siguen enviando el token viejo. Dentro de la ventana, y mientras el sucesor no se haya gastado, el token viejo recibe de nuevo el mismo sucesor. El token de renovación se firma con el `iat` y el `exp` de su fila, así que firmar la misma fila dos veces da la misma cadena y no hace falta guardar el token. Pasada la ventana, o si el sucesor ya se usó, es reutilización.
-- **Cerrar sesión** borra la familia del dispositivo. El token de acceso lleva la familia (`sid`) para saber cuál; uno que no la lleva se rechaza como inválido.
-- **Cambiar la contraseña** sube `tokenVersion` y borra todas las filas de la cuenta, en la misma transacción.
-- **Limpieza.** `RefreshSessionRetentionScheduler` borra cada seis horas las filas vencidas, con el mismo patrón que la retención de notificaciones.
-- **Despliegue.** Un token de renovación sin `jti` se rechaza, así que cada persona inicia sesión una vez al desplegar. Aceptar los tokens antiguos habría dejado una ventana de siete días sin detección de robo.
+- **`RefreshSession` table.** Each refresh token is a row. The row's `id` is the token's `jti`. Each sign-in opens a family (`familyId`) and each refresh adds a row to that family. The `usedAt`, `replacedById` and `expiresAt` columns say whether the token was spent, who replaced it and when it expires.
+- **Each refresh spends the presented token and issues a new one.** Spending is a single `UPDATE ... WHERE usedAt IS NULL AND expiresAt > now` statement inside the same transaction that inserts the successor. If two requests arrive with the same token, only one wins the row; the other waits for its commit and sees the token already spent.
+- **Reuse.** A token spent more than 10 seconds ago that is presented again is treated as theft. Its whole family is deleted and the response is 401. The other devices have a different family and stay signed in.
+- **10-second grace window.** The portal groups parallel refreshes from a single process, but two tabs or two requests that straddle the cookie change still send the old token. Within the window, and as long as the successor has not been spent, the old token gets the same successor again. The refresh token is signed with its row's `iat` and `exp`, so signing the same row twice gives the same string and there is no need to store the token. Past the window, or if the successor was already used, it is reuse.
+- **Signing out** deletes the device's family. The access token carries the family (`sid`) to know which one; one that does not carry it is rejected as invalid.
+- **Changing the password** bumps `tokenVersion` and deletes all of the account's rows, in the same transaction.
+- **Cleanup.** `RefreshSessionRetentionScheduler` deletes the expired rows every six hours, with the same pattern as notification retention.
+- **Deployment.** A refresh token without `jti` is rejected, so everyone signs in once on deployment. Accepting the old tokens would have left a seven-day window without theft detection.
 
-Costo asumido. Cada renovación escribe dos filas y el cierre de sesión ya no corta los demás dispositivos. Que un token de renovación robado se use antes que el legítimo sigue sin detectarse hasta que el dueño se renueva, y en ese momento se corta la familia.
+Accepted cost. Each refresh writes two rows and signing out no longer cuts the other devices. A stolen refresh token being used before the legitimate one still goes undetected until the owner refreshes, and at that moment the family is cut.
 
 ## Notes
 
-- Author: El-Vitas, con Claude
+- Author: El-Vitas, with Claude
 - Created: 2026-10-19
-- Modified: 2026-10-24. Rotación del token de renovación con detección de reutilización por familia y ventana de gracia. Cerrar sesión deja de cortar los demás dispositivos.
+- Modified: 2026-10-24. Refresh token rotation with reuse detection per family and a grace window. Signing out no longer cuts the other devices.

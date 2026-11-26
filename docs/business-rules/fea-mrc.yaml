@@ -1,86 +1,88 @@
 id: FEA-MRC
-name: La marca de una página o un espacio
+name: The mark of a page or a space
 purpose: >-
-  Define qué puede llevar una página o un espacio como cara visible, quién se la pone y qué ocurre cuando lo guardado no
-  se puede dibujar.
+  Defines what a page or a space can carry as its visible face, who sets it and what happens when what is stored cannot
+  be drawn.
 scope: spaces
 rules:
   - id: BR-087316a
     status: active
-    title: A un agente se le dice qué espacios puede leer, no cómo se dibujan
-    rule: La respuesta que el sistema le da a un agente sobre los espacios no incluye la marca.
-    why: Un agente decide dónde buscar, no qué mirar. Mandarle la marca es gastar en algo que no puede usar.
+    title: An agent is told which spaces it can read, not how they are drawn
+    rule: The response the system gives an agent about spaces does not include the mark.
+    why: An agent decides where to look, not what to look at. Sending it the mark is spending on something it cannot use.
   - id: BR-0f51e85
     status: active
-    title: La portada se mueve solo cuando se pide moverla
+    title: The cover moves only when asked to move
     rule: >-
-      La portada de una página es una imagen y nada más hasta que alguien pide reposicionarla. Solo entonces responde al
-      arrastre, y el encuadre se guarda únicamente cuando se confirma.
+      A page's cover is an image and nothing more until someone asks to reposition it. Only then does it respond to
+      dragging, and the framing is saved only when confirmed.
     why: >-
-      Una imagen que se reencuadra y se guarda con cualquier arrastre cambia la página por accidente, y en pantalla
-      táctil impide desplazarla con el dedo. Reposicionar es una decisión, no algo que ocurre al pasar por encima.
-    context: También implica que la portada no ocupa espacio cuando no existe. El control vive entre los demás de la página.
+      An image that is reframed and saved with any drag changes the page by accident, and on a touch screen it prevents
+      scrolling it with a finger. Repositioning is a decision, not something that happens by passing over it.
+    context: >-
+      It also implies that the cover takes up no space when it does not exist. The control lives among the page's other
+      controls.
     scenarios:
-      - title: Arrastrar sin haber pedido nada
-        given: Una página con portada
-        when: Se arrastra sobre la imagen
-        then: El encuadre no cambia y la página se desplaza como siempre
-      - title: Reposicionar y descartar
-        given: Alguien reposicionando la portada
-        when: Cambia el encuadre y cancela
-        then: El encuadre guardado sigue siendo el anterior
+      - title: Dragging without having asked for anything
+        given: A page with a cover
+        when: The image is dragged
+        then: The framing does not change and the page scrolls as usual
+      - title: Repositioning and discarding
+        given: Someone repositioning the cover
+        when: They change the framing and cancel
+        then: The saved framing remains the previous one
   - id: BR-2cb669a
     status: active
-    title: Quien puede crear un espacio puede renombrarlo y marcarlo
+    title: Whoever can create a space can rename it and mark it
     rule: >-
-      Cambiar el nombre o la marca de un espacio se le permite a quien podría haber creado uno, y solo sobre espacios
-      que ya puede leer.
+      Changing the name or the mark of a space is allowed to whoever could have created one, and only on spaces they can
+      already read.
     why: >-
-      El nombre y la marca de un espacio los ve todo el equipo. Quien no tiene voz para crear un espacio tampoco la
-      tiene para cambiar cómo lo ven los demás.
+      The name and the mark of a space are seen by the whole team. Whoever has no voice to create a space has none to
+      change how the others see it either.
     scenarios:
-      - title: Alguien que solo lee
-        given: Una persona con permiso de lectura
-        when: Intenta renombrar o marcar un espacio
-        then: Se rechaza y se dice que no tiene acceso
+      - title: Someone who only reads
+        given: A person with read permission
+        when: They try to rename or mark a space
+        then: It is rejected and they are told they have no access
   - id: BR-74d10b4
     status: active
-    title: Un espacio se marca igual que una página
+    title: A space is marked the same way as a page
     rule: >-
-      La marca de un espacio sigue el mismo contrato que la de una página: un emoji, una imagen o un símbolo de la
-      biblioteca con color. No existe una segunda forma de describir una marca.
+      The mark of a space follows the same contract as that of a page: an emoji, an image or a library symbol with a
+      color. There is no second way to describe a mark.
     why: >-
-      El árbol dibuja páginas y espacios uno junto a otro. Dos contratos distintos dejarían que un espacio llevara algo
-      que ninguna página puede dibujar, y quien lo mirara vería un hueco donde debería haber una cara.
+      The tree draws pages and spaces side by side. Two different contracts would let a space carry something that no page
+      can draw, and whoever looked at it would see a gap where a face should be.
     context: >-
-      El esquema compartido que valida la marca de una página es el mismo que usa el dominio de espacios; se reutiliza
-      en vez de copiarse.
+      The shared schema that validates a page's mark is the same one used by the spaces domain; it is reused instead of
+      copied.
     scenarios:
-      - title: Un símbolo con color
-        given: Un espacio sin marca
-        when: Alguien elige un símbolo de la biblioteca y un color
-        then: El espacio queda con esa marca y se dibuja en el árbol al mismo tamaño que la de una página
-      - title: Una forma que no existe
-        given: Un espacio cualquiera
-        when: Llega una marca cuya clase no es emoji, imagen ni símbolo
-        then: Se rechaza el cambio y se dice que la marca no es válida
+      - title: A symbol with color
+        given: A space with no mark
+        when: Someone chooses a library symbol and a color
+        then: The space ends up with that mark and it is drawn in the tree at the same size as a page's
+      - title: A shape that does not exist
+        given: Any space
+        when: A mark arrives whose kind is neither emoji, image nor symbol
+        then: The change is rejected and it is said that the mark is not valid
   - id: BR-a228876
     status: active
-    title: Un espacio no lleva una imagen por marca
-    rule: La ventana que marca un espacio no ofrece subir una imagen, aunque el contrato de la marca la admita.
+    title: A space does not carry an image as its mark
+    rule: The window that marks a space does not offer uploading an image, even though the mark contract allows it.
     why: >-
-      Un espacio se dibuja al tamaño de una línea de texto. Una fotografía ahí no se lee: quien la sube cree haber
-      puesto algo reconocible y ve una mancha.
+      A space is drawn at the size of a line of text. A photograph there cannot be read: whoever uploads it thinks they
+      put something recognizable and sees a smudge.
     context: >-
-      La ventana es la misma que usa una página; quien la abre decide si ofrece la imagen. Una marca de imagen guardada
-      por otra vía se sigue dibujando.
+      The window is the same one a page uses; whoever opens it decides whether to offer the image. An image mark stored
+      by another route is still drawn.
   - id: BR-d05039e
     status: active
-    title: Una marca que no se puede dibujar deja al espacio sin marca, no vacía la lista
+    title: A mark that cannot be drawn leaves the space without a mark, it does not empty the list
     rule: >-
-      Cuando lo guardado como marca no encaja con el contrato, ese espacio se entrega sin marca y la lista de espacios
-      se entrega completa.
+      When what is stored as a mark does not fit the contract, that space is delivered without a mark and the list of
+      spaces is delivered complete.
     why: >-
-      Una marca es un adorno. Que un adorno guardado por una versión anterior deje a alguien sin ver sus espacios
-      convierte un detalle en una caída.
-    context: Ya ocurrió una vez con marcas guardadas antes de que existiera el símbolo, y el árbol quedó vacío.
+      A mark is an ornament. For an ornament stored by an earlier version to leave someone unable to see their spaces
+      turns a detail into an outage.
+    context: It already happened once with marks stored before the symbol existed, and the tree was left empty.

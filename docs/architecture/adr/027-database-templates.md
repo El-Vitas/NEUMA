@@ -1,87 +1,87 @@
-# 027: Plantillas de colección
+# 027: Collection templates
 
 **Status:** Accepted
 **Date:** 2026-10-21
 **Approved by:** El-Vitas, 2026-10-21
 **Depends on:** `021-everything-is-a-block.md`, `024-collection-property-types.md`, `025-views-as-reducer-queries.md`
-**Precedes:** la etapa 9 (plantillas de base de datos) del plan `2026-10-20-trabajo-diario.md`.
+**Precedes:** stage 9 (database templates) of the plan `2026-10-20-daily-work.md`.
 
 ## Context
 
-Una plantilla es una página con contenido y valores de propiedades que se copia al crear una fila. La etapa 9 pide crearla, editarla, renombrarla, borrarla, marcar una por defecto, crear filas desde ella (tabla, tablero, calendario, botón y MCP) y resolver `@today` y `@me` al crear.
+A template is a page with content and property values that is copied when a row is created. Stage 9 asks for creating it, editing it, renaming it, deleting it, marking one as default, creating rows from it (table, board, calendar, button and MCP) and resolving `@today` and `@me` on creation.
 
-La decisión que condiciona todo lo demás es dónde vive la plantilla, porque debe poder editarse como cualquier página y no debe aparecer jamás como fila, conteo, resultado de búsqueda ni elemento de un listado MCP.
+The decision that constrains everything else is where the template lives, because it must be editable like any page and must never show up as a row, a count, a search result or an element of an MCP listing.
 
-Lo que el código impone hoy:
+What the code imposes today:
 
-- **El editor, las versiones, el título, el ícono y los permisos trabajan sobre bloques `type = 'page'`.** `BLOCK_CONTENT_SCHEMAS`, el lector de contenido, la búsqueda (página más cercana de un acierto) y los candados buscan «la página más cercana» de un bloque. Un tipo nuevo para la raíz de la plantilla rompería todo eso.
-- **Un bloque vivo debe estar en `children` de su padre** (`checkPlacedUnderParent`). Una plantilla hija de la colección aparece en `children` junto a las filas.
-- **Las filas se reconocen por `parentId = colección AND type = 'page'`.** No hay otra marca. Lo hacen `page-query.repository` (3 puntos), `page-changes.repository` (2), `page-schema.repository` (conteo de filas y `readPagesUnder`), `block.live.collection.domain` y los listados de `PageBlockReader` (`readChildPageBlocks`, `readPagesUnder`, `readSpacePageBlocks`), de donde salen el árbol lateral, los resultados de MCP y la papelera.
-- **Los esquemas de página son estrictos** (`properties` solo admite `title` y `values`).
-- **El bloque botón ya tiene `deed: 'row'`** (agrega una fila). La etapa 9 solo le suma una plantilla elegida.
-- **`@today` y `@me` ya se resuelven** en filtros (`readPageRelativeDate`, `PAGE_FILTER_ME`, etapa 8).
+- **The editor, versions, title, icon and permissions work on `type = 'page'` blocks.** `BLOCK_CONTENT_SCHEMAS`, the content reader, search (the nearest page of a hit) and locks look for "the nearest page" of a block. A new type for the template root would break all of that.
+- **A live block must be in its parent's `children`** (`checkPlacedUnderParent`). A template that is a child of the collection appears in `children` next to the rows.
+- **Rows are recognized by `parentId = collection AND type = 'page'`.** There is no other mark. `page-query.repository` (3 places), `page-changes.repository` (2), `page-schema.repository` (row count and `readPagesUnder`), `block.live.collection.domain` and the `PageBlockReader` listings (`readChildPageBlocks`, `readPagesUnder`, `readSpacePageBlocks`) do it, and from those come the side tree, the MCP results and the trash.
+- **Page schemas are strict** (`properties` only admits `title` and `values`).
+- **The button block already has `deed: 'row'`** (adds a row). Stage 9 only adds a chosen template to it.
+- **`@today` and `@me` are already resolved** in filters (`readPageRelativeDate`, `PAGE_FILTER_ME`, stage 8).
 
 ## Alternatives Considered
 
-### Dónde vive la plantilla
+### Where the template lives
 
-- **Tabla propia (`PageTemplate`) con contenido en JSON.**
-  - PRO: queda fuera de toda consulta de bloques sin tocarlas.
-  - CON: rompe ADR 021 (todo es un bloque). El contenido deja de ser bloques, así que no hay editor, ni versiones, ni permisos heredados, ni duplicado con ids nuevos. Hay que escribir de nuevo todo eso.
-- **Bloque nuevo de tipo `template` como raíz.**
-  - PRO: las consultas por `type = 'page'` lo excluyen solas.
-  - CON: pierde «página más cercana», así que el contenido de la plantilla no se puede buscar, bloquear ni versionar, y el editor no la abre. Equivale al caso anterior con más piezas.
-- **Contenedor `template_list` (bloque que no es página) hijo de la colección; las plantillas son páginas hijas del contenedor.**
-  - PRO: las consultas de filas no las ven, y el editor y todo lo demás funcionan porque son páginas.
-  - CON: el contenedor es un hijo de la colección que no es página, así que el contenido de la colección lo lee como bloque (hay que excluir ese tipo del documento de la colección). Las plantillas quedan huérfanas en `readSpacePageBlocks` (árbol lateral, papelera, búsqueda, MCP), un fallo distinto en cada lector y sin una marca que se pueda consultar.
-- **Página hija de la colección con una marca `properties.template` (elegida).**
-  - PRO: es una página completa: editor, versiones, permisos heredados, duplicado con ids nuevos y papelera funcionan sin cambios. Una sola marca que se consulta en SQL y en TypeScript.
-  - CON: queda en `children` de la colección y en toda consulta de `parentId = colección AND type = 'page'`, así que cada una de las listadas arriba debe excluirla. Es el riesgo principal.
+- **Own table (`PageTemplate`) with content in JSON.**
+  - PRO: it stays out of every block query without touching them.
+  - CON: it breaks ADR 021 (everything is a block). The content stops being blocks, so there is no editor, no versions, no inherited permissions, no duplicate with new ids. All of that has to be rewritten.
+- **New block of type `template` as the root.**
+  - PRO: queries by `type = 'page'` exclude it on their own.
+  - CON: it loses "nearest page", so the template's content cannot be searched, locked or versioned, and the editor does not open it. It is equivalent to the previous case with more pieces.
+- **`template_list` container (a block that is not a page) as a child of the collection; the templates are pages that are children of the container.**
+  - PRO: row queries do not see them, and the editor and everything else work because they are pages.
+  - CON: the container is a child of the collection that is not a page, so the collection's content reads it as a block (that type has to be excluded from the collection document). The templates end up orphaned in `readSpacePageBlocks` (side tree, trash, search, MCP), a different failure in each reader and with no mark that can be queried.
+- **Page that is a child of the collection with a `properties.template` mark (chosen).**
+  - PRO: it is a complete page: editor, versions, inherited permissions, duplication with new ids and trash work unchanged. A single mark that is queried in SQL and in TypeScript.
+  - CON: it stays in the collection's `children` and in every `parentId = collection AND type = 'page'` query, so each one listed above must exclude it. This is the main risk.
 
-### Cómo se evita la fuga
+### How the leak is prevented
 
-- **Parchear cada consulta cuando se encuentra.**
-  - CON: la próxima consulta nueva la filtra de nuevo, y nadie lo nota.
-- **Un predicado central y una prueba que recorre todos los caminos (elegida).**
-  - `isTemplatePage` en `packages/shared` y su fragmento SQL en una sola constante. Todo lector de filas y todo listado de páginas de `PageBlockReader` lo aplica. Una prueba de integración crea una plantilla con una fila vecina y afirma que no aparece en: consulta de vista, conteos y agregados, avisos de cambios, árbol lateral, búsqueda (título y contenido), `list_pages`, `get_collection`, `query_collection`, papelera y exportación. Esa prueba es la barrera contra la fuga futura. La plantilla se ve solo por el listado propio de plantillas y por id.
+- **Patch each query when it is found.**
+  - CON: the next new query leaks it again, and nobody notices.
+- **A central predicate and a test that walks all the paths (chosen).**
+  - `isTemplatePage` in `packages/shared` and its SQL fragment in a single constant. Every row reader and every page listing of `PageBlockReader` applies it. An integration test creates a template with a neighboring row and asserts that it does not appear in: view query, counts and aggregates, change notices, side tree, search (title and content), `list_pages`, `get_collection`, `query_collection`, trash and export. That test is the barrier against future leaks. The template is seen only through the template listing itself and by id.
 
-### Plantilla por defecto
+### Default template
 
-- **Marca `isDefault` en cada plantilla.**
-  - CON: dos escrituras para cambiarla (quitar y poner), y dos plantillas por defecto si fallan o compiten.
-- **Puntero `defaultTemplateId` en la colección (elegida).**
-  - PRO: un solo campo, una sola escritura atómica, y siempre hay cero o una.
-  - CON: si se borra la plantilla apuntada, el puntero debe limpiarse en la misma transacción.
+- **`isDefault` mark on each template.**
+  - CON: two writes to change it (remove and set), and two default templates if they fail or race.
+- **`defaultTemplateId` pointer on the collection (chosen).**
+  - PRO: a single field, a single atomic write, and there are always zero or one.
+  - CON: if the pointed-to template is deleted, the pointer must be cleared in the same transaction.
 
-### Por colección o por vista
+### Per collection or per view
 
-- **Por vista.**
-  - PRO: calendario con una plantilla y tablero con otra.
-  - CON: es configuración de vista, con el cuidado de edición concurrente de ADR 025, y el agente no tiene vista en `create_row`.
-- **Solo por colección (elegida).** El caso pedido (default al crear desde cualquier vista) lo cubre. Una plantilla distinta por vista se puede agregar después como un campo opcional de la vista, sin cambiar este modelo.
+- **Per view.**
+  - PRO: calendar with one template and board with another.
+  - CON: it is view configuration, with the concurrent-editing care of ADR 025, and the agent has no view in `create_row`.
+- **Per collection only (chosen).** The requested case (default when creating from any view) is covered. A different template per view can be added later as an optional view field, without changing this model.
 
 ### Variables
 
-- **Lenguaje de expresiones.** CON: es la etapa 10 (fórmulas).
-- **Solo `@today` y `@me` (elegida).** Se guardan como marcador de texto en una propiedad de fecha o de persona de la plantilla, y se resuelven al crear con las mismas funciones de la etapa 8. La fila resultante nunca los contiene.
+- **Expression language.** CON: that is stage 10 (formulas).
+- **Only `@today` and `@me` (chosen).** They are stored as a text placeholder in a date or person property of the template, and are resolved on creation with the same functions as stage 8. The resulting row never contains them.
 
 ## Decision
 
-1. **Una plantilla es una página hija de la colección** con `properties.template`, un objeto `{ variables }`. Se agrega al esquema de página como campo opcional. Las palabras `@today` y `@me` no van dentro de los valores de la plantilla (ahí la validación de columnas las rechazaría) sino en `variables`, que dice qué columna se llena con qué palabra; la columna sale de `values` y la palabra se resuelve al crear la fila. `@today` solo cabe en una columna de fecha y `@me` en una de persona.
-2. **La colección guarda `properties.defaultTemplateId`** (opcional). El servidor lo limpia al borrar o al sacar la marca de la plantilla apuntada.
-3. **Ningún lector de filas ni de páginas devuelve una plantilla.** Se excluye con el predicado central, y la prueba de fuga de arriba la cubre.
-4. **Crear una fila desde una plantilla** copia contenido y valores con ids nuevos reutilizando la planificación del duplicado (`planCopies`), resuelve `@today` y `@me` para quien crea, y escribe todo en una sola transacción. Sin plantilla explícita, `create` en una colección con `defaultTemplateId` usa la de por defecto. Una fila creada con contenido o valores propios los mezcla sobre la plantilla (lo dado gana).
-5. **Operaciones de plantilla** (crear, renombrar, editar valores y variables, borrar, marcar por defecto) tienen su propia ruta bajo la colección (`/pages/:colección/templates`); el contenido se edita con el editor de página, porque la plantilla es una página. Exigen poder editar la colección. Borrar una plantilla la manda a la papelera con plazo de purga (sin pasar por el listado de la papelera) y limpia el puntero si era la de por defecto.
-6. **Los valores iniciales de las columnas** viajan aparte en la creación (`defaultValues`) para quedar bajo la plantilla: dado explícito, luego plantilla y variables, luego valor inicial de la columna.
-7. **El botón** suma `templateId` opcional a `deed: 'row'`; sin él se usa la plantilla por defecto.
-8. **MCP:** `list_templates`, `save_template` (crea o actualiza, y puede marcarla por defecto), `delete_template`, y `create_row` con `template` (nombre o id; null para una fila en blanco) y con la de por defecto cuando no se da. Las descripciones lo explican.
-9. **Avisos de cambios y duplicado:** el aviso en vivo de una colección ignora los cambios de sus plantillas, y duplicar una colección con sus páginas copia las plantillas con su marca y reasigna la plantilla por defecto.
-10. **No hay migración.** La marca y el puntero viven en `properties` (JSON).
+1. **A template is a page that is a child of the collection** with `properties.template`, an object `{ variables }`. It is added to the page schema as an optional field. The words `@today` and `@me` do not go inside the template's values (there, column validation would reject them) but in `variables`, which says which column is filled with which word; the column comes out of `values` and the word is resolved when the row is created. `@today` only fits in a date column and `@me` in a person column.
+2. **The collection stores `properties.defaultTemplateId`** (optional). The server clears it when the pointed-to template is deleted or loses its mark.
+3. **No row or page reader returns a template.** It is excluded with the central predicate, and the leak test above covers it.
+4. **Creating a row from a template** copies content and values with new ids by reusing the duplicate planning (`planCopies`), resolves `@today` and `@me` for whoever creates, and writes everything in a single transaction. Without an explicit template, `create` in a collection with `defaultTemplateId` uses the default one. A row created with its own content or values merges them over the template (what is given wins).
+5. **Template operations** (create, rename, edit values and variables, delete, mark as default) have their own route under the collection (`/pages/:collection/templates`); the content is edited with the page editor, because the template is a page. They require being able to edit the collection. Deleting a template sends it to the trash with a purge deadline (without going through the trash listing) and clears the pointer if it was the default.
+6. **The initial values of the columns** travel separately on creation (`defaultValues`) so they sit under the template: explicit given value, then template and variables, then the column's initial value.
+7. **The button** adds an optional `templateId` to `deed: 'row'`; without it the default template is used.
+8. **MCP:** `list_templates`, `save_template` (creates or updates, and can mark it as default), `delete_template`, and `create_row` with `template` (name or id; null for a blank row) and with the default one when none is given. The descriptions explain it.
+9. **Change notices and duplication:** a collection's live notice ignores changes to its templates, and duplicating a collection with its pages copies the templates with their mark and reassigns the default template.
+10. **There is no migration.** The mark and the pointer live in `properties` (JSON).
 
 ## Consequences
 
-- **Más de un punto toca consultas de filas.** Es el costo de que la plantilla sea una página completa. La prueba de fuga lo vuelve visible y la regla de negocio lo declara.
-- **Una plantilla ocupa un lugar en `children`.** No afecta el orden de las filas porque las vistas ordenan por reductores (ADR 025). Quien lea `children` de una colección sin pasar por el lector debe filtrar.
-- **Los permisos de la plantilla son los de la colección** (se heredan). Quien no puede editar la colección no cambia sus plantillas, y quien solo la lee ve la lista de plantillas y las usa solo si puede crear filas.
-- **Plantilla por vista queda abierta.** Es un campo más de la vista si el uso lo pide.
-- **Hay que decidir** si una fila hecha con valores propios y plantilla por defecto mezcla (propuesto) o los valores propios reemplazan toda la plantilla.
+- **More than one place touches row queries.** It is the cost of the template being a complete page. The leak test makes it visible and the business rule declares it.
+- **A template takes a place in `children`.** It does not affect the order of rows because views sort by reducers (ADR 025). Whoever reads a collection's `children` without going through the reader must filter.
+- **The template's permissions are those of the collection** (inherited). Whoever cannot edit the collection does not change its templates, and whoever only reads it sees the list of templates and uses them only if they can create rows.
+- **Per-view templates remain open.** It is one more field of the view if usage asks for it.
+- **It remains to be decided** whether a row made with its own values and a default template merges (proposed) or the own values replace the whole template.

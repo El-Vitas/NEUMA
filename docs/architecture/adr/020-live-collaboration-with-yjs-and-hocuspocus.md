@@ -1,4 +1,4 @@
-# 020: Colaboración en vivo con Yjs y Hocuspocus dentro del backend
+# 020: Live collaboration with Yjs and Hocuspocus inside the backend
 
 **Status:** Superseded
 **Superseded by:** 021
@@ -6,54 +6,54 @@
 
 ## Context
 
-Varias personas editan la misma página a la vez, y ninguna puede perder lo que escribió. Una página es un documento ProseMirror guardado en `Page.content` (ADR 008), con permisos por página y un rol CLIENT que solo lee. Todo tiene que correr en la infraestructura gratuita, sin servicios pagados.
+Several people edit the same page at once, and none of them can lose what they wrote. A page is a ProseMirror document stored in `Page.content` (ADR 008), with per-page permissions and a CLIENT role that can only read. Everything has to run on the free infrastructure, with no paid services.
 
-La colaboración se implementó el 3 de agosto de 2026 (commit `54991a0`) sin un ADR. Este documento la registra después, con lo que muestra el código y el diseño de Neuma (`docs/superpowers/specs/2026-08-01-neuma-design.md`, sección Collaboration).
+Collaboration was implemented on August 3, 2026 (commit `54991a0`) without an ADR. This document records it after the fact, based on what the code shows and on the Neuma design (`docs/superpowers/specs/2026-08-01-neuma-design.md`, Collaboration section).
 
 ## Alternatives Considered
 
-- **Guardar a pedido por REST, sin tiempo real.**
-  - PRO: lo más simple; no hay conexión abierta.
-  - CON: con dos personas en la misma página, la que guarda al final pisa a la otra, y nadie ve el cambio ajeno hasta recargar.
-- **`prosemirror-collab`, la colaboración por pasos de ProseMirror.**
-  - PRO: viene del mismo editor que ya usamos.
-  - CON: el servidor tiene que ser la autoridad que ordena y guarda cada paso. La presencia, la reconexión y la persistencia se escriben a mano.
-- **Un servicio administrado de colaboración.**
-  - PRO: nada que operar.
-  - CON: se paga por uso, el contenido de cada página pasa por un tercero, y rompe la regla de correr todo en la infraestructura gratuita.
-- **Yjs con Hocuspocus dentro del backend (elegida).**
-  - PRO: Yjs es un CRDT y mezcla ediciones simultáneas sin conflictos. `y-prosemirror` lo conecta con el editor. Hocuspocus da el WebSocket y los ganchos para autenticar, cargar y guardar, y corre en el mismo proceso NestJS. Todas tienen licencia MIT.
-  - CON: el contenido queda en dos formas que hay que mantener iguales, el estado Yjs y el JSON de la página. Con un solo nodo no hay coordinación entre servidores.
+- **Save on demand over REST, no real time.**
+  - PRO: the simplest; there is no open connection.
+  - CON: with two people on the same page, whoever saves last overwrites the other, and nobody sees the other's change until they reload.
+- **`prosemirror-collab`, ProseMirror's step-based collaboration.**
+  - PRO: it comes from the same editor we already use.
+  - CON: the server has to be the authority that orders and stores each step. Presence, reconnection and persistence are written by hand.
+- **A managed collaboration service.**
+  - PRO: nothing to operate.
+  - CON: it is paid by usage, the content of every page goes through a third party, and it breaks the rule of running everything on the free infrastructure.
+- **Yjs with Hocuspocus inside the backend (chosen).**
+  - PRO: Yjs is a CRDT and merges simultaneous edits without conflicts. `y-prosemirror` connects it to the editor. Hocuspocus provides the WebSocket and the hooks to authenticate, load and save, and runs in the same NestJS process. All of them are MIT-licensed.
+  - CON: the content exists in two forms that have to be kept equal, the Yjs state and the page JSON. With a single node there is no coordination between servers.
 
 ## Decision
 
-La colaboración usa Yjs en el navegador y Hocuspocus en el backend, por el WebSocket `/api/v1/collaboration` (`collaboration.transport.ts`).
+Collaboration uses Yjs in the browser and Hocuspocus in the backend, over the `/api/v1/collaboration` WebSocket (`collaboration.transport.ts`).
 
-- **Entrada.** El navegador pide un token a `POST /api/v1/collaboration/token`. El backend lo emite solo si la persona puede ver la página, y nunca en modo escritura para un CLIENT (`collaboration.token.service.ts`).
-- **Permisos en cada paso.** Hocuspocus revisa el token y el permiso al conectar, al cargar, en cada mensaje y antes de guardar (`collaboration.gateway.ts`). Sin permiso de escritura, la conexión queda de solo lectura.
-- **Dos cosas se guardan.** El snapshot Yjs va a `CollaborationSnapshot`, para retomar la edición donde quedó. El documento ProseMirror va a `Page.content` con su `PageVersion` y un evento del outbox, en una transacción. El guardado espera 250 ms después del último cambio y nunca más de 2 segundos.
-- **La colaboración no es la fuente de verdad del dominio.** Sincroniza el contenido; identidad, permisos, versiones y papelera son del dominio de páginas.
-- **Apagado.** Antes de cerrar la base, el backend cierra las conexiones y espera los guardados pendientes.
-- **El WebSocket va directo al backend,** no por el portal (ADR 014).
+- **Entry.** The browser requests a token from `POST /api/v1/collaboration/token`. The backend issues it only if the person can view the page, and never in write mode for a CLIENT (`collaboration.token.service.ts`).
+- **Permissions at every step.** Hocuspocus checks the token and the permission on connect, on load, on every message and before saving (`collaboration.gateway.ts`). Without write permission, the connection stays read-only.
+- **Two things are saved.** The Yjs snapshot goes to `CollaborationSnapshot`, to resume editing where it left off. The ProseMirror document goes to `Page.content` with its `PageVersion` and an outbox event, in one transaction. Saving waits 250 ms after the last change and never more than 2 seconds.
+- **Collaboration is not the source of truth of the domain.** It synchronizes the content; identity, permissions, versions and trash belong to the pages domain.
+- **Shutdown.** Before closing the database, the backend closes the connections and waits for pending saves.
+- **The WebSocket goes directly to the backend,** not through the portal (ADR 014).
 
 ## Consequences
 
-- Positivas:
-  - dos o más personas editan a la vez y ninguna pisa a otra;
-  - un permiso revocado se nota en el siguiente mensaje, no al reconectar;
-  - la búsqueda y los retroenlaces se actualizan por el outbox, igual que con cualquier otra escritura.
-- Negativas:
-  - si la escritura de `Page.content` falla después de guardar el snapshot, la página queda atrás de su documento en vivo hasta el siguiente guardado; el error va al log;
-  - un solo nodo de colaboración, porque los documentos abiertos viven en la memoria de ese proceso.
-- Aceptado como costo: para tener más de un nodo hace falta coordinación entre servidores; el diseño la deja para cuando se necesite (Valkey).
+- Positive:
+  - two or more people edit at once and none overwrites another;
+  - a revoked permission takes effect at the next message, not on reconnect;
+  - search and backlinks are updated through the outbox, like with any other write.
+- Negative:
+  - if the write of `Page.content` fails after saving the snapshot, the page lags behind its live document until the next save; the error goes to the log;
+  - a single collaboration node, because open documents live in that process's memory.
+- Accepted as a cost: having more than one node requires coordination between servers; the design leaves it for when it is needed (Valkey).
 
 ## Governance
 
-Los ganchos de `collaboration.gateway.ts` son el único lugar donde la colaboración lee o escribe. Este ADR se revisa si Neuma necesita más de un nodo de colaboración, o si Hocuspocus cambia de versión mayor.
+The hooks in `collaboration.gateway.ts` are the only place where collaboration reads or writes. This ADR is reviewed if Neuma needs more than one collaboration node, or if Hocuspocus changes major version.
 
 ## Notes
 
-- Author: El-Vitas, con Claude
-- Created: 2026-10-19, registrado después de implementar
+- Author: El-Vitas, with Claude
+- Created: 2026-10-19, recorded after implementation
 - Approved by: TBD
-- Implementado: 2026-08-03
+- Implemented: 2026-08-03

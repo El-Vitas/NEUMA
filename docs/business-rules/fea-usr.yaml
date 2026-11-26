@@ -1,100 +1,100 @@
 id: FEA-USR
 name: Users
-purpose: Define las reglas de gestión de usuarios del sistema.
+purpose: Defines the system's user management rules.
 scope: users
 rules:
   - id: BR-009
     status: active
-    title: Email único
-    rule: No pueden existir dos usuarios con el mismo email en el sistema.
+    title: Unique email
+    rule: No two users with the same email can exist in the system.
     why: >-
-      El email es el identificador único de cada cuenta. Un email duplicado causaría conflictos de autenticación y
-      recuperación de cuenta.
+      The email is the unique identifier of each account. A duplicate email would cause authentication and account
+      recovery conflicts.
     scenarios:
-      - title: Registro con email existente
-        given: Un usuario registrado con email test@test.com
-        when: Un nuevo usuario intenta registrarse con el mismo email test@test.com
-        then: El sistema rechaza el registro indicando que el email ya está en uso y no crea la cuenta
-      - title: Registro con email nuevo
-        given: No existe ningún usuario con email nuevo@test.com
-        when: Un usuario intenta registrarse con email nuevo@test.com
-        then: El sistema crea la cuenta exitosamente y devuelve un AuthSession
+      - title: Registration with an existing email
+        given: A user registered with email test@test.com
+        when: A new user tries to register with the same email test@test.com
+        then: The system rejects the registration, indicating that the email is already in use, and does not create the account
+      - title: Registration with a new email
+        given: No user exists with email nuevo@test.com
+        when: A user tries to register with email nuevo@test.com
+        then: The system creates the account successfully and returns an AuthSession
   - id: BR-010
     status: active
-    title: Longitud del nombre
-    rule: El nombre de usuario debe tener entre 2 y 100 caracteres.
-    why: Nombre muy corto no es informativo; nombre muy largo afecta la interfaz.
+    title: Name length
+    rule: The user name must be between 2 and 100 characters long.
+    why: A name that is too short is not informative; a name that is too long affects the interface.
   - id: BR-011
     status: active
-    title: Formato de email
-    rule: El email debe tener un formato válido y máximo 255 caracteres.
-    why: Validación estándar de formato de email para evitar datos inválidos.
+    title: Email format
+    rule: The email must have a valid format and at most 255 characters.
+    why: Standard email format validation to avoid invalid data.
   - id: BR-014
     status: active
-    title: Perfil propio
-    rule: Un usuario solo puede ver su propio perfil.
-    why: Privacidad — un usuario no debe poder acceder a los datos de otro usuario.
+    title: Own profile
+    rule: A user can only view their own profile.
+    why: Privacy — a user must not be able to access another user's data.
   - id: BR-5198703
     status: active
-    title: El primer administrador se crea desde el servidor
+    title: The first administrator is created from the server
     rule: >-
-      En una instalación nueva, el primer administrador se crea con un comando en el servidor, y solo mientras no exista
-      ningún administrador. La contraseña se entrega por la entrada estándar, nunca escrita como argumento ni en la
-      terminal, para que no quede en el historial ni a la vista.
+      On a new installation, the first administrator is created with a command on the server, and only while no
+      administrator exists. The password is delivered through standard input, never written as an argument or in the
+      terminal, so that it does not end up in the history or in plain view.
     why: >-
-      Con el registro cerrado no hay otra puerta de entrada, y tiene que ser una que solo use quien opera el servidor y
-      que se cierre sola una vez usada.
-    context: Desde que existe un administrador, el comando se niega y las cuentas se crean desde la aplicación.
+      With registration closed there is no other entry point, and it has to be one that only whoever operates the server
+      uses and that closes by itself once used.
+    context: Once an administrator exists, the command refuses and accounts are created from the application.
     supersedes: BR-013
     scenarios:
-      - title: Instalación nueva
-        given: Una base sin ningún administrador
-        when: Quien opera el servidor ejecuta el comando con un correo, un nombre y la contraseña por la entrada estándar
-        then: Se crea la cuenta con rol de administrador y ya puede iniciar sesión en el portal
-      - title: Ya hay un administrador
-        given: Una base con al menos un administrador
-        when: Alguien ejecuta el comando
-        then: Se niega, explica que las cuentas se crean desde la aplicación, y no crea nada
-      - title: Contraseña escrita en la terminal
-        given: El comando se ejecuta sin nada en la entrada estándar
-        when: Espera la contraseña desde la terminal
-        then: Se niega y muestra cómo entregarla por la entrada estándar
+      - title: New installation
+        given: A database with no administrator
+        when: Whoever operates the server runs the command with an email, a name and the password through standard input
+        then: The account is created with the administrator role and can already sign in to the portal
+      - title: An administrator already exists
+        given: A database with at least one administrator
+        when: Someone runs the command
+        then: It refuses, explains that accounts are created from the application, and creates nothing
+      - title: Password typed in the terminal
+        given: The command is run with nothing on standard input
+        when: It waits for the password from the terminal
+        then: It refuses and shows how to deliver it through standard input
   - id: BR-6925d74
     status: active
-    title: Solo un administrador crea cuentas
+    title: Only an administrator creates accounts
     rule: >-
-      Nadie puede crearse una cuenta por su cuenta. Las cuentas las crea un administrador, que elige el rol de cada una;
-      quien crea la cuenta no queda con la sesión de la persona nueva, que entra por su lado con el correo y la
-      contraseña que le dieron.
+      Nobody can create an account for themselves. Accounts are created by an administrator, who chooses the role of each
+      one; whoever creates the account does not end up with the new person's session, who signs in on their own with the
+      email and password they were given.
     why: >-
-      Neuma guarda el conocimiento interno de una organización. Con registro abierto, cualquiera que llegara al servidor
-      podía crearse una cuenta y leer todos los espacios internos.
+      Neuma holds an organization's internal knowledge. With open registration, anyone who reached the server could
+      create an account and read all the internal spaces.
     context: >-
-      El formulario para crear la cuenta empieza en el rol de menor acceso, para que nadie reciba más de lo que debe por
-      descuido.
+      The form for creating the account starts at the role with the least access, so that nobody receives more than they
+      should through oversight.
     supersedes: BR-012
     scenarios:
-      - title: Alguien sin cuenta intenta crearse una
-        given: Una persona que no ha iniciado sesión
-        when: Intenta crear una cuenta
-        then: Se rechaza y no se crea nada
-      - title: Un administrador crea una cuenta de trabajador
-        given: Un administrador con la sesión iniciada
-        when: Crea una cuenta y elige el rol de trabajador
-        then: La cuenta queda creada con ese rol, y la persona entra con su correo y su contraseña
-      - title: Alguien que no administra intenta crear una cuenta
-        given: Un trabajador o un cliente con la sesión iniciada
-        when: Intenta crear una cuenta
-        then: Se rechaza y no se crea nada
+      - title: Someone without an account tries to create one
+        given: A person who has not signed in
+        when: They try to create an account
+        then: It is rejected and nothing is created
+      - title: An administrator creates a worker account
+        given: An administrator who is signed in
+        when: They create an account and choose the worker role
+        then: The account is created with that role, and the person signs in with their email and password
+      - title: Someone who is not an administrator tries to create an account
+        given: A worker or a client who is signed in
+        when: They try to create an account
+        then: It is rejected and nothing is created
   - id: BR-012
     status: superseded
-    title: Rol por defecto al registrarse
-    rule: Al registrarse, el usuario se crea con el rol CLIENT por defecto.
-    why: Solo administradores pueden asignar roles superiores; el registro público siempre es como cliente.
+    title: Default role on registration
+    rule: On registration, the user is created with the CLIENT role by default.
+    why: Only administrators can assign higher roles; public registration is always as a client.
     superseded_by: BR-6925d74
   - id: BR-013
     status: superseded
-    title: Auto-login al registrarse
-    rule: Después de registrar un usuario exitosamente, el sistema debe devolver un token de sesión.
-    why: El usuario no debe hacer login aparte inmediatamente después de registrarse; la transición debe ser inmediata.
+    title: Auto-login on registration
+    rule: After successfully registering a user, the system must return a session token.
+    why: The user must not have to log in separately right after registering; the transition must be immediate.
     superseded_by: BR-5198703

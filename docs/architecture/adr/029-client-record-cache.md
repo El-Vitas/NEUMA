@@ -1,245 +1,245 @@
-# 029: Caché local de registros y modo cliente
+# 029: Local record cache and client mode
 
 **Status:** Accepted
 **Date:** 2026-10-21
 **Depends on:** `021-everything-is-a-block.md`, `025-views-as-reducer-queries.md`, `026-collection-change-notices.md`
-**Precedes:** nada del plan `2026-10-20-trabajo-diario.md`. Cierra la desviación que ADR 026 dejó anotada en su implementación (recolocar en local).
+**Precedes:** nothing in the plan `2026-10-20-daily-work.md`. It closes the deviation that ADR 026 noted in its implementation (repositioning locally).
 
 ## Context
 
-Hoy el navegador no guarda nada entre visitas. Una página o una vista se pide al servidor cada vez que se abre, y una colección se dibuja en el servidor de Next (componentes de servidor con caché por espacio). Cuando otra persona mueve una tarjeta, el aviso de ADR 026 llega, el portal invalida la caché del espacio con una acción del servidor y la vista se consulta y se dibuja entera. ADR 026 lo anotó como desviación. No hay un almacén de filas en el cliente donde recolocar una tarjeta, así que el filtro, el orden y la tabla de excepciones de ese ADR quedaron sin dueño.
+Today the browser stores nothing between visits. A page or a view is requested from the server every time it is opened, and a collection is drawn on the Next server (server components with per-space cache). When another person moves a card, the ADR 026 notice arrives, the portal invalidates the space's cache with a server action and the view is queried and drawn in full. ADR 026 noted this as a deviation. There is no row store on the client where a card could be repositioned, so the filter, the sort and the exceptions table of that ADR were left without an owner.
 
-Lo que escribe una persona tampoco sobrevive a un cierre. La cola de transacciones del editor (`createTransactionQueue`) vive en memoria. Si la red cae, reintenta con el mismo id de transacción, que el servidor responde desde lo que guardó, pero si se cierra la pestaña antes de que vuelva la red, lo escrito se pierde sin aviso.
+What a person writes does not survive a close either. The editor's transaction queue (`createTransactionQueue`) lives in memory. If the network drops, it retries with the same transaction id, which the server answers from what it stored, but if the tab is closed before the network returns, what was written is lost without notice.
 
-El modelo que se busca es este. Una caché de registros por tabla, id y versión, persistida en SQLite sobre WebAssembly con OPFS. Consultas reactivas que se vuelven a ejecutar al cambiar las tablas que leen. Transacciones optimistas que se guardan en una cola persistente antes de enviarse. Ante un fallo, el cliente vuelve a pedir los registros tocados en vez de deshacer con operaciones inversas. Un modo cliente para conjuntos chicos, donde el navegador filtra y ordena con el mismo motor que el servidor.
+The model being sought is this. A record cache by table, id and version, persisted in SQLite over WebAssembly with OPFS. Reactive queries that re-run when the tables they read change. Optimistic transactions that are saved in a persistent queue before being sent. On a failure, the client re-requests the touched records instead of undoing with inverse operations. A client mode for small sets, where the browser filters and sorts with the same engine as the server.
 
-Lo que ya existe y se reutiliza.
+What already exists and is reused.
 
-- `createBlockStore` guarda por bloque el contenido, la versión, el rol y un documento Yjs. Ya compara versiones, entierra y revive bloques y sabe qué le falta (`findBehind`).
-- El canal en vivo ya tiene `sync` por versiones, con `revoked` en la respuesta, y `transactions` con ids idempotentes. Los avisos de colección (`collection-changes`, `collection-resync`, `collection-revoked`) existen desde ADR 026.
-- `POST spaces/:spaceId/pages/:pageId/changes` devuelve filas cambiadas, ids a papelera, `total`, `isReset` y un cursor opaco por `changeXid`. Hoy lo usa el MCP.
-- El motor de `packages/shared` (`matchesPageFilter`, `comparePageRowsBySorts`, `computePageCalculation`) es el oráculo de la semántica y ya tiene prueba de paridad contra el SQL.
-- Regla del portal. Un componente de cliente nunca llama al backend con `fetch`. Las lecturas y escrituras en lote pasan por acciones del servidor. El canal en vivo es la excepción, porque se abre con un token de un solo uso que entrega una acción.
+- `createBlockStore` stores per block the content, the version, the role and a Yjs document. It already compares versions, buries and revives blocks and knows what it is missing (`findBehind`).
+- The live channel already has `sync` by versions, with `revoked` in the response, and `transactions` with idempotent ids. The collection notices (`collection-changes`, `collection-resync`, `collection-revoked`) exist since ADR 026.
+- `POST spaces/:spaceId/pages/:pageId/changes` returns changed rows, ids sent to the trash, `total`, `isReset` and an opaque cursor by `changeXid`. Today the MCP uses it.
+- The `packages/shared` engine (`matchesPageFilter`, `comparePageRowsBySorts`, `computePageCalculation`) is the oracle of the semantics and already has a parity test against SQL.
+- Portal rule. A client component never calls the backend with `fetch`. Reads and batch writes go through server actions. The live channel is the exception, because it is opened with a single-use token that an action delivers.
 
-### Medición
+### Measurement
 
-Hecha para este ADR en Chrome (Playwright, perfil limpio, localhost), con filas de 386 bytes de JSON (estado, número, selección múltiple, persona, texto). SQLite WASM es `@sqlite.org/sqlite-wasm` 3.50.4 con el VFS `opfs-sahpool` en un worker, que no exige las cabeceras COOP y COEP. IndexedDB es el nativo, con una tabla `row` por `id`. «En memoria» es el motor de `packages/shared` sobre el arreglo ya cargado, empaquetado con `bun build`.
+Done for this ADR in Chrome (Playwright, clean profile, localhost), with 386-byte JSON rows (status, number, multi-select, person, text). SQLite WASM is `@sqlite.org/sqlite-wasm` 3.50.4 with the `opfs-sahpool` VFS in a worker, which does not require the COOP and COEP headers. IndexedDB is the native one, with a `row` table by `id`. "In memory" is the `packages/shared` engine over the already loaded array, bundled with `bun build`.
 
-| Medida | 10.000 filas | 50.000 filas |
+| Measure | 10,000 rows | 50,000 rows |
 |---|---|---|
-| IndexedDB, escribir todo en una transacción | 226 ms | 1.404 ms |
-| IndexedDB, abrir la base | 35 ms | 122 ms |
-| IndexedDB, leer todo (`getAll`) en arranque en frío | 43 ms | 217 ms |
-| IndexedDB, 50 lecturas por id | 2 ms | 3 ms |
-| SQLite WASM, cargar el WASM e iniciar el VFS en arranque en frío | 38 ms | 39 ms |
-| SQLite WASM, insertar todo en una transacción | 150 ms | 840 ms |
-| SQLite WASM, leer todo y convertir de JSON | 54 ms | 261 ms (60.000 filas) |
-| SQLite WASM, filtro por estado y número, orden, 50 filas | 15 a 20 ms | 94 a 97 ms (60.000 filas) |
-| SQLite WASM, conteo por grupo | 19 a 22 ms | 126 a 135 ms (60.000 filas) |
-| En memoria, el mismo filtro y orden, 50 filas | 3,5 ms | 9 a 13 ms |
-| En memoria, filtro `O` con lista contiene | 3,6 ms | 7 a 9 ms |
-| En memoria, conteo por grupo | 0,3 a 1,2 ms | 1,6 a 2,7 ms |
-| Espacio usado (IndexedDB / SQLite con su índice) | 5,2 MB / 11 MB | 23 MB / 39 MB |
+| IndexedDB, write everything in one transaction | 226 ms | 1,404 ms |
+| IndexedDB, open the database | 35 ms | 122 ms |
+| IndexedDB, read everything (`getAll`) on a cold start | 43 ms | 217 ms |
+| IndexedDB, 50 reads by id | 2 ms | 3 ms |
+| SQLite WASM, load the WASM and start the VFS on a cold start | 38 ms | 39 ms |
+| SQLite WASM, insert everything in one transaction | 150 ms | 840 ms |
+| SQLite WASM, read everything and convert from JSON | 54 ms | 261 ms (60,000 rows) |
+| SQLite WASM, filter by status and number, sort, 50 rows | 15 to 20 ms | 94 to 97 ms (60,000 rows) |
+| SQLite WASM, count per group | 19 to 22 ms | 126 to 135 ms (60,000 rows) |
+| In memory, the same filter and sort, 50 rows | 3.5 ms | 9 to 13 ms |
+| In memory, `OR` filter with list contains | 3.6 ms | 7 to 9 ms |
+| In memory, count per group | 0.3 to 1.2 ms | 1.6 to 2.7 ms |
+| Space used (IndexedDB / SQLite with its index) | 5.2 MB / 11 MB | 23 MB / 39 MB |
 
-Lo que dicen las cifras. El arranque en frío es parecido (IndexedDB abre y lee 10.000 filas en unos 80 ms; SQLite tarda unos 40 ms en estar listo y 54 ms en entregar las filas). Lo que decide es la consulta. Con el motor compartido sobre memoria, filtrar y ordenar 10.000 filas cuesta 3,5 ms y 50.000 cuestan 13 ms. SQLite las resuelve con `json_extract` en 15 a 20 ms y 95 ms, porque la celda es JSON y no hay columna que indexar. Para ser más rápido tendría que tener una columna por propiedad, que es el modelo de valores tipados que ADR 025 descartó. El cálculo local no es el límite del modo cliente. El límite es traer las filas, que a unos 390 bytes son 3,9 MB por cada 10.000.
+What the figures say. Cold start is similar (IndexedDB opens and reads 10,000 rows in about 80 ms; SQLite takes about 40 ms to be ready and 54 ms to deliver the rows). What decides is the query. With the shared engine over memory, filtering and sorting 10,000 rows costs 3.5 ms and 50,000 cost 13 ms. SQLite resolves them with `json_extract` in 15 to 20 ms and 95 ms, because the cell is JSON and there is no column to index. To be faster it would have to have one column per property, which is the typed-values model that ADR 025 ruled out. Local computation is not the limit of client mode. The limit is bringing the rows, which at about 390 bytes is 3.9 MB per 10,000.
 
-Las cifras son de una máquina de desarrollo y se repiten en las pruebas de rendimiento de la implementación. El banco de pruebas es descartable y no entra al repositorio.
+The figures are from a development machine and are repeated in the implementation's performance tests. The test bench is disposable and does not go into the repository.
 
 ## Alternatives Considered
 
-### Dónde se guarda y se consulta
+### Where it is stored and queried
 
-- **SQLite WASM con OPFS.**
-  - PRO: consultas SQL y reactividad por tablas. Fila por fila y con índices, escala a millones.
-  - CON: una dependencia nueva con 1,3 MB de WASM y JavaScript, un worker y un VFS. La semántica de filtros y orden estaría en una tercera implementación (`json_extract`), o habría que cargar todo al motor de TypeScript, con lo que SQLite solo sería almacenamiento. Más lenta que memoria para las consultas que nos importan (15 a 20 ms contra 3,5 ms con 10.000 filas) y más grande en disco (11 MB contra 5,2 MB). Conviene cuando el motor de consulta es SQL, y el nuestro es el de `packages/shared`.
-- **IndexedDB como persistencia y un almacén en memoria como motor de consulta (elegida).**
-  - PRO: sin dependencias. El motor de consulta es el que el servidor ya prueba. Arranque medido en 80 ms con 10.000 filas. La semántica sigue en un solo lugar.
-  - CON: las consultas viven en la memoria de la pestaña, así que el tamaño que se carga está acotado (ver «Tamaño y expulsión»). Sin índices, un filtro recorre todas las filas cargadas (3,5 ms con 10.000 filas, 13 ms con 50.000). Hay que escribir una envoltura pequeña de IndexedDB.
-- **Solo memoria, sin persistencia.**
-  - PRO: lo más simple.
-  - CON: no pinta al abrir, no guarda lo escrito sin conexión y no sirve a las dos necesidades de la etapa.
+- **SQLite WASM with OPFS.**
+  - PRO: SQL queries and reactivity by tables. Row by row and with indexes, it scales to millions.
+  - CON: a new dependency with 1.3 MB of WASM and JavaScript, a worker and a VFS. The semantics of filters and sorts would be in a third implementation (`json_extract`), or everything would have to be loaded into the TypeScript engine, in which case SQLite would only be storage. Slower than memory for the queries we care about (15 to 20 ms against 3.5 ms with 10,000 rows) and larger on disk (11 MB against 5.2 MB). It is worthwhile when the query engine is SQL, and ours is that of `packages/shared`.
+- **IndexedDB as persistence and an in-memory store as the query engine (chosen).**
+  - PRO: no dependencies. The query engine is the one the server already tests. Start measured at 80 ms with 10,000 rows. The semantics stay in a single place.
+  - CON: queries live in the tab's memory, so the size that is loaded is bounded (see "Size and eviction"). Without indexes, a filter walks all loaded rows (3.5 ms with 10,000 rows, 13 ms with 50,000). A small IndexedDB wrapper has to be written.
+- **Memory only, no persistence.**
+  - PRO: the simplest.
+  - CON: it does not paint on open, does not keep what was written offline and does not serve the two needs of the stage.
 
-### Qué se guarda
+### What is stored
 
-- **Páginas completas serializadas.**
-  - PRO: una clave por página.
-  - CON: una edición ajena obliga a reescribir la página, y dos páginas que comparten un bloque lo duplican.
-- **Registros por `id` y versión, más resultados de consultas como listas de ids (elegida).**
-  - PRO: una fila de una colección se guarda una vez aunque aparezca en tres vistas. Se actualiza con `{ id, version }`, que es lo que ADR 026 ya manda. Coincide con el almacén de bloques que el editor ya tiene.
-  - CON: un resultado guardado es una lista de ids que hay que resolver contra los registros, y un registro que falta obliga a revalidar.
+- **Whole pages serialized.**
+  - PRO: one key per page.
+  - CON: an edit by someone else forces rewriting the page, and two pages that share a block duplicate it.
+- **Records by `id` and version, plus query results as lists of ids (chosen).**
+  - PRO: a row of a collection is stored once even if it appears in three views. It is updated with `{ id, version }`, which is what ADR 026 already sends. It matches the block store the editor already has.
+  - CON: a stored result is a list of ids that has to be resolved against the records, and a missing record forces revalidation.
 
-### Modo cliente
+### Client mode
 
-- **Siempre consulta en el servidor (hoy).**
-  - PRO: nada nuevo.
-  - CON: cada cambio de filtro, orden o agrupación, y cada «cargar más», es una ida y vuelta. Con filas ya en el cliente no tendría por qué serlo.
-- **Todas las colecciones en modo cliente.**
-  - PRO: un solo camino.
-  - CON: una colección de 100.000 filas no cabe en la pestaña ni se trae en un tiempo razonable. Las relaciones, los rollups y la búsqueda necesitan datos o normalización que el cliente no tiene.
-- **Modo cliente bajo un umbral medido, con el servidor por encima (elegida).**
-  - PRO: lo chico se siente local (filtrar y reordenar sin red) y lo grande sigue acotado por el servidor. El cliente usa el mismo motor que el servidor, probado por paridad.
-  - CON: hay dos caminos que mantener y probar. Un umbral que habrá que ajustar con datos reales.
+- **Always query on the server (today).**
+  - PRO: nothing new.
+  - CON: each change of filter, sort or grouping, and each "load more", is a round trip. With rows already on the client it would not have to be.
+- **All collections in client mode.**
+  - PRO: a single path.
+  - CON: a 100,000-row collection does not fit in the tab nor is it brought in a reasonable time. Relations, rollups and search need data or normalization that the client does not have.
+- **Client mode under a measured threshold, with the server above it (chosen).**
+  - PRO: the small feels local (filtering and reordering without network) and the large stays bounded by the server. The client uses the same engine as the server, tested by parity.
+  - CON: there are two paths to maintain and test. A threshold that will have to be adjusted with real data.
 
-### Qué hace una cola que falla
+### What a failing queue does
 
-- **Deshacer con operaciones inversas.**
-  - PRO: no vuelve a pedir nada.
-  - CON: la inversa de una operación relativa a un vecino que otra persona ya movió es incorrecta, y una transacción rechazada por permisos no tiene un estado anterior que restaurar.
-- **Vuelve a pedir los registros tocados y muestra lo no aplicado (elegida).**
-  - PRO: el estado local pasa a ser el del servidor sin adivinar. Lo escrito que no se aplicó se conserva a la vista y no se pierde.
-  - CON: una ida más por fallo, y una interfaz para los cambios rechazados.
+- **Undo with inverse operations.**
+  - PRO: it does not request anything again.
+  - CON: the inverse of an operation relative to a neighbor that someone else has already moved is incorrect, and a transaction rejected by permissions has no previous state to restore.
+- **Re-request the touched records and show what was not applied (chosen).**
+  - PRO: the local state becomes that of the server without guessing. What was written but not applied is kept in view and not lost.
+  - CON: one more round trip per failure, and an interface for rejected changes.
 
 ## Decision
 
-### Almacén en memoria y persistencia en IndexedDB
+### In-memory store and IndexedDB persistence
 
-El portal tiene un almacén de registros por usuario, en memoria, con persistencia en IndexedDB. Es el mismo que ya usa el editor para los bloques, ampliado en vez de un segundo almacén. `createBlockStore` conserva su contrato y gana suscripciones por id (`subscribe(id, listener)` y una versión por registro) para que React lea con `useSyncExternalStore`. Una tarjeta que cambia repinta solo esa tarjeta.
+The portal has a per-user record store, in memory, with persistence in IndexedDB. It is the same one the editor already uses for blocks, extended instead of a second store. `createBlockStore` keeps its contract and gains per-id subscriptions (`subscribe(id, listener)` and a version per record) so that React reads with `useSyncExternalStore`. A card that changes repaints only that card.
 
-Una base de IndexedDB por usuario y espacio de trabajo, `neuma-cache:<workspaceId>:<userId>`, con estos almacenes.
+One IndexedDB database per user and workspace, `neuma-cache:<workspaceId>:<userId>`, with these stores.
 
-| Almacén | Clave | Contenido |
+| Store | Key | Contents |
 |---|---|---|
-| `records` | `id` | `{ id, version, spaceId, parentId, alive, body, readAt }`. El cuerpo es lo que ya entrega `sync` (propiedades, formato, hijos, rol). El texto vivo sigue en Yjs en memoria. |
-| `results` | `viewId` + hash de la consulta | `{ ids, groups, nextCursors, total, viewVersion, schemaVersion, changesCursor, savedAt }`. Es la lista de ids que la consulta devolvió, sin los registros. |
-| `meta` | clave fija | `{ cacheVersion, userId, lastValidatedAt }`. |
-| `transactions`, `rejected` | autoincremental | La cola persistente (ver abajo). |
+| `records` | `id` | `{ id, version, spaceId, parentId, alive, body, readAt }`. The body is what `sync` already delivers (properties, format, children, role). Live text remains in Yjs in memory. |
+| `results` | `viewId` + query hash | `{ ids, groups, nextCursors, total, viewVersion, schemaVersion, changesCursor, savedAt }`. It is the list of ids the query returned, without the records. |
+| `meta` | fixed key | `{ cacheVersion, userId, lastValidatedAt }`. |
+| `transactions`, `rejected` | autoincrement | The persistent queue (see below). |
 
-- El hash de la consulta cubre `viewId`, la versión de la vista, la versión del esquema, `quickFilter`, `search`, `sorts` y la zona. Si cambia cualquiera de esos al revalidar, la entrada se descarta. Los registros se quedan, porque siguen valiendo por su versión.
-- `cacheVersion` sube cuando cambia la forma de lo guardado. La caché es descartable. Una versión nueva borra `records` y `results` y conserva `transactions` y `rejected`, que son el trabajo de la persona y se migran, no se descartan.
-- Si IndexedDB no está disponible (ventana privada, bloqueo de datos del sitio), el almacén funciona solo en memoria y la interfaz lo dice cuando hay cambios pendientes («se perderán si cierras la pestaña»). Nunca se queda mudo.
-- Sin dependencias. La envoltura de IndexedDB es un módulo pequeño de `apps/portal/modules/pages/local-cache/`, con sus tipos, constantes y funciones puras como el resto del portal.
+- The query hash covers `viewId`, the view version, the schema version, `quickFilter`, `search`, `sorts` and the zone. If any of those changes on revalidation, the entry is discarded. The records stay, because they are still valid by their version.
+- `cacheVersion` rises when the shape of what is stored changes. The cache is disposable. A new version deletes `records` and `results` and keeps `transactions` and `rejected`, which are the person's work and are migrated, not discarded.
+- If IndexedDB is not available (private window, site data blocking), the store works in memory only and the interface says so when there are pending changes ("they will be lost if you close the tab"). It never goes mute.
+- No dependencies. The IndexedDB wrapper is a small module of `apps/portal/modules/pages/local-cache/`, with its types, constants and pure functions like the rest of the portal.
 
-### Tamaño y expulsión
+### Size and eviction
 
-- Tope por usuario: el menor entre 50 MB y el 10 % de la cuota que informa `navigator.storage.estimate()`. Con 390 bytes por fila, 50 MB son unas 100.000 filas. Sobre el 90 % de la cuota del navegador no se persiste nada nuevo.
-- Expulsión por uso. La unidad es la colección o la página. Cada una guarda `lastAccessAt`, y al pasar el tope se expulsan las menos recientes hasta bajar al 80 %. Los registros que alguna entrada de `results` aún cita se expulsan junto con ella.
-- Un `QuotaExceededError` expulsa el 20 % menos reciente y reintenta una vez. Si vuelve a fallar, el almacén sigue en memoria y deja un `ERROR` con traza.
-- Una entrada sin validar en 30 días se descarta al abrir. Es el límite de cuánto tiempo puede mostrarse algo que la persona ya no podría leer si estuviera conectada (ver «Revocación»).
-- Lo que no se persiste: archivos adjuntos (el navegador ya los cachea por HTTP), resultados de búsqueda por texto y colecciones por encima del tope de las filas que se cargan en memoria (ver «Modo cliente»).
+- Cap per user: the lesser of 50 MB and 10% of the quota reported by `navigator.storage.estimate()`. At 390 bytes per row, 50 MB is about 100,000 rows. Above 90% of the browser's quota nothing new is persisted.
+- Eviction by use. The unit is the collection or the page. Each stores `lastAccessAt`, and on passing the cap the least recent are evicted until it drops to 80%. The records that some `results` entry still cites are evicted together with it.
+- A `QuotaExceededError` evicts the least recent 20% and retries once. If it fails again, the store stays in memory and leaves an `ERROR` with a trace.
+- An entry not validated in 30 days is discarded on open. It is the limit on how long something can be shown that the person could no longer read if they were connected (see "Revocation").
+- What is not persisted: attachments (the browser already caches them over HTTP), text search results and collections above the cap of rows loaded in memory (see "Client mode").
 
-### Aislamiento por usuario y cierre de sesión
+### Per-user isolation and sign-out
 
-- Un perfil de navegador guarda la caché de **un solo usuario**. Al iniciar sesión, el portal borra toda base `neuma-cache:*` que no sea del usuario que entra. Una persona que usa un navegador compartido nunca ve datos de otra: aunque la sesión anterior terminara por vencimiento y no por salir, el inicio de la siguiente la borra antes de pintar nada.
-- Cerrar sesión borra la base del usuario antes de redirigir. Si hay transacciones pendientes sin enviar, el portal las muestra y pide confirmar («Tienes N cambios sin enviar; si sales se pierden»). Confirmar las descarta, y no hay otra vía en la que se pierda texto sin que la persona lo haya decidido.
-- Una sesión revocada por versión de token (ADR 018) cierra la sesión del navegador, y ese cierre borra la caché igual.
-- La caché no se cifra en disco. Las claves tendrían que vivir en el mismo JavaScript que la lee, y el cifrado no protegería de quien puede ejecutar código en la página ni de quien tiene el disco con el perfil abierto. La protección es el perfil del navegador, que ya contiene las cookies de sesión. Queda como riesgo aceptado.
+- A browser profile stores the cache of **a single user**. On sign-in, the portal deletes any `neuma-cache:*` database that is not that of the user signing in. A person who uses a shared browser never sees another person's data: even if the previous session ended by expiry and not by signing out, the next sign-in deletes it before painting anything.
+- Signing out deletes the user's database before redirecting. If there are pending unsent transactions, the portal shows them and asks for confirmation ("You have N unsent changes; if you sign out they will be lost"). Confirming discards them, and there is no other path in which text is lost without the person having decided.
+- A session revoked by token version (ADR 018) closes the browser session, and that closing deletes the cache all the same.
+- The cache is not encrypted on disk. The keys would have to live in the same JavaScript that reads it, and encryption would not protect from whoever can run code on the page or from whoever has the disk with the profile open. The protection is the browser profile, which already contains the session cookies. It remains as an accepted risk.
 
-### Pintar desde caché y revalidar
+### Paint from cache and revalidate
 
-Al abrir una página o una vista.
+When opening a page or a view.
 
-1. Se lee `results` y los `records` que cita y se pinta de inmediato, con una marca de «actualizando» discreta.
-2. Se revalida. Para una colección, `changes` con el `changesCursor` guardado. Para una página, `sync` con `{ id, version }` de los bloques que se tienen.
-3. Se aplica lo que llega (filas nuevas o cambiadas, `trashedIds`) y se recoloca en local (ver abajo). Se guarda el cursor nuevo.
-4. Se repite la consulta completa, y se reemplaza la entrada, solo si `isReset` es verdadero, si cambió la versión de la vista o del esquema, si `total` no coincide con el conteo local de filas visibles (señal de una fila que se ocultó), o si la entrada no existía.
-5. Se suscribe el canal de la colección. Cada reconexión repite los pasos 2 a 4, en lugar de repetir siempre la consulta como hace ADR 026.
+1. `results` and the `records` it cites are read and painted immediately, with a discreet "updating" mark.
+2. It revalidates. For a collection, `changes` with the stored `changesCursor`. For a page, `sync` with `{ id, version }` of the blocks held.
+3. What arrives is applied (new or changed rows, `trashedIds`) and repositioned locally (see below). The new cursor is stored.
+4. The full query is repeated, and the entry replaced, only if `isReset` is true, if the view or schema version changed, if `total` does not match the local count of visible rows (a sign of a row that was hidden), or if the entry did not exist.
+5. The collection channel is subscribed. Each reconnection repeats steps 2 to 4, instead of always repeating the query as ADR 026 does.
 
-El portal arma la primera visita en el servidor como hoy y siembra el almacén con lo que el servidor leyó. Las visitas siguientes pintan desde la caché mientras la ruta del servidor aún no responde. Para eso el cuerpo de la vista (tabla, tablero, galería, lista, calendario, línea de tiempo, gráfico) pasa a ser un componente de cliente que lee del almacén, y la ruta de colección usa como `loading` ese mismo componente en modo caché. Barra, pestañas y configuración siguen siendo componentes de servidor.
+The portal builds the first visit on the server as today and seeds the store with what the server read. Later visits paint from the cache while the server route has not yet responded. For that, the body of the view (table, board, gallery, list, calendar, timeline, chart) becomes a client component that reads from the store, and the collection route uses that same component in cache mode as its `loading`. Bar, tabs and configuration remain server components.
 
-Los agentes no usan esta caché, porque no tienen navegador. Siguen con `query_collection` y `collection_changes` de ADR 025 y 026, que ya son su camino de «dame solo lo que cambió». La caché es del portal, pero no cambia nada de lo que ve un agente.
+Agents do not use this cache, because they have no browser. They keep using `query_collection` and `collection_changes` from ADR 025 and 026, which are already their "give me only what changed" path. The cache belongs to the portal, but it changes nothing of what an agent sees.
 
-### Modo cliente
+### Client mode
 
-Una colección se abre en modo cliente cuando se cumplen las tres condiciones.
+A collection is opened in client mode when all three conditions are met.
 
-1. Tiene como máximo **10.000 filas visibles para quien la abre** y su carga no pasa de 6 MB. El conteo sale de la agregación `COUNT_ALL` de ADR 025 y se guarda con la entrada.
-2. El filtro y el orden de la vista, del filtro rápido y de las columnas pedidas no usan relaciones a filas no cargadas, rollups ni fórmulas (etapa 10 declara qué usa cada una).
-3. No hay una búsqueda de texto activa. La normalización de acentos y mayúsculas de `Block.text` está en el servidor, y la tabla de ADR 026 ya manda repetir la consulta en ese caso.
+1. It has at most **10,000 rows visible to whoever opens it** and its load does not exceed 6 MB. The count comes from the `COUNT_ALL` aggregation of ADR 025 and is stored with the entry.
+2. The filter and sort of the view, the quick filter and the requested columns do not use relations to unloaded rows, rollups or formulas (stage 10 declares what each uses).
+3. There is no active text search. The accent and case normalization of `Block.text` is on the server, and the ADR 026 table already says to repeat the query in that case.
 
-En modo cliente el servidor entrega **todas las filas** de la colección con sus valores, en páginas de 1.000 por el reductor `results` (hoy el tope por página es 100, y 1.000 es el tope por respuesta que ADR 025 ya fija; el cambio es permitir esa página cuando la petición pide todas las propiedades). Todas las filas pasan por el mismo conjunto denegado y el mismo control de permisos que cualquier consulta, así que el cliente nunca recibe una fila que no puede leer. Con las filas cargadas, el navegador hace con el motor compartido todo lo que hoy hace el servidor para esa vista.
+In client mode the server delivers **all the rows** of the collection with their values, in pages of 1,000 through the `results` reducer (today the cap per page is 100, and 1,000 is the per-response cap that ADR 025 already fixes; the change is to allow that page when the request asks for all properties). All rows go through the same denied set and the same permission control as any query, so the client never receives a row it cannot read. With the rows loaded, the browser does with the shared engine everything the server does today for that view.
 
-- Filtrar (`matchesPageFilter`), ordenar (`comparePageRowsBySorts`, con `manualOrder` incluido: viaja entera porque la colección es chica y su tope es 20.000 ids), agrupar, contar y calcular pies de tabla (`computePageCalculation`).
-- Cambiar filtro, orden, agrupación o «cargar más» no hace peticiones. Cambia solo el cálculo local.
-- Los filtros con fechas relativas y «yo» se evalúan con la zona y el usuario del cliente, como ya prevé ADR 026.
+- Filter (`matchesPageFilter`), sort (`comparePageRowsBySorts`, with `manualOrder` included: it travels in full because the collection is small and its cap is 20,000 ids), group, count and compute table footers (`computePageCalculation`).
+- Changing filter, sort, grouping or "load more" makes no requests. Only the local computation changes.
+- Filters with relative dates and "me" are evaluated with the client's zone and user, as ADR 026 already anticipates.
 
-Por encima del umbral, o cuando la condición 2 o 3 deja de cumplirse (la persona escribe en el buscador, agrega un filtro por relación), la vista pasa al camino del servidor sin parpadeo. Las filas ya cargadas se conservan como caché de registros y la lista de ids se vuelve a pedir con el reductor. Con más de 10.000 filas, ninguna fila se guarda para el modo cliente. Solo se guardan las que cada `results` entregó.
+Above the threshold, or when condition 2 or 3 stops being met (the person types in the search box, adds a filter by relation), the view moves to the server path without flicker. The already loaded rows are kept as a record cache and the list of ids is requested again with the reducer. With more than 10,000 rows, no row is stored for client mode. Only those that each `results` delivered are stored.
 
-**Medición.** La compute no pone el límite (10.000 filas filtran y ordenan en 3,5 ms, 50.000 en 13 ms). Lo pone el costo de traer todas las filas. El valor inicial de 10.000 es el tamaño de la tabla que el plan manda medir. Se confirma en la implementación con el endpoint real (tiempo hasta pintar y peso de la respuesta) y se corrige aquí con una nota si el p95 de la primera carga pasa de 1,5 s.
+**Measurement.** Compute does not set the limit (10,000 rows filter and sort in 3.5 ms, 50,000 in 13 ms). What sets it is the cost of bringing all the rows. The initial value of 10,000 is the size of the table that the plan says to measure. It is confirmed in the implementation with the real endpoint (time to paint and response weight) and corrected here with a note if the p95 of the first load exceeds 1.5 s.
 
-### Recolocación local en los avisos de colección
+### Local repositioning on collection notices
 
-Con la caché y el almacén por id, el cliente hace lo que ADR 026 describió y no implementó.
+With the cache and the per-id store, the client does what ADR 026 described and did not implement.
 
-1. `collection-changes` entrega `{ id, version }`. El cliente descarta las que ya tiene y agrupa en 150 ms.
-2. Pide esos registros por id en una petición (tope de 200 ids, como ya decidió ADR 026) y los escribe en el almacén. Solo los componentes que muestran esas filas se repintan.
-3. Recoloca cada fila con el motor compartido, con la tabla de excepciones de ADR 026 sin cambios (búsqueda, relaciones, rollups y fórmulas, orden manual con versión de vista mayor, `collection-resync`, cursor viejo, lote de más de 200). En modo cliente la fila siempre está cargada y las dos filas de «la fila no está cargada» no aplican.
-4. Los conteos de grupo se ajustan al mover y se verifican con una sola petición de `aggregations` por ráfaga. En modo cliente se recalculan en local.
+1. `collection-changes` delivers `{ id, version }`. The client discards those it already has and batches in 150 ms.
+2. It requests those records by id in one request (cap of 200 ids, as ADR 026 already decided) and writes them to the store. Only the components that show those rows repaint.
+3. It repositions each row with the shared engine, with the ADR 026 exceptions table unchanged (search, relations, rollups and formulas, manual order with a greater view version, `collection-resync`, stale cursor, batch of more than 200). In client mode the row is always loaded and the two "row is not loaded" lines do not apply.
+4. Group counts are adjusted on moving and verified with a single `aggregations` request per burst. In client mode they are recomputed locally.
 
-La acción `refreshPageCollectionAction` y la invalidación de la caché del servidor dejan de ser la respuesta a un aviso. Siguen existiendo para la primera carga y para los casos de la tabla de excepciones.
+The `refreshPageCollectionAction` action and the server cache invalidation stop being the response to a notice. They remain for the first load and for the cases in the exceptions table.
 
-### Cola de transacciones persistente
+### Persistent transaction queue
 
-Cada transacción se guarda en `transactions` de IndexedDB **antes** de enviarse, y se borra al recibir la respuesta del servidor. Su `id` es el que ya genera el cliente, y es el que se manda en cada reintento. El servidor ya responde un id repetido desde lo que guardó, de modo que un reenvío tras cerrar y abrir la pestaña es seguro.
+Each transaction is saved in IndexedDB's `transactions` **before** being sent, and deleted on receiving the server's response. Its `id` is the one the client already generates, and is the one sent on each retry. The server already answers a repeated id from what it stored, so a resend after closing and reopening the tab is safe.
 
-- **Estados.** `pending`, `sending`, `rejected`. Las operaciones de texto llevan la actualización de Yjs ya calculada contra la última versión confirmada, y se pueden reenviar sin el documento en memoria. Se guarda también, por cada propiedad de texto tocada, el texto plano resultante (`preview`) para poder mostrarlo.
-- **Una sola pestaña envía.** Un cerrojo de Web Locks (`neuma-queue:<usuario>`) elige la pestaña que vacía la cola, y las demás escriben en IndexedDB y avisan por `BroadcastChannel`. Si la pestaña dueña se cierra, otra toma el cerrojo y sigue por el orden de la clave autoincremental.
-- **Reintentos.** Los tiempos de espera de hoy se conservan (`computeCollaborationReconnectDelayMs`, la espera propia del límite de tasa). Sin conexión no se pierde nada. Al abrir el navegador de nuevo, la cola arranca sola cuando hay sesión y red.
-- **Estado visible.** El indicador del editor y de las vistas gana «Sin conexión, N cambios pendientes» y «N cambios sin aplicar». Un cambio que está en la cola se ve aplicado en pantalla (optimista), y una marca discreta lo distingue de lo confirmado.
-- **Rechazo.** Si el servidor rechaza una transacción (permisos, validación, entidad ya borrada), el cliente (1) la pasa a `rejected` sin borrarla, (2) vuelve a pedir los registros que tocó, por `sync`, y deja el almacén igual al servidor, (3) retiene las transacciones siguientes, porque se escribieron sobre lo que esa asumía, y le presenta a la persona cada cambio no aplicado con su texto y las opciones «copiar» y «descartar». Reintentar el resto es una decisión de la persona, no automática. Nunca se descarta texto sin que lo decida ella. No hay operaciones inversas.
-- **Escrituras de las vistas.** Hoy un cambio de celda, un movimiento de tarjeta y una fila nueva van por acciones del servidor y no por el canal de transacciones. En esta etapa pasan por la cola los que el vocabulario del canal permite a un cliente: cambiar una celda (`set`), reordenar (`listAfter`, `listBefore`) y crear una fila. Los que ADR 025 reserva al backend (`changeValueList` para selección múltiple y persona, `move-row` con valores de varios valores) siguen en línea y, sin conexión, la interfaz los deshace y lo dice. Ampliar el vocabulario del cliente exige un ADR propio.
-- **Sin IndexedDB.** La cola vive en memoria como hoy y el aviso lo dice.
+- **States.** `pending`, `sending`, `rejected`. Text operations carry the Yjs update already computed against the last confirmed version, and can be resent without the document in memory. For each text property touched, the resulting plain text (`preview`) is also stored so it can be shown.
+- **Only one tab sends.** A Web Locks lock (`neuma-queue:<user>`) chooses the tab that empties the queue, and the others write to IndexedDB and notify through `BroadcastChannel`. If the owning tab closes, another takes the lock and continues in the order of the autoincrement key.
+- **Retries.** Today's wait times are kept (`computeCollaborationReconnectDelayMs`, the rate limit's own wait). Without a connection nothing is lost. When the browser is opened again, the queue starts on its own when there is a session and network.
+- **Visible state.** The indicator of the editor and the views gains "Offline, N changes pending" and "N changes not applied". A change that is in the queue is seen applied on screen (optimistic), and a discreet mark distinguishes it from the confirmed.
+- **Rejection.** If the server rejects a transaction (permissions, validation, entity already deleted), the client (1) moves it to `rejected` without deleting it, (2) re-requests the records it touched, through `sync`, and leaves the store equal to the server, (3) holds the following transactions, because they were written on top of what that one assumed, and presents the person with each unapplied change with its text and the options "copy" and "discard". Retrying the rest is the person's decision, not automatic. Text is never discarded without her deciding. There are no inverse operations.
+- **View writes.** Today a cell change, a card move and a new row go through server actions and not through the transaction channel. In this stage, those that the channel vocabulary allows a client go through the queue: changing a cell (`set`), reordering (`listAfter`, `listBefore`) and creating a row. Those that ADR 025 reserves to the backend (`changeValueList` for multi-select and person, `move-row` with multi-value values) remain inline and, offline, the interface undoes them and says so. Extending the client's vocabulary requires an ADR of its own.
+- **Without IndexedDB.** The queue lives in memory as today and the notice says so.
 
-### Seguridad y revocación
+### Security and revocation
 
-- **La caché obedece al servidor, no al revés.** `collection-revoked`, `revoked` en una respuesta de `sync` y un 403 o 404 al leer una página purgan de inmediato esos registros del almacén y de IndexedDB, y las entradas de `results` que los citan.
-- **`collection-resync` y fila oculta.** Al recibir `collection-resync`, el cliente manda sus ids y versiones guardados de esa colección (por tandas de 1.000) en un `sync`. Las filas que el lector ya no puede leer vuelven en `revoked` y se purgan. Es el mismo camino que ya usa la revocación de una página, sin una vía nueva. En modo cliente, además, la lista completa de filas que llega reemplaza la anterior y las que faltan se borran.
-- **Pérdida de acceso a un espacio.** Al iniciar sesión y al reconectar, el portal compara los espacios que puede ver con los que tiene en la caché y purga los que ya no.
-- **Sin conexión.** Un permiso quitado mientras no hay red no se puede conocer. La caché muestra lo último que se vio, marcada «sin conexión», hasta 30 días. Pasado ese plazo, o al primer contacto con el servidor, se revalida o se purga. Es una limitación, y no se oculta.
-- **Conteos.** `total` de `changes` sigue siendo el conteo de filas legibles. Si no coincide con lo local, se vuelve a consultar.
-- **Lo escrito pendiente que ya no se puede aplicar** (la persona perdió el permiso) pasa a `rejected` y no se reenvía.
+- **The cache obeys the server, not the other way around.** `collection-revoked`, `revoked` in a `sync` response and a 403 or 404 when reading a page immediately purge those records from the store and from IndexedDB, and the `results` entries that cite them.
+- **`collection-resync` and hidden row.** On receiving `collection-resync`, the client sends its stored ids and versions of that collection (in batches of 1,000) in a `sync`. The rows that the reader can no longer read come back in `revoked` and are purged. It is the same path that page revocation already uses, without a new route. In client mode, in addition, the full list of rows that arrives replaces the previous one and those that are missing are deleted.
+- **Loss of access to a space.** On sign-in and on reconnecting, the portal compares the spaces it can see with those it has in the cache and purges those it no longer can.
+- **Offline.** A permission removed while there is no network cannot be known. The cache shows what was last seen, marked "offline", for up to 30 days. Past that deadline, or on first contact with the server, it is revalidated or purged. It is a limitation, and it is not hidden.
+- **Counts.** `total` of `changes` remains the count of readable rows. If it does not match the local one, the query is repeated.
+- **Pending writes that can no longer be applied** (the person lost the permission) go to `rejected` and are not resent.
 
-### Errores y observabilidad
+### Errors and observability
 
-- Todo fallo de IndexedDB, de escritura de caché o de lectura es un `Result` con código o un `ERROR` con traza. Nunca una caché vacía en silencio.
-- Cada repetición completa de una consulta se registra en `WARN` con su causa (la tabla de ADR 026 más `cache-miss`, `reset`, `total-mismatch`, `cache-version`), para medir cuánto cuesta cada excepción y cuánto se ahorra.
-- La guarda de bucle de ADR 026 (más de 5 consultas por segundo por vista) se mantiene.
-- El portal registra el origen de cada pintura (`cache`, `server`) y el tiempo hasta cada una.
+- Every IndexedDB failure, cache write or read is a `Result` with a code or an `ERROR` with a trace. Never an empty cache in silence.
+- Each full repetition of a query is logged at `WARN` with its cause (the ADR 026 table plus `cache-miss`, `reset`, `total-mismatch`, `cache-version`), to measure how much each exception costs and how much is saved.
+- The ADR 026 loop guard (more than 5 queries per second per view) is kept.
+- The portal records the origin of each paint (`cache`, `server`) and the time until each.
 
 ## Consequences
 
-- Positivas:
-  - abrir una página o una vista ya visitada pinta sin esperar al servidor, y la revalidación manda solo lo que cambió;
-  - mover una tarjeta en una ventana la recoloca en la de otra persona sin consulta ni redibujo, y se repinta solo esa tarjeta;
-  - en colecciones de hasta 10.000 filas, filtrar, ordenar, agrupar y contar es instantáneo y sin red, con el mismo motor que el servidor;
-  - lo escrito sin conexión sobrevive a cerrar la pestaña y se reenvía solo, con ids idempotentes;
-  - un rechazo no pierde texto ni deja el cliente en un estado inventado;
-  - ninguna dependencia nueva.
-- Negativas:
-  - el cuerpo de las vistas deja de dibujarse en el servidor y pasa a un componente de cliente, lo que toca la tabla, el tablero, la galería, la lista, el calendario, la línea de tiempo y el gráfico;
-  - hay dos caminos de lectura de filas (cliente y servidor), con una prueba de equivalencia que los vigila;
-  - el navegador guarda datos del usuario sin cifrar hasta que cierra sesión, con un riesgo aceptado;
-  - un permiso quitado sin conexión sigue visible hasta que vuelve la red o pasan 30 días;
-  - una colección de hasta 10.000 filas se descarga completa la primera vez, unos 4 MB;
-  - una cola persistente y un cerrojo entre pestañas son piezas nuevas que probar;
-  - los cambios de selección múltiple y persona de las vistas siguen sin funcionar sin conexión.
-- Cambios de comportamiento existente:
-  - el cliente deja de redibujar la vista desde el servidor en cada aviso de colección;
-  - cerrar sesión con cambios pendientes pide confirmación;
-  - iniciar sesión como otro usuario borra la caché del anterior;
-  - el reductor `results` admite páginas de hasta 1.000 ids cuando se pide todo.
+- Positive:
+  - opening an already visited page or view paints without waiting for the server, and revalidation sends only what changed;
+  - moving a card in one window repositions it in another person's window without a query or redraw, and only that card repaints;
+  - in collections of up to 10,000 rows, filtering, sorting, grouping and counting is instantaneous and without network, with the same engine as the server;
+  - what is written offline survives closing the tab and is resent on its own, with idempotent ids;
+  - a rejection neither loses text nor leaves the client in an invented state;
+  - no new dependencies.
+- Negative:
+  - the body of the views stops being drawn on the server and becomes a client component, which touches the table, board, gallery, list, calendar, timeline and chart;
+  - there are two row-reading paths (client and server), with an equivalence test that watches them;
+  - the browser stores user data unencrypted until sign-out, with an accepted risk;
+  - a permission removed offline remains visible until the network returns or 30 days pass;
+  - a collection of up to 10,000 rows is downloaded in full the first time, about 4 MB;
+  - a persistent queue and a lock between tabs are new pieces to test;
+  - multi-select and person changes in views still do not work offline.
+- Changes to existing behavior:
+  - the client stops redrawing the view from the server on every collection notice;
+  - signing out with pending changes asks for confirmation;
+  - signing in as another user deletes the previous user's cache;
+  - the `results` reducer admits pages of up to 1,000 ids when everything is requested.
 
 ## Governance
 
-- Pruebas de unidad, escritas primero, del almacén y su persistencia con un IndexedDB falso en memoria. Fusión por versión, expulsión, `QuotaExceededError`, descarte por cambio de consulta y por `cacheVersion` (conservando `transactions`), y purga por `revoked`.
-- Prueba de equivalencia. Para colecciones generadas, el resultado en modo cliente coincide id por id con el reductor `results` del servidor para cada tipo y operador de ADR 024, en cuatro zonas horarias, con filtros relativos y «yo». Un operador nuevo no entra sin ese caso.
-- Prueba de la tabla de excepciones. Cada fila repite la consulta y los demás cambios no la repiten.
-- Pruebas de la cola. Persiste antes de enviar, reenvía con el mismo id tras reabrir, un solo dueño por cerrojo, el rechazo vuelve a pedir los registros tocados y guarda el texto, y sin IndexedDB avisa.
-- Pruebas de seguridad. Un usuario B que entra no puede leer nada de A, cerrar sesión borra todo (con confirmación si hay pendientes), `collection-revoked` y `collection-resync` purgan la fila oculta sin que el cliente envíe nada que no tuviera, y el conteo no revela filas.
-- Mediciones en el navegador, repetidas en las pruebas de rendimiento. Abrir un tablero de 2.000 tarjetas desde caché (tiempo hasta pintar con y sin red), y una tabla de 10.000 filas en modo cliente (primera carga, y filtrar, ordenar y agrupar sin peticiones). Fallan si el filtro y orden locales pasan de 50 ms o si el hilo principal se bloquea más de 50 ms por tarea larga.
-- Verificación con dos personas en el navegador. Edición sin conexión y reconexión, revocación que purga la caché, y una tarjeta que se recoloca sin redibujo.
-- Reglas de negocio (`rules:add`): la caché es por usuario y se borra al salir, pintar desde caché y revalidar por versiones, el umbral del modo cliente, lo escrito pendiente nunca se descarta sin decisión de la persona, y lo no legible se purga.
-- Un cambio del umbral de 10.000 filas, del vocabulario de escrituras que el cliente puede encolar o de dónde se guarda se toma con una nota en este ADR o con uno nuevo.
+- Unit tests, written first, of the store and its persistence with a fake in-memory IndexedDB. Merge by version, eviction, `QuotaExceededError`, discard on query change and on `cacheVersion` (keeping `transactions`), and purge by `revoked`.
+- Equivalence test. For generated collections, the client-mode result matches id by id with the server's `results` reducer for each type and operator of ADR 024, in four time zones, with relative filters and "me". A new operator does not enter without that case.
+- Exceptions table test. Each row repeats the query and the other changes do not repeat it.
+- Queue tests. It persists before sending, resends with the same id after reopening, a single owner per lock, rejection re-requests the touched records and saves the text, and without IndexedDB it warns.
+- Security tests. A user B who signs in cannot read anything of A's, signing out deletes everything (with confirmation if there are pending changes), `collection-revoked` and `collection-resync` purge the hidden row without the client sending anything it did not have, and the count does not reveal rows.
+- Browser measurements, repeated in the performance tests. Opening a 2,000-card board from cache (time to paint with and without network), and a 10,000-row table in client mode (first load, and filter, sort and group without requests). They fail if the local filter and sort exceed 50 ms or if the main thread is blocked for more than 50 ms per long task.
+- Verification with two people in the browser. Offline editing and reconnection, revocation that purges the cache, and a card that repositions without redrawing.
+- Business rules (`rules:add`): the cache is per user and is deleted on sign-out, paint from cache and revalidate by versions, the client mode threshold, pending writes are never discarded without the person's decision, and what is not readable is purged.
+- A change to the 10,000-row threshold, to the vocabulary of writes the client can enqueue or to where things are stored is made with a note in this ADR or with a new one.
 
 ## Notes
 
-- Author: El-Vitas, con Claude
+- Author: El-Vitas, with Claude
 - Created: 2026-10-21
 - Approved by: El-Vitas, 2026-10-21
-- Modified: 2026-10-21 (aprobación). Se aprueba almacén en memoria con IndexedDB y el motor compartido, sin dependencias. El umbral de 10.000 filas visibles se confirma contra el endpoint real, y esta nota se corrige si el p95 de la primera carga pasa de 1,5 s. Se aprueba permitir páginas de 1.000 ids en `results` cuando se piden todas las propiedades, con un cambio mínimo en el backend. **La primera carga sin caché sigue dibujándose en el servidor**, sin página en blanco ni cascada de peticiones del cliente. Esa lectura del servidor siembra el almacén y desde ahí el almacén dirige la vista. El alcance de la cola, la confirmación al cerrar sesión, el tope de 50 MB y el plazo de 30 días quedan como están. **Fórmulas y rollups se calculan al leer** (etapa 10, sin caché en el servidor). El modo cliente queda apagado si una fórmula o un rollup está en el filtro, el orden o la agrupación, y los valores calculados que se muestran **nunca se confían de la caché**. Se tratan como vencidos y se revalidan siempre al abrir.
-- Modified: 2026-10-21 (implementación, primera entrega). Hecho y verificado en el navegador con dos personas: la cola persistente del editor (guarda en IndexedDB antes de enviar, reenvía con el mismo id al abrir de nuevo, aparta lo rechazado), la colocación local de tarjetas del tablero con el motor compartido y la tabla de excepciones de ADR 026 (la vista se pide al servidor solo por esos casos, cada uno con su motivo en un `WARN`), el borrado de la copia al cerrar sesión (con aviso de los cambios sin enviar) y el borrado de la copia de otra persona al abrir la propia. Desviaciones. (1) La base es una por persona (`neuma-cache:<usuario>`), sin espacio de trabajo en el nombre, porque el backend resuelve un solo espacio de trabajo por persona. (2) No se usa el cerrojo entre pestañas: un reenvío duplicado es inocuo porque el servidor responde un id repetido desde lo que guardó, así que dos pestañas que reenvían lo mismo no aplican nada dos veces. (3) La cola guarda `previews` vacío: aún no se muestra el texto de lo rechazado. (4) El cursor de `changes` sale del mismo snapshot que las filas (`PageQueryResult.changesCursor`), sin cambio en el backend. Pendiente: pintar desde la caché antes de que responda el servidor (el almacén de registros y de resultados existe y está probado, pero ninguna vista lo lee todavía), el modo cliente (solo existe la decisión `decideClientMode`, sin camino de datos ni el cambio del tope de `results` a 1.000), pasar las escrituras de las vistas por la cola, el panel de cambios rechazados y la colocación local en las demás vistas (tabla, lista, galería, calendario, línea de tiempo), que hoy se dibujan en el servidor.
-- Modified: 2026-10-21 (segunda entrega). Se llena `previews` y se muestra el panel de cambios rechazados en el editor, con las palabras de cada cambio, el motivo, «Copiar texto» y «Descartar» (verificado en el navegador: una edición hecha sin conexión sobre una página que luego se envió a la papelera aparece en el panel con el párrafo completo, se copia al portapapeles y se descarta). El texto sale del editor en el momento de hacer la transacción y no de la actualización de Yjs, porque esa solo trae lo escrito desde la última confirmación, encadenado a caracteres que no lleva. **Cerrojo entre pestañas: se omite, y queda documentado.** Reenviar es inocuo (el servidor responde un id repetido desde lo que guardó) y dos pestañas nunca muestran estados contradictorios de lo pendiente: el estado de guardado que cada una enseña es el de su propia conexión, y lo que una restaura de disco lo envía en el mismo orden en que se hizo, así que a lo sumo ambas dicen «guardando» a la vez y luego «guardado». Sigue pendiente, y se aplaza con el resto del modo cliente: pasar las escrituras de las vistas por la cola. Hoy una celda, una tarjeta o una fila nueva se envían por acciones del servidor, sin conexión fallan con un aviso y deshacen la pantalla, así que no se pierde texto en silencio, pero tampoco se guarda. Pasarlas exige un vocabulario de operaciones para el cliente (ADR 025 reserva `changeValueList` y los parches por celda al backend), una sesión de transacciones en la vista de colección y el estado optimista local que solo existe cuando el cuerpo de las vistas lee del almacén.
-- Modified: 2026-10-21 (tercera entrega: cuerpo de las vistas desde el almacén). Hecho. (1) Tabla, lista, galería, tablero, calendario y línea de tiempo son componentes de cliente que leen un almacén de filas; la primera carga la dibuja el servidor y siembra el almacén, y desde ahí los avisos de `changes` colocan cada fila con el motor compartido y la tabla de excepciones de ADR 026 (el orden manual relee solo las columnas afectadas; el conteo de filas sin fecha se relee con una acción). **El gráfico sigue dibujándose en el servidor**: solo pinta conteos y se refresca con el redibujado completo. (2) Pintado desde la caché: `loading.tsx` de la página dibuja la última vista guardada para esa consulta, marcada como «actualizando», y la pone al día con `changes`; ante un reinicio, un cursor desconocido o un lugar que depende del orden del servidor, la copia se deja y manda la respuesta del servidor. Los valores calculados nunca se guardan. No aparece en una recarga completa, porque Next solo muestra `loading.tsx` en navegaciones del cliente. (3) Modo cliente con `decideClientMode`: se leen todas las filas una vez (páginas de 1.000 ids con `results`, tope subido de 100 a 1.000 solo para esa reducción) y el navegador filtra, ordena, agrupa y cuenta con el motor compartido; la prueba de integración `page-query.local-parity` compara 10 vistas, 4 zonas horarias y 130 filas contra el servidor. Se rechaza una agrupación por persona, fecha o número, una búsqueda, y fórmulas, rollups o relaciones en el filtro o el orden. El filtro rápido sigue viajando por la URL, así que cambiarlo aún navega. (4) Escrituras de vistas por la cola persistente: celda de valor único, mover tarjeta o fila sin listas y fila nueva se muestran al instante, se guardan en IndexedDB antes de enviarse y se reenvían con el mismo id; el backend acepta `id` al crear y responde la página ya creada si se repite (el cambio mínimo de backend, con pruebas). Las celdas de lista (varias opciones, personas, relaciones, archivos) y los movimientos con listas necesitan conexión y lo dicen. **Desviación:** un rechazo no retiene las escrituras siguientes de la cola, a diferencia del texto del editor, porque cada celda o lugar es independiente; el rechazo va al panel y la vista relee las filas. Otra desviación: las filas nuevas hechas sin conexión aparecen en el almacén solo en modo cliente. Medición en el navegador (compilación de producción, cuenta administradora, 12.000 páginas en el espacio): abrir un tablero de 2.000 tarjetas por navegación desde la caché dibuja a los 280 a 340 ms del clic (primera tarjeta a los 520 a 720 ms) y la respuesta del servidor llega a los 3,7 s; el motor local tarda 1 ms en filtrar, 8 a 13 ms en ordenar y 8 ms en agrupar y contar 10.000 filas (mediana y p95 de 15 corridas, Bun). **La primera carga de la tabla de 10.000 filas tarda de 7,6 a 9,3 s (p95 mayor de 1,5 s)** y es la lectura del servidor, no el modo cliente: pesan el árbol de páginas del espacio (1,8 s), las colecciones (2,1 s) y el conteo de la consulta (1,6 s), todos sin relación con esta etapa; las 10 páginas de filas del modo cliente llegan después del primer dibujo, de unos 70 a 95 ms cada una. Esto queda anotado como deuda para la etapa de rendimiento del servidor. Verificado con dos personas: una tarjeta movida por la otra se recoloca sin recargar en tablero y tabla a los 334 ms; una fila enviada a la papelera desaparece de ambos y de IndexedDB; una edición sin conexión queda como «1 cambio esperando para enviarse», se envía al volver la conexión sin recargar y el servidor la confirma. La pérdida de acceso por permisos (en vez de papelera) solo está cubierta por pruebas unitarias.
-- Modified: 2026-10-21 (cuarta entrega: correcciones tras la revisión). (1) **Calendario y línea de tiempo se revalidan como el resto**: la copia pintada pide `changes` desde su cursor y coloca las filas con `placeChangedWindowRows` (el mismo motor del vivo); si cambió algo, relee el conteo de filas sin fecha con una acción, y si el cursor se reinició, la ventana quedó truncada o hay búsqueda, deja la copia y manda la respuesta del servidor. (2) **La versión de cada registro guardado es la del bloque en el servidor** (`Block.version`, que crece con cada cambio): `PageRowSummary` y `PageQueryRow` la llevan ahora como `version`, y la caché ya no inventa sellos de cliente; las filas optimistas aún sin confirmar llevan 0. Por eso `sync` con `{ id, version }` y la mezcla por versión del almacén dicen la verdad. (3) **Fila cerrada a una persona.** Una prueba real con dos personas mostró un hueco: al quitar el permiso de una fila, el servidor ya no la dibujaba, pero su registro seguía en IndexedDB (el aviso de `changes` nunca nombra una fila que el lector no puede abrir). Ahora, cuando una lectura nueva deja de citar filas que la copia guardaba para la misma pregunta, el navegador manda esas filas con sus versiones a `sync` (de 500 en 500) y borra las que vuelven en `revoked`; las que solo salieron del filtro se conservan, y si el servidor no responde no se borra nada. Verificado con una segunda persona en su propio contexto: la fila cerrada desaparece de la vista y de IndexedDB, las demás siguen guardadas, y al cerrar la colección entera la vista dice que la dirección no existe y se borran todas sus filas de la caché. (4) **Primera carga de la tabla de 10.000 filas, causas.** La lectura de colecciones tardaba 1,8 s por llamada (3 llamadas por carga) porque listaba con su documento completo todas las páginas del espacio solo para quedarse con las colecciones; ahora pide únicamente las colecciones del espacio y tarda 19 ms. La consulta de filas, el conteo y el cursor tardan 24 a 39 ms por separado: los 1,5 s que se veían eran espera detrás de las lecturas pesadas en el mismo proceso. Sigue sin resolverse, y es un cambio de diseño y no una corrección: el árbol de páginas devuelve las 12.000 páginas del espacio con su contenido (10 MB, 1,0 s de CPU del servidor, dos veces por carga) y la ruta de la página entrega esa lista entera al componente de cliente (documento de 40 MB); con un espacio pequeño la misma tabla pinta en 1,3 a 1,4 s. Se necesita un modelo de páginas perezoso (raíces, camino abierto e hijos al expandir, y el contenido de otras páginas bajo demanda, porque los bloques sincronizados leen el de otras páginas). Queda como deuda explícita.
-- Modified: 2026-10-21 (quinta nota). La deuda de la cuarta nota, el modelo de páginas perezoso, se resuelve en `030-page-tree-on-demand.md`: la ruta de la página deja de entregar la lista del espacio y el documento baja de 18 MB a 0,37 MB en la medición de ese ADR.
-- Referencia: `docs/superpowers/plans/2026-10-20-trabajo-diario.md` (etapa 11)
-- La medición se hizo con un banco descartable en el directorio temporal de la sesión y se repite en la implementación.
+- Modified: 2026-10-21 (approval). In-memory store with IndexedDB and the shared engine are approved, without dependencies. The 10,000 visible-row threshold is confirmed against the real endpoint, and this note is corrected if the p95 of the first load exceeds 1.5 s. Allowing pages of 1,000 ids in `results` when all properties are requested is approved, with a minimal backend change. **The first load without cache is still drawn on the server**, with no blank page or cascade of client requests. That server read seeds the store and from there the store drives the view. The scope of the queue, the confirmation on sign-out, the 50 MB cap and the 30-day deadline remain as they are. **Formulas and rollups are computed on read** (stage 10, no server cache). Client mode stays off if a formula or a rollup is in the filter, sort or grouping, and the computed values that are shown are **never trusted from the cache**. They are treated as expired and always revalidated on open.
+- Modified: 2026-10-21 (implementation, first delivery). Done and verified in the browser with two people: the editor's persistent queue (saves to IndexedDB before sending, resends with the same id on reopening, sets aside what is rejected), the local placement of board cards with the shared engine and the ADR 026 exceptions table (the view is requested from the server only for those cases, each with its reason in a `WARN`), deleting the copy on sign-out (with a notice of unsent changes) and deleting another person's copy when opening one's own. Deviations. (1) The database is one per person (`neuma-cache:<user>`), without the workspace in the name, because the backend resolves a single workspace per person. (2) The lock between tabs is not used: a duplicate resend is harmless because the server answers a repeated id from what it stored, so two tabs that resend the same thing apply nothing twice. (3) The queue stores an empty `previews`: the text of what is rejected is not shown yet. (4) The `changes` cursor comes from the same snapshot as the rows (`PageQueryResult.changesCursor`), with no backend change. Pending: painting from the cache before the server responds (the record and result store exists and is tested, but no view reads it yet), client mode (only the `decideClientMode` decision exists, with no data path or the change of the `results` cap to 1,000), moving the views' writes through the queue, the rejected changes panel and local placement in the other views (table, list, gallery, calendar, timeline), which today are drawn on the server.
+- Modified: 2026-10-21 (second delivery). `previews` is filled and the rejected changes panel is shown in the editor, with the words of each change, the reason, "Copy text" and "Discard" (verified in the browser: an edit made offline on a page that was later sent to the trash appears in the panel with the full paragraph, is copied to the clipboard and is discarded). The text comes from the editor at the moment of making the transaction and not from the Yjs update, because that one only carries what was written since the last confirmation, chained to characters it does not carry. **Lock between tabs: omitted, and documented.** Resending is harmless (the server answers a repeated id from what it stored) and two tabs never show contradictory states of what is pending: the save state each one shows is that of its own connection, and what one restores from disk it sends in the same order in which it was made, so at most both say "saving" at once and then "saved". Still pending, and postponed with the rest of client mode: moving the views' writes through the queue. Today a cell, a card or a new row is sent through server actions, offline they fail with a notice and undo the screen, so no text is lost silently, but it is not saved either. Moving them requires a vocabulary of operations for the client (ADR 025 reserves `changeValueList` and per-cell patches to the backend), a transaction session in the collection view and the local optimistic state that only exists when the views' body reads from the store.
+- Modified: 2026-10-21 (third delivery: views body from the store). Done. (1) Table, list, gallery, board, calendar and timeline are client components that read a row store; the first load is drawn by the server and seeds the store, and from there the `changes` notices place each row with the shared engine and the ADR 026 exceptions table (manual order re-reads only the affected columns; the count of rows without a date is re-read with an action). **The chart is still drawn on the server**: it only paints counts and is refreshed with the full redraw. (2) Painting from the cache: the page's `loading.tsx` draws the last saved view for that query, marked "updating", and brings it up to date with `changes`; on a reset, an unknown cursor or a place that depends on the server's order, the copy is left and the server's response takes over. Computed values are never stored. It does not appear on a full reload, because Next only shows `loading.tsx` on client navigations. (3) Client mode with `decideClientMode`: all the rows are read once (pages of 1,000 ids with `results`, cap raised from 100 to 1,000 only for that reduction) and the browser filters, sorts, groups and counts with the shared engine; the integration test `page-query.local-parity` compares 10 views, 4 time zones and 130 rows against the server. A grouping by person, date or number, a search, and formulas, rollups or relations in the filter or sort are rejected. The quick filter still travels through the URL, so changing it still navigates. (4) View writes through the persistent queue: single-value cell, moving a card or row without lists and new row are shown instantly, saved in IndexedDB before being sent and resent with the same id; the backend accepts `id` on create and responds with the already created page if repeated (the minimal backend change, with tests). List cells (multiple options, people, relations, files) and moves with lists need a connection and say so. **Deviation:** a rejection does not hold the following writes of the queue, unlike the editor's text, because each cell or place is independent; the rejection goes to the panel and the view re-reads the rows. Another deviation: new rows made offline appear in the store only in client mode. Measurement in the browser (production build, administrator account, 12,000 pages in the space): opening a 2,000-card board by navigation from the cache draws at 280 to 340 ms after the click (first card at 520 to 720 ms) and the server's response arrives at 3.7 s; the local engine takes 1 ms to filter, 8 to 13 ms to sort and 8 ms to group and count 10,000 rows (median and p95 of 15 runs, Bun). **The first load of the 10,000-row table takes 7.6 to 9.3 s (p95 above 1.5 s)** and it is the server read, not client mode: the space's page tree (1.8 s), the collections (2.1 s) and the query count (1.6 s) weigh, all unrelated to this stage; the 10 pages of client-mode rows arrive after the first draw, about 70 to 95 ms each. This is noted as debt for the server performance stage. Verified with two people: a card moved by the other is repositioned without reloading in board and table at 334 ms; a row sent to the trash disappears from both and from IndexedDB; an offline edit stays as "1 change waiting to be sent", is sent when the connection returns without reloading and the server confirms it. Loss of access through permissions (instead of the trash) is only covered by unit tests.
+- Modified: 2026-10-21 (fourth delivery: corrections after the review). (1) **Calendar and timeline are revalidated like the rest**: the painted copy requests `changes` from its cursor and places the rows with `placeChangedWindowRows` (the same engine as the live one); if something changed, it re-reads the count of rows without a date with an action, and if the cursor was reset, the window was truncated or there is a search, it leaves the copy and the server's response takes over. (2) **The version of each stored record is that of the block on the server** (`Block.version`, which grows with each change): `PageRowSummary` and `PageQueryRow` now carry it as `version`, and the cache no longer invents client stamps; optimistic rows not yet confirmed carry 0. That is why `sync` with `{ id, version }` and the store's merge by version tell the truth. (3) **Row closed to a person.** A real test with two people showed a gap: when removing a row's permission, the server no longer drew it, but its record stayed in IndexedDB (the `changes` notice never names a row that the reader cannot open). Now, when a new read stops citing rows that the copy stored for the same question, the browser sends those rows with their versions to `sync` (500 at a time) and deletes those that come back in `revoked`; those that only left the filter are kept, and if the server does not respond nothing is deleted. Verified with a second person in her own context: the closed row disappears from the view and from IndexedDB, the others remain stored, and on closing the entire collection the view says the address does not exist and all its rows are deleted from the cache. (4) **First load of the 10,000-row table, causes.** The collections read took 1.8 s per call (3 calls per load) because it listed with their full document all the pages in the space just to keep the collections; now it requests only the space's collections and takes 19 ms. The row query, the count and the cursor take 24 to 39 ms separately: the 1.5 s that were seen was waiting behind the heavy reads in the same process. It remains unresolved, and it is a design change and not a fix: the page tree returns the 12,000 pages of the space with their content (10 MB, 1.0 s of server CPU, twice per load) and the page route hands that whole list to the client component (40 MB document); with a small space the same table paints in 1.3 to 1.4 s. A lazy page model is needed (roots, open path and children on expand, and the content of other pages on demand, because synced blocks read that of other pages). It remains as explicit debt.
+- Modified: 2026-10-21 (fifth note). The debt of the fourth note, the lazy page model, is resolved in `030-page-tree-on-demand.md`: the page route stops delivering the space's list and the document drops from 18 MB to 0.37 MB in that ADR's measurement.
+- Reference: `docs/superpowers/plans/2026-10-20-daily-work.md` (stage 11)
+- The measurement was done with a disposable bench in the session's temporary directory and is repeated in the implementation.

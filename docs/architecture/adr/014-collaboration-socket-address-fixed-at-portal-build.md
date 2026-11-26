@@ -1,33 +1,33 @@
-# 014: La dirección del socket de colaboración se fija al construir el portal
+# 014: The collaboration socket address is fixed when the portal is built
 
 **Status:** Accepted
 **Date:** 2026-10-11
 
 ## Context
 
-La edición en vivo abre un WebSocket desde el navegador directo contra el backend (Hocuspocus); no pasa por el servidor de Next. Su dirección es `NEXT_PUBLIC_COLLABORATION_WS_URL`, y Next solo pone en el bundle del navegador una variable pública escrita con su nombre completo. El portal la leía con `envSchema.parse(process.env)`, que en el navegador recibe un objeto vacío, así que siempre usaba el valor por defecto, `ws://localhost:3000`. En desarrollo coincidía por casualidad. En Docker la edición en vivo fallaba en silencio y no guardaba nada.
+Live editing opens a WebSocket from the browser directly to the backend (Hocuspocus); it does not go through the Next server. Its address is `NEXT_PUBLIC_COLLABORATION_WS_URL`, and Next only puts a public variable in the browser bundle when it is written with its full name. The portal read it with `envSchema.parse(process.env)`, which in the browser receives an empty object, so it always used the default value, `ws://localhost:3000`. In development it matched by chance. In Docker, live editing failed silently and saved nothing.
 
 ## Alternatives Considered
 
-- **Pasar el socket por el servidor de Next (proxy).** PRO: una sola dirección pública. CON: el servidor standalone de Next no hace proxy de WebSockets y habría que agregar uno propio. Rechazada.
-- **Entregar la dirección en tiempo de ejecución** (el servidor la pone en la página). PRO: una misma imagen sirve en cualquier entorno. CON: hay que llevarla por el árbol de componentes hasta la sesión de colaboración, y cambia más código que el problema. Queda como opción si se necesita una imagen única para varios entornos.
-- **Fijarla al construir.** PRO: es el mecanismo estándar de Next y el cambio es mínimo. CON: cada entorno necesita su propia imagen del portal.
+- **Pass the socket through the Next server (proxy).** PRO: a single public address. CON: the standalone Next server does not proxy WebSockets and one of our own would have to be added. Rejected.
+- **Deliver the address at runtime** (the server puts it in the page). PRO: the same image serves any environment. CON: it has to be carried down the component tree to the collaboration session, and it changes more code than the problem warrants. Kept as an option if a single image is needed for several environments.
+- **Fix it at build time.** PRO: it is the standard Next mechanism and the change is minimal. CON: each environment needs its own portal image.
 
 ## Decision
 
-`NEXT_PUBLIC_COLLABORATION_WS_URL` es un argumento de compilación del Dockerfile del portal. Compose lo toma de `COLLABORATION_WS_URL`. `config/env.config.ts` lee la variable por su nombre completo para que Next la ponga en el bundle.
+`NEXT_PUBLIC_COLLABORATION_WS_URL` is a build argument of the portal Dockerfile. Compose takes it from `COLLABORATION_WS_URL`. `config/env.config.ts` reads the variable by its full name so that Next puts it in the bundle.
 
 ## Consequences
 
-- Positivas: la edición en vivo funciona en Docker y en podman.
-- Negativas: cambiar la dirección pública del backend obliga a reconstruir la imagen del portal.
+- Positive: live editing works in Docker and in podman.
+- Negative: changing the backend's public address forces rebuilding the portal image.
 
 ## Governance
 
-Toda variable `NEXT_PUBLIC_*` nueva se agrega en `config/env.config.ts` con su nombre completo y, si cambia según el entorno, como argumento de compilación del Dockerfile.
+Every new `NEXT_PUBLIC_*` variable is added in `config/env.config.ts` with its full name and, if it changes per environment, as a build argument of the Dockerfile.
 
 ## Notes
 
-- Author: El-Vitas, con Claude
+- Author: El-Vitas, with Claude
 - Created: 2026-10-11
-- Modified: 2026-10-20 — Con la edición sobre bloques (ADR 021) ya no hay socket de colaboración. La variable pasó a `NEXT_PUBLIC_LIVE_WS_URL` (en compose, `LIVE_WS_URL`) y apunta directo al canal en vivo del backend, `/api/v1/blocks/live`. Lo decidido, fijar la dirección al construir el portal, sigue igual.
+- Modified: 2026-10-20 — With block-based editing (ADR 021) there is no collaboration socket anymore. The variable became `NEXT_PUBLIC_LIVE_WS_URL` (in compose, `LIVE_WS_URL`) and points directly to the backend's live channel, `/api/v1/blocks/live`. What was decided, fixing the address when the portal is built, remains the same.

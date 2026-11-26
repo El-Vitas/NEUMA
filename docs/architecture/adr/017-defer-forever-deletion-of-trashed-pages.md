@@ -1,34 +1,34 @@
-# 017: Diferir 30 días la eliminación para siempre de las páginas en la papelera
+# 017: Defer by 30 days the permanent deletion of pages in the trash
 
 **Status:** Accepted
 **Date:** 2026-10-19
 
 ## Context
 
-Vaciar la papelera borraba en una sola llamada todas las páginas en la papelera de los espacios del usuario, con su historial y sus adjuntos, sin registro de quién lo pidió. Lo podía hacer cualquier rol que no fuera CLIENT. La revisión de seguridad del 18 de octubre de 2026 lo marcó como riesgo alto: es la operación de la app que más datos destruye y la única que no tiene vuelta atrás.
+Emptying the trash deleted, in a single call, all the trashed pages in the user's spaces, along with their history and attachments, with no record of who requested it. Any role other than CLIENT could do it. The security review of October 18, 2026 flagged it as high risk: it is the operation in the app that destroys the most data and the only one with no way back.
 
-Los respaldos permiten volver a un minuto concreto, pero restaurar una base entera para recuperar una página afecta a todo el resto.
+Backups make it possible to go back to a specific minute, but restoring an entire database to recover one page affects everything else.
 
 ## Alternatives Considered
 
-- **Dejar el borrado inmediato y confiar en los respaldos.** PRO: no cambia nada. CON: recuperar una página exige restaurar la base en una instancia aparte y copiar a mano; el borrado sigue sin dejar rastro.
-- **Pedir confirmación escribiendo el nombre del espacio.** PRO: frena el clic accidental. CON: no frena una decisión equivocada ni un token robado, y sigue borrando en el acto.
-- **Borrado diferido, solo para administradores, con registro.** PRO: el error se corrige restaurando desde la papelera durante 30 días; el registro sobrevive a la página. CON: el espacio y los adjuntos tardan 30 días en liberarse.
+- **Keep immediate deletion and rely on backups.** PRO: nothing changes. CON: recovering a page requires restoring the database on a separate instance and copying by hand; deletion still leaves no trace.
+- **Ask for confirmation by typing the space name.** PRO: it stops the accidental click. CON: it does not stop a wrong decision or a stolen token, and it still deletes on the spot.
+- **Deferred deletion, administrators only, with a record.** PRO: a mistake is fixed by restoring from the trash within 30 days; the record outlives the page. CON: the space and the attachments take 30 days to be freed.
 
 ## Decision
 
-Eliminar para siempre, una página o la papelera entera, marca la página con `purgeAfter` a 30 días y escribe una fila en `PagePurge` con quién lo pidió. La página sigue en la papelera y se restaura como cualquier otra; restaurarla cancela el borrado. Un proceso del servidor HTTP corre cada hora, bajo un candado de Postgres, borra lo vencido y recién entonces borra los archivos adjuntos. Solo un administrador puede pedir el borrado.
+Deleting forever, a page or the entire trash, marks the page with `purgeAfter` at 30 days and writes a row in `PagePurge` with who requested it. The page stays in the trash and is restored like any other; restoring it cancels the deletion. A process in the HTTP server runs every hour, under a Postgres lock, deletes what has expired and only then deletes the attached files. Only an administrator can request the deletion.
 
 ## Consequences
 
-- Positivas: un borrado equivocado se deshace durante 30 días sin tocar los respaldos, y `PagePurge` dice quién pidió cada borrado y cómo terminó.
-- Negativas: los adjuntos ocupan disco 30 días más. Un trabajador ya no puede vaciar la papelera. Si el servidor HTTP no corre, nada se purga hasta que vuelva.
+- Positive: a mistaken deletion can be undone for 30 days without touching the backups, and `PagePurge` says who requested each deletion and how it ended.
+- Negative: attachments take up disk for 30 more days. A worker can no longer empty the trash. If the HTTP server is not running, nothing is purged until it comes back.
 
 ## Governance
 
-Las pruebas de integración de la papelera verifican que vaciar no borra, que la purga respeta el plazo, que restaurar cancela y que solo un administrador puede pedirlo. La regla de negocio vive en FEA-PAG.
+The trash integration tests verify that emptying does not delete, that the purge respects the deadline, that restoring cancels it and that only an administrator can request it. The business rule lives in FEA-PAG.
 
 ## Notes
 
-- Author: El-Vitas, con Claude
+- Author: El-Vitas, with Claude
 - Created: 2026-10-19

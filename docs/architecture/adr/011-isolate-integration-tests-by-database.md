@@ -1,4 +1,4 @@
-# 011: Aislar las pruebas de integración con una base de datos por ejecución
+# 011: Isolate integration tests with one database per run
 
 **Status:** Accepted
 **Date:** 2026-10-11
@@ -6,30 +6,30 @@
 
 ## Context
 
-Las pruebas de integración del backend arrancan la aplicación completa contra PostgreSQL. Hasta ahora cada ejecución creaba un esquema propio (`test_schema_<id>`), lo apuntaba con `?schema=` y `search_path`, y lo preparaba con `prisma db push` más dos fixtures en SQL (la columna `tsvector` y el índice parcial de `AgentAction`).
+The backend integration tests start the full application against PostgreSQL. Until now each run created its own schema (`test_schema_<id>`), pointed to it with `?schema=` and `search_path`, and prepared it with `prisma db push` plus two SQL fixtures (the `tsvector` column and the partial index on `AgentAction`).
 
-Prisma 8 escribe el esquema en cada sentencia (`"public"."Page"`), así que un esquema distinto de `public` ya no aísla nada: todas las ejecuciones escribirían en las mismas tablas. Además `db push` dejó de existir, y las dos fixtures duplicaban lo que ahora hace la migración base.
+Prisma 8 writes the schema in every statement (`"public"."Page"`), so a schema other than `public` no longer isolates anything: all runs would write to the same tables. In addition, `db push` no longer exists, and the two fixtures duplicated what the baseline migration now does.
 
 ## Alternatives Considered
 
-- **Un `namespace` del contrato por worker.** PRO: mantiene una sola base. CON: el namespace es parte del contrato; habría que generar un contrato por ejecución. Rechazada.
-- **Limpiar las tablas entre pruebas en una base compartida.** PRO: rápido. CON: dos ejecuciones simultáneas (por ejemplo, en paralelo o en CI) se pisan, y un fallo a medio camino deja datos sucios. Rechazada.
-- **Una base de datos por ejecución.** PRO: aislamiento total, y se prepara con las mismas migraciones que producción. CON: crear y migrar la base cuesta unos segundos por ejecución.
+- **A contract `namespace` per worker.** PRO: keeps a single database. CON: the namespace is part of the contract; a contract would have to be generated per run. Rejected.
+- **Clean the tables between tests in a shared database.** PRO: fast. CON: two simultaneous runs (for example, in parallel or in CI) step on each other, and a failure midway leaves dirty data. Rejected.
+- **One database per run.** PRO: full isolation, and it is prepared with the same migrations as production. CON: creating and migrating the database costs a few seconds per run.
 
 ## Decision
 
-Cada ejecución de `bun test` crea una base `neuma_test_<id>` con el usuario administrador de pruebas, la migra con `prisma db migrate` (exactamente lo que corre en producción) y la borra al terminar con `DROP DATABASE ... WITH (FORCE)`. Las fixtures `search-projection.fixture.ts` y `agent-action-request.fixture.ts` se eliminan.
+Each `bun test` run creates a `neuma_test_<id>` database with the test admin user, migrates it with `prisma db migrate` (exactly what runs in production) and drops it when finished with `DROP DATABASE ... WITH (FORCE)`. The `search-projection.fixture.ts` and `agent-action-request.fixture.ts` fixtures are removed.
 
 ## Consequences
 
-- Positivas: las pruebas validan las migraciones reales en cada ejecución; varias ejecuciones simultáneas no interfieren.
-- Negativas: el rol de `TEST_DATABASE_ADMIN_URL` necesita permiso `CREATEDB`; cada ejecución suma el tiempo de crear y migrar la base.
+- Positive: the tests validate the real migrations on every run; several simultaneous runs do not interfere.
+- Negative: the `TEST_DATABASE_ADMIN_URL` role needs the `CREATEDB` permission; each run adds the time to create and migrate the database.
 
 ## Governance
 
-`tests/bun-setup.ts` es el único lugar que crea, migra y borra la base de pruebas. Una prueba que necesite estructura de base debe obtenerla de una migración, nunca de una fixture en SQL.
+`tests/bun-setup.ts` is the only place that creates, migrates and drops the test database. A test that needs database structure must get it from a migration, never from an SQL fixture.
 
 ## Notes
 
-- Author: El-Vitas, con Claude
+- Author: El-Vitas, with Claude
 - Created: 2026-10-11
