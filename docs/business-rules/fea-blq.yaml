@@ -1,780 +1,767 @@
 id: FEA-BLQ
-name: Bloques de página
-purpose: Define qué puede sostener una página y cómo se comporta cada tipo de bloque al escribirlo, mostrarlo y guardarlo.
+name: Page blocks
+purpose: Defines what a page can hold and how each type of block behaves when written, displayed and saved.
 scope: pages
 rules:
   - id: BR-01743a9
     status: active
-    title: Dónde se para un bloque en la columna
+    title: Where a block stands in the column
     rule: >-
-      Un bloque que no es escritura puede pararse a la izquierda, al centro, a la derecha o a lo ancho de la columna, y
-      esa elección se guarda con la página.
+      A block that is not writing can stand on the left, in the center, on the right or across the full width of the
+      column, and that choice is saved with the page.
     why: >-
-      La misma página mezcla lectura y material de apoyo; poder correr una imagen o un reproductor a un lado es lo que
-      permite que el texto siga leyéndose.
+      The same page mixes reading and supporting material; being able to move an image or a player to one side is what
+      lets the text keep being read.
     context: >-
-      Elegir a lo ancho es pararse a la izquierda ocupando toda la columna, de modo que estrecharlo después no lo hace
-      saltar de lado. La opción se ofrece solo a bloques que pueden moverse; una línea de archivo no tiene dónde ir.
+      Choosing full width means standing on the left while taking up the whole column, so narrowing it later does not
+      make it jump sideways. The option is offered only to blocks that can move; a file line has nowhere to go.
   - id: BR-0322257
     status: active
-    title: Una página nombrada en la escritura se llama como se llama hoy
+    title: A page named in the writing is called what it is called today
     rule: >-
-      Nombrar una página ya escrita guarda qué página es, no cómo se llama: el nombre se lee de la página cada vez que
-      se muestra, y delante lleva la marca de una página. Vive dentro de la frase, mientras que una página empezada aquí
-      ocupa su propia línea.
+      Naming an already written page saves which page it is, not what it is called: the name is read from the page every
+      time it is shown, and it carries a page mark in front. It lives inside the sentence, whereas a page started here
+      takes up its own line.
     why: >-
-      Un nombre copiado envejece, y un enlace que anuncia un nombre viejo manda a la gente a algo que cree conocer.
-      Además, quien lee tiene que poder distinguir de un vistazo lo que cuelga de esta página de lo que solo se está
-      mencionando.
+      A copied name ages, and a link that announces an old name sends people to something they think they know.
+      Furthermore, whoever reads has to be able to tell at a glance what hangs from this page from what is only being
+      mentioned.
     context: >-
-      Se busca por título desde `@` o desde el menú `/`, que son la misma búsqueda. El nombre escrito al insertarlo
-      queda de respaldo para una página que no se pueda leer desde aquí, como la de otro espacio.
+      It is searched by title from `@` or from the `/` menu, which are the same search. The name written at insertion
+      stays as a fallback for a page that cannot be read from here, such as one in another space.
   - id: BR-061d307
     status: active
-    title: Una tabla se recorre y crece mientras se llena
+    title: A table is traversed and grows as it is filled
     rule: >-
-      Una tabla nace con encabezado y con el cursor en su primera celda, se recorre celda por celda con la tecla de
-      tabulación y agrega una fila al llegar al final. El encabezado es siempre la primera fila. Una tabla más ancha que
-      la página se desplaza dentro de su propia caja sin arrastrar la página.
-    why: Una tabla se pide para llenarla, y detenerse a agregar filas con el ratón rompe ese ritmo.
+      A table is born with a header and with the cursor in its first cell, is traversed cell by cell with the tab key and
+      adds a row on reaching the end. The header is always the first row. A table wider than the page scrolls inside its
+      own box without dragging the page.
+    why: A table is requested in order to fill it, and stopping to add rows with the mouse breaks that rhythm.
   - id: BR-0736884
     status: active
-    title: Escribir marcas conocidas crea el bloque correspondiente
+    title: Typing known marks creates the corresponding block
     rule: >-
-      Escribir las marcas de siempre al principio de una línea crea el bloque que representan, como almohadillas para un
-      encabezado, un guion para una lista, corchetes para una tarea, un signo mayor para una cita, tres guiones para un
-      separador y tres acentos graves para un bloque de código.
+      Typing the usual marks at the start of a line creates the block they represent, such as hash signs for a heading, a
+      hyphen for a list, brackets for a task, a greater-than sign for a quote, three hyphens for a separator and three
+      backticks for a code block.
     why: >-
-      Quien viene de escribir en texto plano ya conoce estas marcas, y tener que ir al menú por cada bloque interrumpe
-      la escritura.
+      Whoever comes from writing in plain text already knows these marks, and having to go to the menu for each block
+      interrupts the writing.
   - id: BR-09d3e17
     status: active
-    title: Un bloque de código dice en qué está escrito y se lleva entero
+    title: A code block says what it is written in and is taken whole
     rule: >-
-      Un bloque de código guarda en qué lenguaje está escrito, permite copiarlo entero, ajustar las líneas largas para
-      que no se corten, y sangrar con la tecla de tabulación sin sacar el foco de la página.
+      A code block stores which language it is written in, allows copying it whole, wrapping long lines so they are not
+      cut off, and indenting with the tab key without taking the focus out of the page.
     why: >-
-      El código se consulta para copiarlo y para leerlo; si tabular saca el foco o las líneas se cortan, deja de poder
-      trabajarse ahí.
+      Code is consulted to be copied and to be read; if tabbing takes the focus away or lines are cut off, it can no
+      longer be worked on there.
   - id: BR-2693dd5
     status: active
-    title: Un enlace a esta app no recarga el navegador
-    rule: Seguir un enlace que apunta a una página de esta app lleva a ella sin recargar la página entera.
+    title: A link to this app does not reload the browser
+    rule: Following a link that points to a page of this app takes you to it without reloading the entire page.
     why: >-
-      Una recarga completa para llegar a otra página del mismo espacio tira todo lo que el navegador ya tenía y hace
-      esperar por algo que ya estaba.
+      A full reload to reach another page of the same space throws away everything the browser already had and makes
+      people wait for something that was already there.
   - id: BR-29a76e9
     status: active
-    title: Nombrar una página que no existe ofrece hacerla
+    title: Naming a page that does not exist offers to create it
     rule: >-
-      Cuando lo escrito tras `@` no corresponde a ninguna página, el buscador ofrece crear una con ese nombre. La página
-      se crea colgando de aquella donde se escribió y queda mencionada en el mismo punto del texto.
+      When what is typed after `@` matches no page, the search offers to create one with that name. The page is created
+      hanging from the one where it was typed and is mentioned at the same point in the text.
     why: >-
-      Nombrar una página que todavía no existe es como suele empezar una página: el pensamiento va primero. Responder
-      «no encontré nada» obliga a salir de la frase, crear la página en otra parte y volver.
-    context: La página donde se escribe tiene que estar creada antes de poder colgarle otra.
+      Naming a page that does not exist yet is how a page usually begins: the thought comes first. Answering "I found
+      nothing" forces leaving the sentence, creating the page elsewhere and coming back.
+    context: The page where it is typed has to be created before another can be hung from it.
   - id: BR-2a30ebb
     status: active
-    title: Una fórmula que no se puede dibujar se muestra como fue escrita
+    title: A formula that cannot be drawn is shown as it was written
     rule: >-
-      Una fórmula en línea se dibuja junto al texto sin alterar la altura de la línea. Si no se puede dibujar, se
-      muestra exactamente lo que se escribió, diciendo por qué, en vez de dejar un hueco o romper la página.
+      An inline formula is drawn next to the text without altering the line height. If it cannot be drawn, exactly what
+      was written is shown, saying why, instead of leaving a gap or breaking the page.
     why: >-
-      Lo escrito es de quien lo escribió: perderlo porque una biblioteca no lo entiende es peor que mostrarlo tal cual y
-      explicarlo.
+      What is written belongs to whoever wrote it: losing it because a library does not understand it is worse than
+      showing it as is and explaining it.
   - id: BR-2c31f48
     status: active
-    title: Una tarea nace sin marcar y solo se tacha a sí misma
+    title: A task is born unchecked and only strikes itself through
     rule: >-
-      Al terminar una tarea y seguir escribiendo nace otra tarea, siempre sin marcar. Marcar una tarea la tacha solo a
-      ella, nunca a las que cuelgan de ella.
+      When finishing a task and continuing to write, another task is born, always unchecked. Checking a task strikes
+      through only it, never the ones that hang from it.
     why: >-
-      Una lista de pendientes se escribe de corrido, y dar por hechas las subtareas porque se marcó la de arriba es dar
-      por hecho trabajo que nadie hizo.
+      A to-do list is written in one go, and treating the subtasks as done because the one above was checked is taking
+      for granted work nobody did.
   - id: BR-2dee8f4
     status: active
-    title: Tamaño de un bloque que no es escritura
+    title: Size of a block that is not writing
     rule: >-
-      Un bloque que no es escritura —imagen, video, grabación, documento o contenido incrustado— guarda cuánto ocupa
-      como proporción de la columna de escritura, no en píxeles, y se ajusta arrastrando su borde derecho.
+      A block that is not writing —image, video, recording, document or embedded content— stores how much space it takes
+      up as a proportion of the writing column, not in pixels, and is adjusted by dragging its right edge.
     why: >-
-      Una medida en píxeles es una medida en una sola pantalla; la misma página se lee en un monitor ancho y en un
-      teléfono.
+      A measurement in pixels is a measurement on a single screen; the same page is read on a wide monitor and on a
+      phone.
     context: >-
-      Un bloque que nadie ha medido ocupa la columna entera, salvo el video, que no se agranda más allá de la resolución
-      del archivo.
+      A block nobody has measured takes up the entire column, except video, which does not grow beyond the file's
+      resolution.
   - id: BR-357e60a
     status: active
-    title: Buscar en la página abre lo que esconde la coincidencia
+    title: Searching in the page opens what the match hides
     rule: >-
-      Buscar dentro de una página resalta todas las coincidencias, dice cuántas son y en cuál se está, y al llegar a una
-      que está dentro de un encabezado plegado o de un desplegable cerrado lo abre. Solo se abre lo que esconde esa
-      coincidencia, no los demás pliegues de la página. Buscar y saltar de una coincidencia a otra no entra en el
-      historial de deshacer; reemplazar sí.
+      Searching within a page highlights all the matches, says how many there are and which one you are on, and on
+      reaching one that is inside a folded heading or a closed toggle it opens it. Only what hides that match is opened,
+      not the other folds of the page. Searching and jumping from one match to another does not enter the undo history;
+      replacing does.
     why: >-
-      Una coincidencia que no se puede ver no es una coincidencia encontrada. Y abrir de paso los pliegues vecinos le
-      deshace a quien lee un orden que había elegido. Deshacer justo después de buscar debe devolver la última frase
-      escrita, no la búsqueda.
+      A match that cannot be seen is not a match found. And opening the neighboring folds along the way undoes an order
+      the reader had chosen. Undoing right after searching must give back the last sentence written, not the search.
   - id: BR-39b1413
     status: active
-    title: La barra de formato pertenece al momento de elegir
+    title: The formatting bar belongs to the moment of choosing
     rule: >-
-      La barra que aparece sobre un texto elegido se va en cuanto quien lee deja de tener esa escritura en las manos: al
-      colapsar la selección, al pinchar en otro campo o al irse a otra parte de la página. No se va porque el foco haya
-      entrado en un menú que la propia barra abrió, ni porque se haya dejado la ventana entera.
+      The bar that appears over selected text goes away as soon as the reader no longer has that writing in hand: when
+      the selection collapses, when clicking on another field or when going to another part of the page. It does not go
+      away because focus has entered a menu that the bar itself opened, nor because the whole window was left.
     why: >-
-      El editor conserva la selección cuando pierde el foco, para devolverla al volver, pero una barra flotando sobre un
-      texto que ya nadie tiene elegido no ofrece nada: solo tapa la escritura y estorba, sobre todo a quien se mueve con
-      las flechas del teclado.
+      The editor keeps the selection when it loses focus, in order to restore it on return, but a bar floating over text
+      that nobody has selected anymore offers nothing: it only covers the writing and gets in the way, especially for
+      whoever moves with the keyboard arrows.
   - id: BR-400b88c
     status: active
-    title: La página no afirma lo que no sabe de una persona
+    title: The page does not claim what it does not know about a person
     rule: >-
-      Al pasar el cursor sobre una persona nombrada se muestra su nombre y, cuando el dato está a mano, la dirección con
-      que se la alcanza. Cuando no se sabe más, se muestra solo el nombre: nunca se dice que la persona ya no está.
+      Hovering over a named person shows their name and, when the data is at hand, the address they can be reached at.
+      When nothing more is known, only the name is shown: it is never said that the person is no longer there.
     why: >-
-      Con lo que el editor tiene no hay forma de distinguir «esta persona se fue» de «nadie cargó la lista», y decir lo
-      primero es afirmar algo falso sobre alguien que está ahí.
+      With what the editor has there is no way to tell "this person left" from "nobody loaded the list", and saying the
+      former is asserting something false about someone who is there.
   - id: BR-41e9452
     status: active
-    title: El marco de un diagrama es de la página y el zoom es de quien mira
+    title: The frame of a diagram belongs to the page and the zoom belongs to whoever looks
     rule: >-
-      Un diagrama se muestra en un marco que no pasa del alto de la pantalla, y si el diagrama es más chico, el marco se
-      ajusta a él. Quien edita la página puede agrandar o achicar el marco, y ese alto se guarda en la página, así todos
-      ven el diagrama en el mismo marco. Acercar, alejar, ajustar el diagrama al marco y verlo a su tamaño real es de
-      cada persona que mira y no se guarda. Un diagrama más grande que su marco se abre ajustado a él, y al verlo a
-      pantalla completa se ajusta a la pantalla.
+      A diagram is shown in a frame that does not exceed the height of the screen, and if the diagram is smaller, the
+      frame fits it. Whoever edits the page can enlarge or shrink the frame, and that height is saved in the page, so
+      everyone sees the diagram in the same frame. Zooming in, zooming out, fitting the diagram to the frame and viewing
+      it at real size belong to each person looking and are not saved. A diagram larger than its frame opens fitted to
+      it, and when viewed full screen it fits the screen.
     why: >-
-      Un marco del alto del diagrama empuja la página fuera de la pantalla aunque el diagrama igual no se vea entero.
-      Separar el marco, que es parte de la página, del zoom, que es de quien lee, deja que cada uno recorra el diagrama
-      sin cambiárselo a los demás.
+      A frame as tall as the diagram pushes the page off the screen even though the diagram still is not fully visible.
+      Separating the frame, which is part of the page, from the zoom, which belongs to whoever reads, lets each person
+      navigate the diagram without changing it for the others.
     context: >-
-      El marco se ajusta arrastrando su borde inferior o con las flechas del teclado, y con doble clic vuelve al tamaño
-      automático. Tiene un alto mínimo y uno máximo. El texto dentro de un diagrama nunca se corta dentro de su caja.
+      The frame is adjusted by dragging its bottom edge or with the keyboard arrows, and double-clicking returns it to
+      automatic size. It has a minimum and a maximum height. The text inside a diagram is never cut off inside its box.
     scenarios:
-      - title: Ajustar el marco
-        given: Un diagrama grande en una página
-        when: Una persona agranda su marco
-        then: Todos los que abren la página lo ven en el marco agrandado
-      - title: Acercar el diagrama
-        given: Dos personas mirando el mismo diagrama
-        when: Una lo acerca
-        then: Solo cambia lo que ve esa persona
+      - title: Adjusting the frame
+        given: A large diagram on a page
+        when: A person enlarges its frame
+        then: Everyone who opens the page sees it in the enlarged frame
+      - title: Zooming in on the diagram
+        given: Two people looking at the same diagram
+        when: One zooms in on it
+        then: Only what that person sees changes
   - id: BR-42fc687
     status: active
-    title: El día se cuenta en el huso de quien lee
+    title: The day is counted in the time zone of whoever reads
     rule: >-
-      Hoy, mañana y ayer se calculan sobre el día local de quien escribe, nunca sumando horas en UTC, y una fecha se
-      muestra siempre en el formato y el idioma de quien lee.
+      Today, tomorrow and yesterday are calculated on the local day of whoever writes, never by adding hours in UTC, and
+      a date is always shown in the format and language of whoever reads.
     why: >-
-      A las diez de la noche en Santiago ya es el día siguiente en UTC, de modo que «hoy» escribiría mañana y «mañana»
-      pasado. Un día es el día del calendario de quien lo nombra.
+      At ten at night in Santiago it is already the next day in UTC, so "today" would write tomorrow and "tomorrow" the
+      day after. A day is the calendar day of whoever names it.
   - id: BR-47933f7
     status: active
-    title: Un aviso dice de qué clase es, no qué dibujo lleva
+    title: A callout says what kind it is, not what drawing it carries
     rule: >-
-      Un bloque destacado guarda de qué clase de aviso se trata, como idea, información, advertencia, listo, bloqueado o
-      fijado, y no el símbolo con que se dibuja.
+      A highlighted block stores what kind of notice it is, such as idea, information, warning, done, blocked or pinned,
+      and not the symbol it is drawn with.
     why: >-
-      La página dice lo mismo para todos los que la leen, y cada quien ve el dibujo que le toque según la interfaz de su
-      momento.
+      The page says the same thing to everyone who reads it, and each person sees whichever drawing corresponds to them
+      according to the interface of the moment.
   - id: BR-4e634dd
     status: active
-    title: Una página nombrada se sigue como un enlace
+    title: A named page is followed like a link
     rule: >-
-      Hacer clic en una página nombrada en medio de una frase lleva a esa página sin recargar el navegador entero, igual
-      que un enlace a una página de esta app.
+      Clicking on a page named in the middle of a sentence takes you to that page without reloading the entire browser,
+      just like a link to a page of this app.
     why: >-
-      Para quien lee son la misma cosa —algo escrito que lleva a otra página—, y que una recargue y la otra no es una
-      diferencia que solo existe por cómo está dibujada cada una.
+      For whoever reads they are the same thing —something written that leads to another page—, and one reloading and the
+      other not is a difference that exists only because of how each one is drawn.
   - id: BR-4efd88a
     status: active
-    title: Cada control de un bloque dice qué hace y confirma
+    title: Each control of a block says what it does and confirms
     rule: >-
-      Cada botón de un bloque dice qué hace tanto a quien lo ve como a quien no puede verlo, y las acciones que no dejan
-      rastro visible confirman que ocurrieron.
+      Each button of a block says what it does both to whoever sees it and to whoever cannot see it, and actions that
+      leave no visible trace confirm that they happened.
     why: >-
-      Un dibujo en un botón no explica nada hasta que alguien ya lo aprendió, y copiar algo sin señal alguna deja a la
-      persona sin saber si funcionó.
+      A drawing on a button explains nothing until someone has already learned it, and copying something with no signal
+      at all leaves the person not knowing whether it worked.
     context: >-
-      Copiar el texto de un bloque avisa que se copió. Descargar entrega el archivo. Ver a pantalla completa se puede
-      deshacer con la misma tecla de siempre.
+      Copying a block's text announces that it was copied. Downloading delivers the file. Viewing full screen can be
+      undone with the same key as always.
   - id: BR-5a00e66
     status: active
-    title: Las listas se anidan y se distinguen por nivel
+    title: Lists nest and are distinguished by level
     rule: >-
-      Un punto de una lista puede colgar del punto de arriba, y cada nivel se distingue por su propia marca. Una lista
-      numerada respeta el número donde se le dijo empezar y renumera sola al intercalar un punto.
-    why: La jerarquía de una lista se lee por la marca; si todos los niveles se ven igual, la lista deja de decir nada.
+      A list item can hang from the item above, and each level is distinguished by its own mark. A numbered list respects
+      the number where it was told to start and renumbers itself when an item is inserted.
+    why: A list's hierarchy is read from the mark; if all levels look the same, the list stops saying anything.
   - id: BR-5f3a4aa
     status: active
-    title: Un diagrama se escribe como texto y se dibuja
+    title: A diagram is written as text and drawn
     rule: >-
-      Un diagrama se escribe como texto en la página y se dibuja a partir de él. El bloque puede mostrar solo el dibujo,
-      solo el texto o ambos, y la elección se guarda con la página.
+      A diagram is written as text on the page and drawn from it. The block can show only the drawing, only the text or
+      both, and the choice is saved with the page.
     why: >-
-      Lo que se guarda es el texto, de modo que un diagrama siempre se puede volver a editar, buscar y conservar aunque
-      cambie la forma de dibujarlo.
+      What is saved is the text, so a diagram can always be edited, searched and preserved again even if the way of
+      drawing it changes.
     context: >-
-      El dibujo se rehace cuando la escritura se detiene, no en cada tecla, para no parpadear mientras alguien escribe.
-      El dibujo no se guarda, se deriva del texto.
+      The drawing is redone when the writing pauses, not on every key, to avoid flickering while someone types. The
+      drawing is not saved, it is derived from the text.
     scenarios:
-      - title: Sintaxis incorrecta
-        given: Un diagrama a medio escribir o mal escrito
-        when: La página intenta dibujarlo
-        then: El bloque explica qué falló y en qué línea, conserva el texto y el resto de la página sigue funcionando
+      - title: Incorrect syntax
+        given: A diagram half written or badly written
+        when: The page tries to draw it
+        then: The block explains what failed and on which line, keeps the text and the rest of the page keeps working
   - id: BR-66a1e2d
     status: active
-    title: Un bloque solo se coloca donde la página puede guardarlo
+    title: A block is only placed where the page can store it
     rule: >-
-      Un bloque se coloca únicamente donde la página admite tenerlo. Si el sitio elegido no lo admite, sube hasta el
-      lugar más cercano que sí lo acepte.
+      A block is placed only where the page allows having it. If the chosen spot does not allow it, it moves up to the
+      nearest place that does accept it.
     why: >-
-      La escritura permite más combinaciones de las que una página puede guardar, y un bloque puesto donde no cabe solo
-      se descubre cuando la página deja de guardarse.
-    context: Por ejemplo, una cita sostiene escritura pero no un video; el video queda entonces debajo de la cita.
+      The writing allows more combinations than a page can store, and a block placed where it does not fit is only
+      discovered when the page stops saving.
+    context: For example, a quote holds writing but not a video; the video then ends up below the quote.
   - id: BR-6dd8d27
     status: active
-    title: Todo bloque tiene un id que no comparte con ningún otro
+    title: Every block has an id that it shares with no other
     rule: >-
-      Cada bloque, incluida cada página, tiene un id que no comparte con ningún otro bloque de toda la base. Lo recibe
-      al escribirse, lo escriba una persona en el editor, la API o un agente, y lo conserva mientras exista, también al
-      moverse a otra página o a otro espacio. Duplicar una página da ids nuevos a toda la copia, y las referencias que
-      apuntaban dentro de la rama copiada pasan a apuntar a la copia. Un cambio que trae el id de un bloque que vive en
-      otra página no lo toca; el bloque escrito recibe un id nuevo.
+      Each block, including each page, has an id that it shares with no other block in the whole database. It receives it
+      when written, whether a person writes it in the editor, the API or an agent, and keeps it as long as it exists,
+      also when moved to another page or to another space. Duplicating a page gives new ids to the entire copy, and the
+      references that pointed inside the copied branch now point to the copy. A change that brings the id of a block that
+      lives on another page does not touch it; the written block receives a new id.
     why: >-
-      Con el id se llega a un bloque. El enlace que se copia, la búsqueda que lo encuentra y el agente que lo cita
-      apuntan a él y no a la página entera. Dos bloques con un mismo id son un enlace que no se sabe adónde lleva.
+      A block is reached through its id. The link that is copied, the search that finds it and the agent that cites it
+      point to it and not to the whole page. Two blocks with the same id are a link that nobody knows where it leads.
     supersedes: BR-1557ee4
     scenarios:
-      - title: Duplicar una página con una mención interna
-        given: Una página con una subpágina que la menciona
-        when: Se duplica la página con su descendencia
-        then: La copia y su subpágina tienen ids nuevos, y la mención de la subpágina copiada apunta a la copia
-      - title: Mover un bloque a otra página
-        given: Un bloque enlazado desde otra página
-        when: Se mueve a una tercera página
-        then: Conserva su id y el enlace sigue llevando a él
+      - title: Duplicating a page with an internal mention
+        given: A page with a subpage that mentions it
+        when: The page is duplicated with its descendants
+        then: The copy and its subpage have new ids, and the mention in the copied subpage points to the copy
+      - title: Moving a block to another page
+        given: A block linked from another page
+        when: It is moved to a third page
+        then: It keeps its id and the link still leads to it
   - id: BR-6f1d15d
     status: active
-    title: Las estampas de un diagrama viajan con la pagina
+    title: A diagram's stamps travel with the page
     rule: >-
-      Las estampas que un diagrama puede nombrar viajan con la pagina. Dibujar un diagrama nunca es una peticion a un
-      servidor ajeno, ni siquiera para traer un dibujito.
+      The stamps that a diagram can name travel with the page. Drawing a diagram is never a request to an outside server,
+      not even to fetch a little picture.
     why: >-
-      Una pagina que se dibuja delante de quien la lee no debe contarle a un tercero quien la esta leyendo, y una pagina
-      interna tiene que poder leerse igual sin salida a internet.
+      A page that is drawn in front of whoever reads it must not tell a third party who is reading it, and an internal
+      page has to be readable just the same without access to the internet.
   - id: BR-705d16a
     status: active
-    title: Un diagrama puede fijar su propio aspecto
+    title: A diagram can set its own appearance
     rule: >-
-      Un diagrama puede fijar en su propio texto el aspecto con que quiere dibujarse, y la pagina lo respeta en lugar de
-      imponerle el suyo.
+      A diagram can set in its own text the appearance it wants to be drawn with, and the page respects it instead of
+      imposing its own.
     why: >-
-      Quien escribe un diagrama sabe con que colores se entiende lo que esta explicando, y un diagrama es material de
-      lectura antes que decoracion de la interfaz.
+      Whoever writes a diagram knows which colors make what they are explaining understandable, and a diagram is reading
+      material before it is interface decoration.
     context: >-
-      El costo aceptado es que ese diagrama se ve igual de dia y de noche. Un diagrama que no dice nada al respecto si
-      sigue el modo en que se esta leyendo la pagina.
+      The accepted cost is that this diagram looks the same by day and by night. A diagram that says nothing about it does
+      follow the mode in which the page is being read.
   - id: BR-744f3ec
     status: active
-    title: El índice al costado acompaña a quien lee la página
+    title: The side index accompanies whoever reads the page
     rule: >-
-      Toda página muestra sus encabezados en un índice al costado, sin que nadie tenga que insertarlo, y marca el
-      encabezado que se está leyendo. Aparece solo donde hay ancho de sobra; en pantalla angosta la página se queda con
-      todo el ancho.
+      Every page shows its headings in an index at the side, without anyone having to insert it, and marks the heading
+      being read. It appears only where there is plenty of width; on a narrow screen the page keeps the full width.
     why: >-
-      Saber dónde está uno en una página larga es cosa de quien la lee, no de quien la escribió; pedirle al autor que
-      inserte un bloque para que los demás puedan orientarse deja sin índice justo a las páginas que más lo necesitan.
+      Knowing where you are on a long page is a matter for whoever reads it, not for whoever wrote it; asking the author
+      to insert a block so that others can orient themselves leaves without an index precisely the pages that most need
+      one.
     context: >-
-      Convive con el bloque de índice, que sigue siendo del autor: ese ocupa una línea de la página, se guarda con ella
-      y se ve en cualquier pantalla. El del costado no se guarda en ninguna parte.
+      It coexists with the index block, which remains the author's: that one takes up a line of the page, is saved with it
+      and is seen on any screen. The side one is not saved anywhere.
     scenarios:
-      - title: Página sin encabezados
-        given: Una página que no tiene encabezados
-        when: Alguien la abre en una pantalla ancha
-        then: No se muestra ningún índice al costado, y la página conserva todo el ancho
+      - title: Page without headings
+        given: A page that has no headings
+        when: Someone opens it on a wide screen
+        then: No side index is shown, and the page keeps the full width
   - id: BR-77de182
     status: active
-    title: Cómo se muestra un archivo lo decide el bloque
+    title: How a file is shown is decided by the block
     rule: >-
-      Cada bloque de archivo dice si se muestra como documento leído en la página o como una línea con su nombre, tipo y
-      peso. La opción solo se ofrece cuando puede cumplirse.
+      Each file block says whether it is shown as a document read on the page or as a line with its name, type and
+      weight. The option is only offered when it can be fulfilled.
     why: >-
-      El mismo documento es material de lectura en una página y algo que se guarda en otra, y ofrecer una forma que el
-      sistema no puede dibujar es un menú que no hace nada.
-    context: Un archivo que la página no sabe dibujar se muestra siempre como línea, y no se le ofrece la elección.
+      The same document is reading material on one page and something to be saved on another, and offering a form that the
+      system cannot draw is a menu that does nothing.
+    context: A file that the page does not know how to draw is always shown as a line, and the choice is not offered.
   - id: BR-7a7269d
     status: active
-    title: Un enlace ya escrito se alcanza sin seguirlo
+    title: An already written link is reached without following it
     rule: >-
-      Al dejar el puntero sobre un enlace aparece una burbuja que muestra a dónde va y ofrece las dos únicas cosas que
-      se le pueden hacer: cambiar su destino o dejar de ser un enlace. Mientras la burbuja está a la vista, la barra de
-      formato no se muestra sobre las mismas palabras.
+      Resting the pointer on a link brings up a bubble that shows where it goes and offers the only two things that can be
+      done to it: change its destination or stop being a link. While the bubble is in view, the formatting bar is not
+      shown over the same words.
     why: >-
-      Meter el cursor dentro de un enlace es también la forma de seguirlo, así que descansar encima es lo único que
-      queda para preguntarle algo. Dos cosas flotando sobre las mismas palabras se tapan entre sí.
+      Placing the cursor inside a link is also the way to follow it, so resting on top of it is all that is left for
+      asking it something. Two things floating over the same words cover each other.
   - id: BR-85d65ab
     status: active
-    title: Un encabezado pliega lo que sostiene
+    title: A heading folds what it holds
     rule: >-
-      Un encabezado puede plegarse para ocultar todo lo que va debajo de él hasta el siguiente encabezado del mismo
-      nivel, y ese estado se guarda con la página.
+      A heading can be folded to hide everything below it up to the next heading of the same level, and that state is
+      saved with the page.
     why: >-
-      Una página larga se recorre plegando lo que no se está mirando; si el plegado se pierde al recargar, no sirve de
-      nada.
+      A long page is traversed by folding what is not being looked at; if the folding is lost on reload, it is of no use.
     context: >-
-      Lo plegado sigue en la página, solo queda fuera de la vista, y un encabezado plegado lo dice aunque el puntero no
-      esté encima.
+      What is folded is still on the page, it is only out of view, and a folded heading says so even when the pointer is
+      not over it.
   - id: BR-8609c2e
     status: active
-    title: El color en línea usa la misma paleta acotada
+    title: Inline color uses the same bounded palette
     rule: >-
-      El color de la escritura y el color de fondo se pueden poner sobre lo elegido, no solo sobre el bloque entero, y
-      se eligen de la misma paleta acotada que usan los bloques, con la opción de quitarlo y volver al predeterminado.
-      No hay selector libre de color.
+      The text color and the background color can be applied to what is selected, not only to the entire block, and are
+      chosen from the same bounded palette that blocks use, with the option to remove it and go back to the default.
+      There is no free color picker.
     why: >-
-      Quien elige cuatro palabras y busca un color quiere esas cuatro; pintar el bloque entero pintaría lo que no
-      eligió. Una paleta acotada es lo que garantiza que cada color tenga su lectura de día y de noche y que nada quede
-      ilegible sobre el papel de la página.
+      Whoever selects four words and looks for a color wants those four; painting the entire block would paint what they
+      did not choose. A bounded palette is what guarantees that each color reads well by day and by night and that
+      nothing becomes illegible on the page's paper.
   - id: BR-921afcd
     status: active
-    title: Un enlace que no se puede mostrar se queda como enlace
+    title: A link that cannot be shown stays as a link
     rule: >-
-      Si una dirección no se puede mostrar dentro de la página, o si no se pudo leer nada sobre ella, el bloque se queda
-      como enlace y la página lo dice con un aviso.
+      If an address cannot be shown inside the page, or if nothing could be read about it, the block stays as a link and
+      the page says so with a notice.
     why: >-
-      Un enlace que desaparece o un marco vacío hacen dudar de si se perdió algo; dejarlo como enlace conserva siempre
-      lo que la persona pegó.
+      A link that disappears or an empty frame make people doubt whether something was lost; leaving it as a link always
+      preserves what the person pasted.
     context: >-
-      Solo unos pocos servicios pueden mostrarse dentro de la página; el resto de las direcciones son enlaces o
-      tarjetas.
+      Only a few services can be shown inside the page; the rest of the addresses are links or cards.
   - id: BR-94069a8
     status: active
-    title: Una subpágina se nombra donde vive
+    title: A subpage is named where it lives
     rule: >-
-      Una página puede tener páginas colgando de ella, puestas en la escritura como la línea que lleva a cada una. El
-      bloque guarda qué página es, no cómo se llama: el nombre se lee de la página cada vez que se muestra. Borrar el
-      bloque no borra la página.
+      A page can have pages hanging from it, placed in the writing as the line that leads to each one. The block stores
+      which page it is, not what it is called: the name is read from the page every time it is shown. Deleting the block
+      does not delete the page.
     why: >-
-      Un nombre copiado en la escritura envejece en cuanto alguien renombra la página, y la página termina anunciada con
-      un nombre que ya no es el suyo. Y borrar una línea de una página no puede significar tirar a la basura todo lo que
-      hay escrito en otra.
+      A name copied into the writing ages as soon as someone renames the page, and the page ends up announced with a name
+      that is no longer its own. And deleting a line from one page cannot mean throwing away everything written on
+      another.
     context: >-
-      El nombre escrito al insertarla queda de respaldo, para una hija que ya no se puede leer desde aquí. Una subpágina
-      ocupa su propia línea, con la marca de una página delante, que es lo que la distingue de un enlace a una página
-      que ya existía.
+      The name written at insertion stays as a fallback, for a child that can no longer be read from here. A subpage takes
+      up its own line, with a page mark in front, which is what distinguishes it from a link to a page that already
+      existed.
     scenarios:
-      - title: La hija cambia de nombre
-        given: Una página con una subpágina llamada «Sin título»
-        when: Alguien abre la hija y la renombra
-        then: La línea en la madre pasa a decir el nombre nuevo
+      - title: The child is renamed
+        given: A page with a subpage called "Untitled"
+        when: Someone opens the child and renames it
+        then: The line in the parent changes to the new name
   - id: BR-9577952
     status: active
-    title: Un bloque que esta versión no conoce se conserva tal como llegó
+    title: A block this version does not know is kept as it arrived
     rule: >-
-      Una página guarda solo los tipos de bloque que la versión actual conoce, y cualquier bloque desconocido se
-      conserva tal como llegó y se dibuja nombrado como algo que la página sostiene pero no sabe mostrar.
+      A page stores only the block types that the current version knows, and any unknown block is kept as it arrived and
+      is drawn named as something the page holds but does not know how to show.
     why: >-
-      Dos versiones distintas leen la misma página; descartar lo que una no entiende sería borrar el trabajo hecho en la
-      otra.
+      Two different versions read the same page; discarding what one does not understand would be erasing the work done
+      in the other.
   - id: BR-9961539
     status: active
-    title: El menú de un bloque se abre junto al botón que lo abrió
-    rule: El menú de un bloque se abre a la altura de los botones que lo abren, no en el borde superior del bloque.
+    title: A block's menu opens next to the button that opened it
+    rule: A block's menu opens at the height of the buttons that open it, not at the top edge of the block.
     why: >-
-      En un bloque alto, como un video o un documento, el borde superior puede quedar fuera de la pantalla, y el menú
-      aparece donde nadie lo está mirando.
+      In a tall block, such as a video or a document, the top edge can be off screen, and the menu appears where nobody is
+      looking.
   - id: BR-9eaf811
     status: active
-    title: Un bloque sincronizado guarda dónde vive, no lo que dice
+    title: A synced block stores where it lives, not what it says
     rule: >-
-      Un bloque puede mostrarse en otra página sin dejar de vivir en la suya: lo que la otra página guarda es qué página
-      y qué bloque, y lo que muestra es lo que ese bloque dice ahora. Se escribe donde vive; donde se muestra, se lee.
-      Romper la sincronización deja una copia que ya no es de nadie más.
+      A block can be shown on another page without ceasing to live on its own: what the other page stores is which page
+      and which block, and what it shows is what that block says now. It is written where it lives; where it is shown, it
+      is read. Breaking the sync leaves a copy that no longer belongs to anyone else.
     why: >-
-      Copiar la escritura sería tener dos versiones de lo mismo envejeciendo por separado, que es justo lo que un bloque
-      sincronizado viene a evitar. Y un mismo bloque editado desde dos lados a la vez es un bloque que en algún momento
-      pierde la mitad de lo escrito.
+      Copying the writing would mean having two versions of the same thing aging separately, which is exactly what a
+      synced block is meant to avoid. And the same block edited from two sides at once is a block that at some point loses
+      half of what was written.
     context: >-
-      Donde se muestra va apartado, con su marca y el enlace a donde vive. La copia que queda al romper el vínculo lleva
-      la misma escritura pero no quién era el otro bloque ni lo que se comentó sobre él. Un bloque cuya página ya no lo
-      tiene lo dice en vez de mostrar un recuadro vacío.
+      Where it is shown it is set apart, with its mark and the link to where it lives. The copy left when the link is
+      broken carries the same writing but not who the other block was nor what was commented on it. A block whose page no
+      longer has it says so instead of showing an empty box.
     scenarios:
-      - title: El bloque cambia en su página
-        given: Una página que muestra un bloque que vive en otra
-        when: Alguien corrige ese bloque donde vive
-        then: La página que lo muestra dice lo corregido
+      - title: The block changes on its page
+        given: A page that shows a block that lives on another
+        when: Someone corrects that block where it lives
+        then: The page that shows it says what was corrected
   - id: BR-a27127f
     status: active
-    title: Un bloque que no sostiene nada no se guarda con contenido
+    title: A block that holds nothing is not saved with content
     rule: >-
-      Los bloques que no sostienen nada dentro, como un separador, una imagen, un reproductor o una tarjeta, se guardan
-      sin contenido alguno.
+      Blocks that hold nothing inside, such as a separator, an image, a player or a card, are saved without any content.
     why: >-
-      Escribirles un contenido vacío es una forma que la página rechaza, y el rechazo aparece en medio de una tecla, sin
-      que nadie entienda qué hizo mal.
+      Writing empty content into them is a shape the page rejects, and the rejection appears in the middle of a keystroke,
+      without anyone understanding what they did wrong.
   - id: BR-a75d589
     status: active
-    title: La página dice en qué va su guardado, en un solo lugar
+    title: The page says how its saving is going, in a single place
     rule: >-
-      La página dice si está guardando, a qué hora terminó, o que hay algo sin guardar, y lo dice en un solo lugar,
-      junto al título. Si se pierde la conexión lo avisa y no intenta guardar; cuando vuelve, envía lo pendiente sola.
-      Cerrar la pestaña con algo sin guardar avisa antes de salir, y solo entonces. Un error de guardado nunca aparece
-      sin decir qué hacer.
+      The page says whether it is saving, what time it finished, or that something is unsaved, and says it in a single
+      place, next to the title. If the connection is lost it says so and does not try to save; when it returns, it sends
+      what is pending on its own. Closing the tab with something unsaved warns before leaving, and only then. A saving
+      error never appears without saying what to do.
     why: >-
-      Quien escribe necesita saber si su trabajo está a salvo, y dos indicadores diciendo lo mismo en dos sitios no dan
-      más certeza sino menos. Intentar guardar sin conexión solo produce errores que no significan nada.
+      Whoever writes needs to know whether their work is safe, and two indicators saying the same thing in two places give
+      not more certainty but less. Trying to save without a connection only produces errors that mean nothing.
   - id: BR-a87ec49
     status: active
-    title: Video y grabación se reproducen en la página
+    title: Video and recording play on the page
     rule: >-
-      Un video o una grabación subidos a una página se reproducen dentro de ella, sin salir a otra pantalla ni
-      descargarlos, y con controles propios de la página.
+      A video or a recording uploaded to a page plays inside it, without going to another screen or downloading it, and
+      with the page's own controls.
     why: >-
-      Lo que se sube a una página se consulta ahí mismo; obligar a bajarlo rompe la lectura y deja copias sueltas fuera
-      del espacio de trabajo.
+      What is uploaded to a page is consulted right there; forcing a download breaks the reading and leaves loose copies
+      outside the workspace.
     context: >-
-      Los controles son los de la página (reproducir, punto de reproducción, tiempo, silencio y pantalla completa para
-      el video) para que se lean igual que el resto de la interfaz. Cada control dice qué hace para quien no puede
-      verlo.
+      The controls are the page's own (play, playback position, time, mute and full screen for video) so they read like
+      the rest of the interface. Each control says what it does to whoever cannot see it.
     scenarios:
-      - title: Video subido a una página
-        given: Una persona con permiso de edición y un video en un formato aceptado
-        when: Lo sube a la página
-        then: El video queda en el punto donde estaba escribiendo y se reproduce ahí mismo
-      - title: Salto dentro de una grabación larga
-        given: Una grabación ya publicada en la página
-        when: Quien la escucha mueve el punto de reproducción
-        then: La reproducción continúa desde ese punto sin esperar a que baje la grabación entera
+      - title: Video uploaded to a page
+        given: A person with edit permission and a video in an accepted format
+        when: They upload it to the page
+        then: The video ends up at the point where they were writing and plays right there
+      - title: Jump within a long recording
+        given: A recording already published on the page
+        when: Whoever listens to it moves the playback position
+        then: Playback continues from that point without waiting for the whole recording to download
   - id: BR-ab31bcc
     status: active
-    title: Un dibujo no le pide nada a nadie
+    title: A drawing asks nothing of anyone
     rule: >-
-      Nada de lo que se escribe en un diagrama puede hacer que el navegador de quien lo lee pida algo a un servidor
-      ajeno. Las direcciones escritas en un diagrama se quitan antes de dibujarlo y se vuelven a quitar del dibujo
-      terminado.
+      Nothing written in a diagram can make the browser of whoever reads it request something from an outside server.
+      The addresses written in a diagram are removed before drawing it and removed again from the finished drawing.
     why: >-
-      Un diagrama lo escribe cualquiera que pueda escribir en la pagina y lo mira todo el que la lee. Una direccion
-      metida ahi es una peticion que sale una vez por cada lector, y le cuenta a un tercero quien esta leyendo, desde
-      donde y cuando.
+      A diagram is written by anyone who can write on the page and viewed by everyone who reads it. An address placed
+      there is a request that goes out once per reader, and tells a third party who is reading, from where and when.
     context: >-
-      Limpiar solo el dibujo terminado llega tarde: para medirlo, el motor lo pone en la pagina un instante, y en ese
-      instante ya se pidio. Por eso se limpia lo escrito antes de dibujar.
+      Cleaning only the finished drawing comes too late: to measure it, the engine puts it on the page for an instant, and
+      in that instant the request has already been made. That is why what is written is cleaned before drawing.
   - id: BR-b11ee41
     status: active
-    title: Una pagina que no se puede guardar lo dice
+    title: A page that cannot be saved says so
     rule: >-
-      Cuando lo escrito pasa de lo que una pagina acepta —un bloque mas largo de lo permitido, sobre todo— la pagina lo
-      dice de inmediato y sigue funcionando. Nunca deja de guardarse en silencio.
+      When what is written exceeds what a page accepts —a block longer than allowed, above all— the page says so
+      immediately and keeps working. It never stops saving silently.
     why: >-
-      Seguir escribiendo sobre una pagina que dejo de guardarse es perder trabajo sin enterarse, que es la peor forma de
-      fallar que tiene un editor.
+      Continuing to write on a page that stopped saving is losing work without finding out, which is the worst way an
+      editor can fail.
   - id: BR-bd24008
     status: active
-    title: Una formula se escribe y la pagina la compone
+    title: A formula is written and the page typesets it
     rule: >-
-      Una formula se escribe como texto en el lenguaje en que se escriben las formulas, y la pagina la compone a partir
-      de ese texto. El bloque puede mostrar solo la formula, solo el texto o ambos, y esa eleccion se guarda con la
-      pagina.
+      A formula is written as text in the language formulas are written in, and the page typesets it from that text. The
+      block can show only the formula, only the text or both, and that choice is saved with the page.
     why: >-
-      Lo que se guarda es el texto, de modo que una formula se puede buscar, copiar y corregir, y sigue siendo la misma
-      formula aunque cambie la forma de componerla.
+      What is saved is the text, so a formula can be searched, copied and corrected, and remains the same formula even if
+      the way of typesetting it changes.
     context: >-
-      Es el mismo bloque que dibuja diagramas, con otro lenguaje. No se ofrece descargarla, porque una formula no es un
-      dibujo aparte, y las letras con que se compone viajan con la pagina.
+      It is the same block that draws diagrams, with another language. Downloading it is not offered, because a formula is
+      not a separate drawing, and the letters it is typeset with travel with the page.
   - id: BR-bfe4bc6
     status: active
-    title: Un diagrama se lee al tamaño en que fue dibujado
+    title: A diagram is read at the size it was drawn
     rule: >-
-      Un diagrama se muestra al tamaño en que fue dibujado. Cuando resulta más ancho que la columna en que se lee, no se
-      encoge para caber; es su propia caja la que se desplaza, sin arrastrar la página.
+      A diagram is shown at the size it was drawn. When it turns out wider than the column it is read in, it is not
+      shrunk to fit; its own box scrolls instead, without dragging the page.
     why: >-
-      Un diagrama de varios pasos ajustado al ancho de la columna queda dibujado a una fracción de su tamaño, y deja de
-      leerse mucho antes de dejar de caber.
-    context: Un dibujo más pequeño que la columna se centra en ella y no se estira para llenarla.
+      A multi-step diagram fitted to the width of the column ends up drawn at a fraction of its size, and stops being
+      readable long before it stops fitting.
+    context: A drawing smaller than the column is centered in it and not stretched to fill it.
   - id: BR-c189a28
     status: active
-    title: Una fila de columnas se arma y se reparte por proporción
+    title: A row of columns is built and divided by proportion
     rule: >-
-      Una zona de la página se parte en columnas arrastrando un bloque contra el costado de otro, y el mismo gesto
-      contra una fila ya armada le agrega una columna más. El ancho de cada columna se guarda como la parte que le toca
-      de la fila, nunca en píxeles. La columna que queda sin nada se retira sola.
+      An area of the page is split into columns by dragging a block against the side of another, and the same gesture
+      against an already built row adds one more column to it. The width of each column is saved as the share it gets of
+      the row, never in pixels. A column left with nothing removes itself.
     why: >-
-      Un ancho en píxeles vale solo para la pantalla en que se eligió, y deja la página rota en cualquier otra; una
-      parte de la fila significa lo mismo en todas. Una columna vacía es un hueco que nadie escribió a propósito.
+      A width in pixels is valid only for the screen where it was chosen, and leaves the page broken on any other; a share
+      of the row means the same thing on all of them. An empty column is a gap that nobody wrote on purpose.
     context: >-
-      Bajo el ancho en que dos columnas dejan de leerse, se apilan en el orden en que fueron escritas y cada una toma
-      todo el ancho; ahí no hay ancho que repartir y la separación no se ofrece.
+      Below the width at which two columns stop being readable, they stack in the order they were written and each takes
+      the full width; there is no width to distribute there and the separation is not offered.
     scenarios:
-      - title: La última pertenencia de una columna se va a otra
-        given: Una fila de columnas donde una tiene un solo bloque
-        when: Ese bloque se arrastra a otra columna
-        then: La columna que quedó sin nada desaparece y la fila sigue con las demás
+      - title: The last belonging of a column goes to another
+        given: A row of columns where one has a single block
+        when: That block is dragged to another column
+        then: The column left with nothing disappears and the row continues with the others
   - id: BR-c32c578
     status: active
-    title: Un dibujo se recorre y se acerca para leerlo
+    title: A drawing is traversed and zoomed to be read
     rule: >-
-      Un diagrama que alcanza más allá de su caja se arrastra para recorrerlo, y se acerca o se aleja con la rueda para
-      leer lo que quedó demasiado pequeño o ver entero lo que quedó demasiado grande. Llevado a pantalla completa se
-      comporta igual, con el dibujo ocupando todo el espacio disponible.
+      A diagram that reaches beyond its box is dragged to traverse it, and is zoomed in or out with the wheel to read what
+      turned out too small or to see whole what turned out too large. Taken to full screen it behaves the same, with the
+      drawing taking up all the available space.
     why: >-
-      Un diagrama existe para mirarlo, y uno grande no se entiende ni de una sola mirada ni a través de una ventana del
-      ancho de un párrafo.
-    context: Tomar un dibujo con el puntero no escribe en la página, así que ese gesto no llega al editor ni mueve el cursor.
+      A diagram exists to be looked at, and a large one is understood neither at a single glance nor through a window the
+      width of a paragraph.
+    context: Grabbing a drawing with the pointer does not write on the page, so that gesture does not reach the editor nor move the cursor.
   - id: BR-c84eff6
     status: active
-    title: Escribir `@` ofrece páginas, personas y días en una sola lista
+    title: Typing `@` offers pages, people and days in a single list
     rule: >-
-      Lo escrito tras `@` se busca a la vez entre las páginas, entre los miembros del espacio de esa página y entre los
-      días con nombre (hoy, mañana, ayer), y las respuestas se ordenan por cercanía a lo escrito, no agrupadas por tipo.
-      Cada una se distingue por su propio icono.
+      What is typed after `@` is searched at once among the pages, among the members of that page's space and among the
+      named days (today, tomorrow, yesterday), and the answers are ordered by closeness to what was typed, not grouped by
+      type. Each one is distinguished by its own icon.
     why: >-
-      Quien escribe `@ana` no está pensando «voy a mencionar una persona»: está buscando a Ana. Obligar a elegir primero
-      la clase de cosa es preguntar por la máquina en vez de responder lo que se quiso decir.
-    context: Solo aparecen personas con acceso al espacio de esa página.
+      Whoever types `@ana` is not thinking "I am going to mention a person": they are looking for Ana. Forcing them to
+      choose the kind of thing first is asking about the machine instead of answering what was meant.
+    context: Only people with access to that page's space appear.
   - id: BR-cbe82d0
     status: active
-    title: La tarjeta de un enlace guarda lo que se leyó
+    title: A link's card stores what was read
     rule: >-
-      Cuando un enlace se muestra como tarjeta, el título y el ícono se leen una sola vez y quedan guardados con la
-      página. No se vuelve a consultar el sitio cada vez que alguien abre la página.
+      When a link is shown as a card, the title and the icon are read just once and are stored with the page. The site is
+      not queried again every time someone opens the page.
     why: >-
-      Una página tiene que leerse igual mañana, y el sitio al que apunta puede estar caído o haber desaparecido. Además,
-      una página no debe ir a tocar servidores ajenos cada vez que se la mira.
+      A page has to read the same tomorrow, and the site it points to may be down or may have disappeared. Furthermore, a
+      page must not go touch outside servers every time it is looked at.
     context: >-
-      La consulta la hace el servidor del sistema y nunca el navegador de quien escribe, solo por conexión segura, y se
-      guarda únicamente el nombre del enlace y la marca del sitio. Lo que un sitio dice de sí mismo a un desconocido a
-      menudo describe otra cosa, y una tarjeta que cita algo falso es peor que una que no cita nada.
+      The query is made by the system's server and never by the browser of whoever writes, only over a secure connection,
+      and only the link's name and the site's mark are stored. What a site says about itself to a stranger often describes
+      something else, and a card that cites something false is worse than one that cites nothing.
   - id: BR-d3e1e93
     status: active
-    title: Los dibujos siguen el modo de lectura de la interfaz
+    title: Drawings follow the interface's reading mode
     rule: >-
-      Un diagrama se dibuja con los colores del modo en que se está leyendo la página, claro u oscuro, y se vuelve a
-      dibujar solo cuando ese modo cambia.
+      A diagram is drawn with the colors of the mode in which the page is being read, light or dark, and is redrawn only
+      when that mode changes.
     why: >-
-      Un dibujo dejado en los colores de la noche es ilegible de día, y nadie va a reescribir un diagrama para arreglar
-      eso.
+      A drawing left in night colors is illegible by day, and nobody is going to rewrite a diagram to fix that.
   - id: BR-d8c9964
     status: active
-    title: Una fecha nombrada es una palabra de la frase
+    title: A named date is a word of the sentence
     rule: >-
-      Una fecha nombrada en medio de un texto se dibuja a la altura de la línea que la rodea, igual que una persona
-      nombrada o una fórmula en línea, y el tamaño mínimo de objetivo táctil se aplica a la superficie del calendario
-      que se abre, nunca a la palabra escrita.
+      A date named in the middle of a text is drawn at the height of the line that surrounds it, just like a named person
+      or an inline formula, and the minimum touch target size applies to the surface of the calendar that opens, never to
+      the written word.
     why: >-
-      La regla de los 44 píxeles existe para controles que un dedo tiene que acertar. Aplicada a una palabra dentro de
-      una frase, estira esa línea —de 27 a 44 píxeles— y hace saltar el texto alrededor.
+      The 44-pixel rule exists for controls that a finger has to hit. Applied to a word inside a sentence, it stretches
+      that line —from 27 to 44 pixels— and makes the surrounding text jump.
   - id: BR-dc4e430
     status: active
-    title: Nada que dependa del navegador se lee al dibujar la página por primera vez
+    title: Nothing that depends on the browser is read when drawing the page for the first time
     rule: >-
-      El estado de la conexión, el tamaño de la ventana y cualquier otra cosa que solo el navegador conoce se leen
-      después de montar la página, nunca mientras se decide el primer dibujo.
+      The connection state, the window size and anything else that only the browser knows are read after mounting the
+      page, never while deciding the first drawing.
     why: >-
-      El servidor y el navegador tienen que dibujar lo mismo la primera vez. Al leer el estado de la conexión durante el
-      primer dibujo, el servidor decidió que estaba sin conexión —Node tiene un `navigator` sin `onLine`— y el navegador
-      que sí; React rehizo ese trozo del árbol y el editor quedó agarrado a un nodo que ya no estaba en la página, de
-      modo que no se podía escribir en ninguna parte de la aplicación.
-    context: Es una regla transversal, aunque el caso que la reveló fuera el guardado.
+      The server and the browser have to draw the same thing the first time. By reading the connection state during the
+      first drawing, the server decided it was offline —Node has a `navigator` without `onLine`— and the browser that it
+      was online; React redid that piece of the tree and the editor was left attached to a node that was no longer on the
+      page, so it was not possible to write anywhere in the application.
+    context: It is a cross-cutting rule, even though the case that revealed it was saving.
   - id: BR-dc609a1
     status: active
-    title: Un botón escribe lo que tiene dentro
+    title: A button writes what it has inside
     rule: >-
-      Un botón sostiene los bloques que escribe, escritos dentro de él como se escribe en cualquier parte de la página.
-      Al pulsarlo deja una copia de lo que tiene, donde se le haya dicho: debajo de sí mismo, al principio o al final.
-      También puede, en vez de escribir, agregar una fila a una colección.
+      A button holds the blocks it writes, written inside it the way one writes anywhere on the page. When pressed, it
+      leaves a copy of what it has, where it was told: below itself, at the start or at the end. Instead of writing, it
+      can also add a row to a collection.
     why: >-
-      Un botón que hubiera que llenar por un formulario propio sería el único bloque de la página en el que no se puede
-      escribir, y lo que va a escribir no se vería hasta pulsarlo. Y lo que deja es una copia porque el mismo bloque no
-      puede estar dos veces en la misma página.
+      A button that had to be filled in through its own form would be the only block on the page where one cannot write,
+      and what it is going to write would not be seen until it was pressed. And what it leaves is a copy because the same
+      block cannot be twice on the same page.
     context: >-
-      Sus ajustes están detrás de «Configurar»: una página llena de botones enseñando sus tripas se lee como una
-      máquina. La fila que crea se llama como la primera línea que el botón habría escrito, y se le dan a la colección
-      los valores por defecto que no queden vacíos. Dónde escribe deja de ofrecerse cuando el botón hace filas.
+      Its settings are behind "Set up": a page full of buttons showing their guts reads like a machine. The row it
+      creates is named after the first line the button would have written, and the collection is given the default values
+      that would not be left empty. Where it writes stops being offered when the button makes rows.
     scenarios:
-      - title: La colección exige un valor a cada fila
-        given: Un botón que agrega filas a una colección con propiedades obligatorias
-        when: Alguien lo pulsa
-        then: La fila se crea con los valores por defecto de esa colección, sin los que quedarían vacíos
+      - title: The collection requires a value for each row
+        given: A button that adds rows to a collection with required properties
+        when: Someone presses it
+        then: The row is created with that collection's default values, without those that would be left empty
   - id: BR-de73559
     status: active
-    title: Escribir el signo cambia la forma de la línea, no cuál línea es
+    title: Typing the sign changes the shape of the line, not which line it is
     rule: >-
-      Los signos con que se escribe a mano —`#`, `-`, `1.`, `>`, `---`, y `**`, `*`, `` ` ``, `~~` dentro de la línea—
-      convierten lo escrito en lo que representan y se llevan los signos con ellos. La línea convertida sigue siendo la
-      misma: conserva quién es, sus colores y lo que se comentó sobre ella. Deshacer justo después devuelve el signo tal
-      como se escribió.
+      The signs used when writing by hand —`#`, `-`, `1.`, `>`, `---`, and `**`, `*`, `` ` ``, `~~` inside the line—
+      convert what is written into what they represent and the signs go away with them. The converted line remains the
+      same one: it keeps who it is, its colors and what was commented on it. Undoing right afterwards gives back the sign
+      exactly as it was typed.
     why: >-
-      Dejar los asteriscos a la vista es responder a medias lo que se pidió; y darle a la línea una identidad nueva
-      rompería los enlaces a ese bloque y dejaría huérfano lo que se comentó sobre él. Deshacer tiene que devolver lo
-      escrito porque a veces lo que se quería era el signo.
+      Leaving the asterisks in view is answering only half of what was asked; and giving the line a new identity would
+      break the links to that block and leave orphaned what was commented on it. Undoing has to give back what was typed
+      because sometimes what was wanted was the sign.
     context: >-
-      Dentro de un bloque de código no ocurre ninguna conversión: lo que se escribe ahí es lo que se quiso decir, signo
-      por signo.
+      Inside a code block no conversion happens: what is typed there is what was meant, sign by sign.
   - id: BR-e1147d1
     status: active
-    title: Un documento se lee dentro de la página
+    title: A document is read inside the page
     rule: >-
-      Un documento adjunto se lee dentro de la página, se pasa de página, se ve a pantalla completa y se descarga entero
-      con un clic conservando su nombre original.
-    why: Un manual o un contrato se consultan mientras se escribe sobre ellos.
+      An attached document is read inside the page, pages can be turned, it can be viewed full screen and it is downloaded
+      whole with one click keeping its original name.
+    why: A manual or a contract is consulted while writing about it.
   - id: BR-e5e524e
     status: active
-    title: La línea escrita bajo una imagen es también lo que se lee en voz alta
+    title: The line written under an image is also what is read aloud
     rule: >-
-      La única línea que se escribe bajo una imagen es a la vez su leyenda visible y el texto que se lee a quien no
-      puede verla.
-    why: Pedir la misma frase dos veces es como una página termina con leyenda y sin texto alternativo.
+      The single line written under an image is at once its visible caption and the text that is read to whoever cannot
+      see it.
+    why: Asking for the same sentence twice is how a page ends up with a caption and no alternative text.
   - id: BR-ea2b093
     status: active
-    title: Un enlace se pide en una sola pregunta
+    title: A link is asked for in a single question
     rule: >-
-      Poner un enlace sobre lo elegido abre un campo que pregunta a dónde va, y ese campo acepta tanto una dirección
-      como el nombre de una página de la app: si lo escrito es una dirección se enlaza tal cual, y si no lo es se busca
-      entre las páginas para elegir una. Lo que no es ningún sitio al que se pueda ir se rechaza con un mensaje en vez
-      de escribirse.
+      Placing a link over what is selected opens a field that asks where it goes, and that field accepts both an address
+      and the name of a page of the app: if what is typed is an address it is linked as is, and if it is not, the pages are
+      searched to pick one. What is not any place that can be gone to is rejected with a message instead of being written.
     why: >-
-      Desde donde está quien escribe, una dirección y el nombre de una página responden la misma pregunta —a dónde
-      debería llevar esto—, y tener que decir de antemano cuál de las dos es sería una pregunta sobre la máquina. Un
-      enlace roto guardado en silencio es peor que no dejar guardarlo.
-    context: Un enlace puede llevar a la web, a un correo o a una página de esta app.
+      From where whoever writes stands, an address and the name of a page answer the same question —where should this
+      lead—, and having to say beforehand which of the two it is would be a question about the machine. A broken link
+      stored silently is worse than not allowing it to be stored.
+    context: A link can lead to the web, to an email or to a page of this app.
   - id: BR-eab444c
     status: active
-    title: Lo pegado se une a la escritura donde cae
+    title: What is pasted merges with the writing where it lands
     rule: >-
-      Pegar texto sin formato une lo pegado a la escritura donde cae: la primera línea continúa el bloque en que está el
-      cursor y la última se junta con lo que seguía, de modo que pegar una palabra en medio de una frase no la parte.
-      Solo las líneas del medio forman bloques propios. Un pegado de Markdown, en cambio, llega como bloques enteros.
+      Pasting plain text merges what is pasted with the writing where it lands: the first line continues the block the
+      cursor is in and the last one joins with what followed, so pasting a word in the middle of a sentence does not split
+      it. Only the middle lines form blocks of their own. A Markdown paste, however, arrives as whole blocks.
     why: >-
-      Un bloque que crece con el tamaño de lo pegado termina siendo más largo de lo que la página acepta, y entonces no
-      se puede guardar: cuanto más grande el pegado, más segura la pérdida. Y una palabra pegada en una frase es parte
-      de la frase, no una frase nueva.
-    context: Un encabezado o una lista pegados como Markdown sí son bloques, y por eso no se funden con el párrafo donde caen.
+      A block that grows with the size of what is pasted ends up longer than the page accepts, and then it cannot be saved:
+      the bigger the paste, the surer the loss. And a word pasted into a sentence is part of the sentence, not a new
+      sentence.
+    context: A heading or a list pasted as Markdown are blocks, and so they do not merge into the paragraph where they land.
   - id: BR-f1c0b40
     status: active
-    title: El índice se lee de la página, no se guarda
+    title: The index is read from the page, not stored
     rule: >-
-      Una página puede tener un índice de sus encabezados. El índice no guarda la lista: la lee de los encabezados de la
-      página cada vez que se muestra y se rehace mientras alguien escribe.
+      A page can have an index of its headings. The index does not store the list: it reads it from the page's headings
+      every time it is shown and is redone while someone writes.
     why: >-
-      Guardar la lista sería guardar dos veces lo mismo, y quedaría vieja en cuanto se corrija un título; un índice que
-      miente es peor que no tener índice.
+      Storing the list would be storing the same thing twice, and it would go stale as soon as a title is corrected; an
+      index that lies is worse than having no index.
     context: >-
-      Cada línea del índice lleva al encabezado que nombra y deja el cursor ahí, porque quien llega a un encabezado
-      suele querer escribir en él. La jerarquía se muestra con sangría por nivel.
+      Each line of the index leads to the heading it names and leaves the cursor there, because whoever arrives at a
+      heading usually wants to write in it. The hierarchy is shown with indentation per level.
     scenarios:
-      - title: Página sin encabezados
-        given: Una página que todavía no tiene encabezados
-        when: Se inserta el índice
-        then: El índice dice que no hay encabezados aún, y se puebla solo al escribir el primero
+      - title: Page without headings
+        given: A page that does not have headings yet
+        when: The index is inserted
+        then: The index says there are no headings yet, and fills itself in when the first one is written
   - id: BR-f2b2986
     status: active
-    title: Una colección es una página con forma, mirada desde donde se la nombra
+    title: A collection is a page with a shape, viewed from where it is named
     rule: >-
-      Una colección se crea como una página y su forma se define en el mismo acto. Empieza con lo mínimo: el nombre, que
-      es el título de la página que cada fila es, y una columna propia. El bloque que la muestra dentro de otra página
-      no guarda sus filas: guarda qué colección es y por qué vista se la mira.
+      A collection is created as a page and its shape is defined in the same act. It starts with the minimum: the name,
+      which is the title of the page that each row is, and a column of its own. The block that shows it inside another
+      page does not store its rows: it stores which collection it is and through which view it is looked at.
     why: >-
-      Una página que iba a ser colección y quedó sin forma no se distingue de una cualquiera, y nadie sabría que quedó a
-      medias. Y adivinar columnas es decidir por quien la escribe para qué va a servir.
+      A page that was going to be a collection and was left without a shape is indistinguishable from any other, and nobody
+      would know it was left half done. And guessing columns is deciding for whoever writes it what it will be used for.
     context: >-
-      La misma colección puede mostrarse en varias páginas y varias veces en una. Mostrar una que vive en otra parte
-      pregunta primero si esa página es una colección; si no lo es, se dice en vez de dejar un hueco. Un bloque puede
-      cambiar entre mantener la colección a la vista y dejar solo el enlace a su página, sin que la colección se toque.
+      The same collection can be shown on several pages and several times on one. Showing one that lives elsewhere first
+      asks whether that page is a collection; if it is not, it says so instead of leaving a gap. A block can switch between
+      keeping the collection in view and leaving only the link to its page, without the collection being touched.
     scenarios:
-      - title: La página elegida no es una colección
-        given: Alguien pide mostrar una colección que vive en otra parte
-        when: Elige una página que no tiene forma
-        then: No se inserta nada y se explica que esa página no es una colección
+      - title: The chosen page is not a collection
+        given: Someone asks to show a collection that lives elsewhere
+        when: They choose a page that has no shape
+        then: Nothing is inserted and it is explained that that page is not a collection
   - id: BR-f5cb934
     status: active
-    title: Insertar un bloque no reemplaza el que estaba
+    title: Inserting a block does not replace the one that was there
     rule: >-
-      Poner algo en una página cuando hay un bloque seleccionado lo coloca debajo de ese bloque, nunca encima. Lo que la
-      página ya sostenía no se pierde.
+      Putting something on a page when a block is selected places it below that block, never on top of it. What the page
+      already held is not lost.
     why: >-
-      Un bloque seleccionado es lo que alguien está mirando, no un hueco donde dejar caer lo siguiente. Reemplazarlo
-      hace desaparecer trabajo sin aviso.
+      A selected block is what someone is looking at, not a gap to drop the next thing into. Replacing it makes work
+      disappear without notice.
     scenarios:
-      - title: Segundo archivo subido con un bloque elegido
-        given: Una página con un documento seleccionado
-        when: Se sube otro archivo
-        then: El archivo nuevo queda debajo y el documento sigue en la página
+      - title: Second file uploaded with a block chosen
+        given: A page with a document selected
+        when: Another file is uploaded
+        then: The new file ends up below and the document stays on the page
   - id: BR-f6955e5
     status: active
-    title: Un enlace pegado ofrece tres formas
+    title: A pasted link offers three forms
     rule: >-
-      Al pegar una dirección sola, la página la escribe como enlace y ofrece mostrarla como enlace, como tarjeta o
-      incrustada dentro de la página. La misma elección sigue disponible después desde el menú del bloque.
+      When pasting an address on its own, the page writes it as a link and offers to show it as a link, as a card or
+      embedded inside the page. The same choice remains available afterwards from the block's menu.
     why: >-
-      Quien pega un enlace no siempre sabe en ese segundo qué quiere de él, y escribirlo primero como enlace hace que
-      seguir escribiendo deje exactamente lo que se pegó.
+      Whoever pastes a link does not always know at that second what they want from it, and writing it first as a link
+      means that continuing to write leaves exactly what was pasted.
     context: >-
-      Solo se ofrece la elección a direcciones seguras, que son las únicas que la página puede consultar o mostrar
-      dentro de sí.
+      The choice is only offered for safe addresses, which are the only ones the page can query or show inside itself.
     scenarios:
-      - title: Enlace pegado y dejado como estaba
-        given: Una dirección pegada en una línea vacía
-        when: Quien escribe sigue escribiendo sin elegir nada
-        then: La línea queda con el enlace tal como se pegó
+      - title: Link pasted and left as it was
+        given: An address pasted on an empty line
+        when: Whoever writes keeps writing without choosing anything
+        then: The line keeps the link exactly as it was pasted
   - id: BR-fdb811b
     status: active
-    title: Un enlace se escribe como se escribe en todas partes
+    title: A link is written the way it is written everywhere
     rule: >-
-      Escribir el nombre entre corchetes seguido de la dirección entre paréntesis deja el nombre enlazado a esa
-      dirección, y un enlace entre las palabras se ve como un enlace.
+      Writing the name in brackets followed by the address in parentheses leaves the name linked to that address, and a
+      link among the words looks like a link.
     why: >-
-      Es la forma en que la gente ya escribe enlaces a mano en otras herramientas, y un enlace que no se distingue del
-      texto no invita a seguirlo.
+      It is the way people already write links by hand in other tools, and a link that cannot be told apart from the text
+      does not invite being followed.
   - id: BR-1557ee4
     status: superseded
-    title: Todo bloque tiene su propio id
+    title: Every block has its own id
     rule: >-
-      Cada bloque de una página tiene un id que no comparte con otro bloque de la misma página. Lo recibe al escribirse,
-      lo escriba una persona en el editor, la API o un agente, y lo conserva mientras exista. Si una página llega entera
-      con dos bloques del mismo id, el segundo recibe uno nuevo. Un cambio que inserta o reemplaza bloques no puede
-      traer el id de otro bloque que ya está en la página: se rechaza diciendo cuál. Mover un bloque junto con otro que
-      lleva dentro lo mueve una sola vez, con lo que lleva.
+      Each block of a page has an id that it shares with no other block on the same page. It receives it when written,
+      whether a person writes it in the editor, the API or an agent, and keeps it as long as it exists. If a page arrives
+      whole with two blocks having the same id, the second receives a new one. A change that inserts or replaces blocks
+      cannot bring the id of another block that is already on the page: it is rejected, saying which. Moving a block
+      together with another that it contains moves it only once, along with what it carries.
     why: >-
-      Con el id se llega a un bloque: el enlace que se copia, la búsqueda que lo encuentra y el agente que lo cita
-      apuntan a él y no a la página entera. Dos bloques con un id son un enlace que no se sabe adónde lleva.
+      A block is reached through its id: the link that is copied, the search that finds it and the agent that cites it
+      point to it and not to the whole page. Two blocks with one id are a link that nobody knows where it leads.
     context: >-
-      El id es único dentro de su página, no en toda la base: duplicar una página o mover bloques a otra conserva los
-      ids. Las páginas que existían antes de esta regla se completan con el mantenimiento de bloques, que corre quien
-      administra el espacio de trabajo, de a una corrida por espacio de trabajo: dos a la vez darían ids distintos a la
-      misma página.
+      The id is unique within its page, not in the whole database: duplicating a page or moving blocks to another keeps the
+      ids. Pages that existed before this rule are completed with the block maintenance, which is run by whoever
+      administers the workspace, one run at a time per workspace: two at once would give different ids to the same page.
     supersedes: BR-d44883b
     superseded_by: BR-6dd8d27
     scenarios:
-      - title: Mover una lista con uno de sus ítems
-        given: Una lista y uno de sus ítems, nombrados juntos
-        when: Se mueven al final de la página
-        then: La lista se mueve una vez, con el ítem dentro, y ningún id queda repetido
+      - title: Moving a list with one of its items
+        given: A list and one of its items, named together
+        when: They are moved to the end of the page
+        then: The list moves once, with the item inside, and no id is left repeated
   - id: BR-d44883b
     status: superseded
-    title: Todo bloque tiene su propio id
+    title: Every block has its own id
     rule: >-
-      Cada bloque de una página tiene un id que no comparte con otro bloque de la misma página. Lo recibe al escribirse,
-      lo escriba una persona en el editor, la API o un agente, y lo conserva mientras exista. Si dos bloques llegan con
-      el mismo id, el segundo recibe uno nuevo.
+      Each block of a page has an id that it shares with no other block on the same page. It receives it when written,
+      whether a person writes it in the editor, the API or an agent, and keeps it as long as it exists. If two blocks
+      arrive with the same id, the second receives a new one.
     why: >-
-      Con el id se llega a un bloque: el enlace que se copia, la búsqueda que lo encuentra y el agente que lo cita
-      apuntan a él y no a la página entera. Sin id, un bloque no se puede señalar.
+      A block is reached through its id: the link that is copied, the search that finds it and the agent that cites it
+      point to it and not to the whole page. Without an id, a block cannot be pointed to.
     context: >-
-      El id es único dentro de su página, no en toda la base: duplicar una página o mover bloques a otra conserva los
-      ids. Las páginas que existían antes de esta regla se completan con el mantenimiento de bloques, que corre quien
-      administra el espacio de trabajo.
+      The id is unique within its page, not in the whole database: duplicating a page or moving blocks to another keeps the
+      ids. Pages that existed before this rule are completed with the block maintenance, which is run by whoever
+      administers the workspace.
     superseded_by: BR-1557ee4
     superseded_reason: >-
-      Un cambio podía traer un bloque con el id de otro de la misma página, y mover un bloque junto con uno de los que
-      lleva dentro lo copiaba. Ahora lo primero se rechaza y lo segundo se mueve una vez.
+      A change could bring a block with the id of another on the same page, and moving a block together with one of those
+      it contains copied it. Now the first is rejected and the second is moved once.
     scenarios:
-      - title: Un bloque escrito por la API sin id
-        given: Una página creada por la API con párrafos sin id
-        when: Se guarda
-        then: Cada párrafo queda con un id propio
-      - title: Dos bloques con el mismo id
-        given: Un contenido que trae dos bloques con el mismo id
-        when: Se escribe en la página
-        then: El primero conserva su id y el segundo recibe uno nuevo
+      - title: A block written by the API without an id
+        given: A page created by the API with paragraphs without an id
+        when: It is saved
+        then: Each paragraph ends up with an id of its own
+      - title: Two blocks with the same id
+        given: A content that brings two blocks with the same id
+        when: It is written to the page
+        then: The first keeps its id and the second receives a new one

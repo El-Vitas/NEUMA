@@ -1,75 +1,75 @@
-# Verificación funcional — Neuma
+# Functional Verification — Neuma
 
-Lo que el producto **debe poder hacer**, escrito como comportamientos observables en la interfaz, para revisarlos uno a uno.
+What the product **must be able to do**, written as behaviors observable in the interface, so they can be reviewed one by one.
 
-## Para qué sirve esto
+## What this is for
 
-No es un inventario de lo que está hecho. Es la lista de lo que debe funcionar. Que algo ya exista en el código no cambia nada: igual se prueba, igual se marca. Varias cosas ya construidas no convencen, y esa es justamente la razón de revisarlas.
+This is not an inventory of what is done. It is the list of what must work. That something already exists in the code changes nothing: it is still tested, and still checked off. Several things already built are not convincing, and that is exactly the reason to review them.
 
-Cada punto está escrito para que se pueda comprobar **mirando la pantalla**, sin leer código.
+Each item is written so it can be verified **by looking at the screen**, without reading code.
 
-## El modelo que se está verificando
+## The model being verified
 
-**Todo el contenido es un bloque.** Una página es un árbol de bloques; un párrafo, una imagen, una tabla y una colección son todos bloques y admiten las mismas operaciones. Los documentos están ordenados según ese modelo, no según cómo esté construido el producto por dentro.
+**All content is a block.** A page is a tree of blocks; a paragraph, an image, a table and a collection are all blocks and support the same operations. The documents are ordered according to that model, not according to how the product is built inside.
 
-Por eso `01` no habla de tipos de contenido sino de lo que se puede hacer con cualquier bloque, y una colección aparece como un tipo de bloque más antes de tener su propio documento.
+That is why `01` does not talk about content types but about what can be done with any block, and a collection appears as one more block type before getting its own document.
 
-## Cómo se usa
+## How to use it
 
-1. Se toma un bloque de capacidad (por ejemplo `BL-04`).
-2. Se prueba en la aplicación corriendo: `bun run dev`, portal en `http://localhost:3010`.
-3. Se marca cada casilla que se cumple. Las que no, quedan sin marcar.
-4. Lo que quede sin marcar se implementa o se corrige.
-5. Se vuelve a probar el bloque completo hasta que todas las casillas quedan marcadas.
-6. Recién entonces se pasa al siguiente bloque.
+1. Take a capability block (for example `BL-04`).
+2. Test it in the running application: `bun run dev`, portal at `http://localhost:3010`.
+3. Check each box that is met. The ones that are not stay unchecked.
+4. What remains unchecked is implemented or fixed.
+5. The whole block is tested again until all the boxes are checked.
+6. Only then do you move on to the next block.
 
-**Reglas para quien acompaña la revisión:**
+**Rules for whoever accompanies the review:**
 
-- Ningún bloque se da por bueno sin que El-Vitas lo haya probado. La opinión de un agente sobre si "ya está" no cierra nada.
-- Un bloque a la vez. Nada de juntar cinco funcionalidades en una sola ronda de comentarios.
-- Si al probar aparece un comportamiento esperado que no está en la lista, se agrega como casilla nueva. La lista crece con lo que se descubre usando el producto.
-- Las casillas describen comportamiento, nunca implementación. Si un punto solo se puede verificar leyendo código, está mal escrito.
+- No block is considered good until El-Vitas has tested it. An agent's opinion about whether "it's already done" closes nothing.
+- One block at a time. No bundling five features into a single round of comments.
+- If testing reveals an expected behavior that is not on the list, it is added as a new box. The list grows with what is discovered by using the product.
+- The boxes describe behavior, never implementation. If an item can only be verified by reading code, it is badly written.
 
-## Documentos
+## Documents
 
-| Documento | Cubre |
+| Document | Covers |
 |---|---|
-| `01-bloques.md` | El bloque como unidad: crear, seleccionar, arrastrar, anidar, convertir, enlazar |
-| `02-tipos-de-bloque.md` | El catálogo de tipos, la colección incluida |
-| `03-escritura-y-formato.md` | Escribir dentro de un bloque: markdown, formato, menciones, guardado |
-| `04-paginas-y-navegacion.md` | Crear, anidar, mover, papelera, favoritos, árbol, búsqueda |
-| `05-colecciones-propiedades-vistas.md` | Tipos de propiedad, tabla, tablero, filtros, orden, cálculos |
-| `06-colaboracion-y-permisos.md` | Edición simultánea, comentarios, historial, permisos, publicar |
-| `07-grafo-de-conocimiento.md` | Menciones, retroenlaces, menciones sin enlazar, grafo |
-| `08-agentes-y-experiencia.md` | MCP, modo oscuro, atajos, móvil, estados vacíos |
-| `09-importacion-y-exportacion.md` | Markdown, PDF, CSV, exportación masiva, importar desde otras herramientas |
-| `10-plantillas.md` | Elegir al crear, plantillas de fábrica y propias, plantillas de fila |
-| `11-administracion-y-cuenta.md` | Invitaciones, roles, grupos, auditoría, perfil, sesiones |
-| `12-automatizacion-e-integraciones.md` | Disparadores, botones, recurrencia, recordatorios, IA |
-| `13-rendimiento-y-limites.md` | Colecciones grandes, páginas largas, memoria, límites |
-| `14-revision-y-aprobacion-de-cambios.md` | Una página verificada con responsables no se edita: se propone, y ellos aprueban, rechazan o piden cambios |
+| `01-blocks.md` | The block as a unit: create, select, drag, nest, convert, link |
+| `02-block-types.md` | The type catalog, collection included |
+| `03-writing-and-formatting.md` | Writing inside a block: markdown, formatting, mentions, saving |
+| `04-pages-and-navigation.md` | Create, nest, move, trash, favorites, tree, search |
+| `05-collections-properties-views.md` | Property types, table, board, filters, sorting, calculations |
+| `06-collaboration-and-permissions.md` | Simultaneous editing, comments, history, permissions, publishing |
+| `07-knowledge-graph.md` | Mentions, backlinks, unlinked mentions, graph |
+| `08-agents-and-experience.md` | MCP, dark mode, shortcuts, mobile, empty states |
+| `09-import-and-export.md` | Markdown, PDF, CSV, bulk export, importing from other tools |
+| `10-templates.md` | Choosing when creating, factory and custom templates, row templates |
+| `11-administration-and-account.md` | Invitations, roles, groups, audit, profile, sessions |
+| `12-automation-and-integrations.md` | Triggers, buttons, recurrence, reminders, AI |
+| `13-performance-and-limits.md` | Large collections, long pages, memory, limits |
+| `14-change-review-and-approval.md` | A verified page with owners is not edited: changes are proposed, and they approve, reject or request changes |
 
-## Orden sugerido
+## Suggested order
 
-De lo que sostiene todo lo demás a lo que menos se usa:
+From what holds everything else up to what is used least:
 
-1. `01` — bloques. Es la base: si mover o anidar no funciona, nada de lo que sigue se siente terminado.
-2. `02` — tipos de bloque.
-3. `03` — escritura y formato.
-4. `04` — páginas y navegación.
-5. `05` — colecciones y vistas.
-6. `10` — plantillas. Va después de las colecciones porque una plantilla las reproduce.
-7. `07` — grafo de conocimiento.
-8. `06` — colaboración y permisos.
-9. `14` — revisión y aprobación. Va pegado al `06`: se apoya en su modo sugerencia (`CL-10`), en sus comentarios y en su historial, y no se puede probar antes que ellos.
-10. `11` — administración y cuenta.
-11. `09` — importación y exportación.
-12. `12` — automatización e integraciones.
-13. `08` — agentes y detalle.
-14. `13` — rendimiento. Se revisa al final, pero se siembra el volumen de datos desde ya.
+1. `01` — blocks. This is the foundation: if moving or nesting does not work, nothing that follows feels finished.
+2. `02` — block types.
+3. `03` — writing and formatting.
+4. `04` — pages and navigation.
+5. `05` — collections and views.
+6. `10` — templates. It goes after collections because a template reproduces them.
+7. `07` — knowledge graph.
+8. `06` — collaboration and permissions.
+9. `14` — review and approval. It goes right next to `06`: it relies on its suggestion mode (`CL-10`), its comments and its history, and cannot be tested before them.
+10. `11` — administration and account.
+11. `09` — import and export.
+12. `12` — automation and integrations.
+13. `08` — agents and detail.
+14. `13` — performance. It is reviewed last, but the data volume is seeded from the start.
 
-Una advertencia que sale de ahí: que una colección sea un bloque **dentro** de una página —y no una página completa— es el escalón que `../../architecture/adr/008-adopt-single-page-primitive.md` dejó deliberadamente fuera. Las casillas están escritas igual, porque describen lo que el producto debe hacer; cumplirlas implica revisar esa decisión.
+One warning that follows from this: that a collection is a block **inside** a page —and not a whole page— is the step that `../../architecture/adr/008-adopt-single-page-primitive.md` deliberately left out. The boxes are written anyway, because they describe what the product must do; meeting them implies revisiting that decision.
 
-## Cómo se anota el resultado
+## How the result is recorded
 
-Al final de cada documento hay una bitácora. Se registra la fecha, el bloque, y qué faltó. Un bloque sin fila en la bitácora es un bloque no revisado.
+At the end of each document there is a log. It records the date, the block, and what was missing. A block with no row in the log is a block that has not been reviewed.

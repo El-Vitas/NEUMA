@@ -1,63 +1,63 @@
 # MCP Content Authoring Contract
 
-> Estado: propuesta futura. Este documento define la forma en que un MCP deberá
-> crear y modificar contenido cuando se implemente. No agrega herramientas MCP
-> en la implementación actual.
+> Status: future proposal. This document defines how an MCP will have to
+> create and modify content once it is implemented. It does not add MCP tools
+> to the current implementation.
 
-## Objetivo
+## Goal
 
-Un agente debe poder trabajar con páginas usando estructuras semánticas, no
-imitando estructuras visuales con HTML, Markdown frágil o espacios.
+An agent must be able to work with pages using semantic structures, not by
+imitating visual structures with HTML, fragile Markdown or spaces.
 
-El contrato canónico de contenido sigue siendo el documento JSON compatible con
-ProseMirror. El MCP será un adaptador sobre los casos de uso de páginas y usará
-las mismas validaciones, permisos, versionado y eventos que el portal.
+The canonical content contract remains the ProseMirror-compatible JSON
+document. The MCP will be an adapter over the page use cases and will use
+the same validations, permissions, versioning and events as the portal.
 
-## Regla De Representación
+## Representation Rule
 
-Cada intención debe usar el bloque que corresponde a su semántica:
+Each intent must use the block that matches its semantics:
 
-| Intención | Representación | Regla |
+| Intent | Representation | Rule |
 | --- | --- | --- |
-| Datos en filas y columnas | Tabla nativa | Debe persistir como `table`, con filas, celdas y encabezados estructurados |
-| Diagramas ASCII, árboles, logs o comandos | Bloque monoespaciado | Debe persistir como bloque preformateado o de código, preservando espacios y saltos de línea |
-| Código ejecutable | Bloque de código | Debe incluir lenguaje cuando se conozca |
-| Nodos y relaciones visuales | Diagrama estructurado | Será una capacidad futura; no se debe simular como tabla |
-| Texto normal | Párrafos, títulos y listas | No debe contener estructuras ocultas hechas con espacios |
+| Data in rows and columns | Native table | Must persist as `table`, with structured rows, cells and headers |
+| ASCII diagrams, trees, logs or commands | Monospaced block | Must persist as a preformatted or code block, preserving spaces and line breaks |
+| Executable code | Code block | Must include the language when it is known |
+| Visual nodes and relationships | Structured diagram | Will be a future capability; it must not be simulated as a table |
+| Normal text | Paragraphs, headings and lists | Must not contain hidden structures made with spaces |
 
-Una tabla escrita con caracteres `|`, guiones o espacios no es una tabla nativa.
-Puede ser útil como texto monoespaciado, pero no debe presentarse como datos
-tabulares si el agente necesita ordenar, editar o consultar sus celdas.
+A table written with `|` characters, dashes or spaces is not a native table.
+It can be useful as monospaced text, but it must not be presented as tabular
+data if the agent needs to sort, edit or query its cells.
 
-## Operaciones Futuras
+## Future Operations
 
-Las herramientas deberán ser pequeñas, explícitas y revisables:
+The tools will have to be small, explicit and reviewable:
 
-- `create_page`: crea una página y puede recibir bloques iniciales.
-- `append_block`: agrega un bloque al final o bajo un bloque padre.
-- `insert_table`: crea una tabla con columnas, encabezados y filas estructuradas.
-- `update_table_cell`: cambia una celda identificada por tabla, fila y columna.
-- `insert_code_block`: agrega código o texto monoespaciado preservando formato.
-- `insert_diagram`: agrega un diagrama estructurado cuando exista ese bloque.
-- `read_page_blocks`: devuelve los bloques estructurados de una página con sus ids y orden.
+- `create_page`: creates a page and can receive initial blocks.
+- `append_block`: adds a block at the end or under a parent block.
+- `insert_table`: creates a table with columns, headers and structured rows.
+- `update_table_cell`: changes a cell identified by table, row and column.
+- `insert_code_block`: adds code or monospaced text preserving its format.
+- `insert_diagram`: adds a structured diagram once that block exists.
+- `read_page_blocks`: returns the structured blocks of a page with their ids and order.
 
-No se debe comenzar con una operación genérica como `rewrite_page` o
-`replace_page_content`. Las operaciones acotadas reducen el riesgo de que un
-agente destruya contenido que no pretendía modificar.
+Do not start with a generic operation such as `rewrite_page` or
+`replace_page_content`. Bounded operations reduce the risk of an agent
+destroying content it did not intend to modify.
 
-## Forma De Trabajo Del Agente
+## How the Agent Works
 
-El agente debe:
+The agent must:
 
-1. Leer la página y obtener los ids de los bloques relevantes.
-2. Elegir el tipo de bloque según la intención, no según cómo se ve en pantalla.
-3. Usar una operación específica para crear o modificar ese bloque.
-4. Recibir el estado estructurado resultante en la respuesta de escritura cuando
-   sea posible.
-5. Volver a leer la página solo para confirmar el estado, no para reconstruirlo
-   mediante texto plano.
+1. Read the page and get the ids of the relevant blocks.
+2. Choose the block type according to the intent, not according to how it looks on screen.
+3. Use a specific operation to create or modify that block.
+4. Receive the resulting structured state in the write response when
+   possible.
+5. Re-read the page only to confirm the state, not to rebuild it
+   from plain text.
 
-Ejemplo conceptual:
+Conceptual example:
 
 ```json
 {
@@ -70,43 +70,43 @@ Ejemplo conceptual:
 }
 ```
 
-El ejemplo anterior expresa una tabla. No debe convertirse en una cadena con
-alineación manual para intentar producir el mismo resultado.
+The example above expresses a table. It must not be turned into a string with
+manual alignment to try to produce the same result.
 
-## Seguridad Y Consistencia
+## Security and Consistency
 
-- Cada herramienta debe resolver la identidad del principal y validar acceso al
-  espacio antes de leer o escribir.
-- Las escrituras deben pasar por los mismos servicios que usa el portal.
-- El MCP no debe consultar Prisma directamente.
-- Las respuestas de escritura deben incluir el estado persistido o su versión
-  para que el agente no dependa de esperar a una proyección eventual.
-- `update_table_cell` debe fallar de forma explícita si la tabla, fila o columna
-  no existe.
-- Los bloques desconocidos o documentos incompatibles deben rechazarse, no
-  degradarse silenciosamente a texto plano.
+- Each tool must resolve the principal's identity and validate access to the
+  space before reading or writing.
+- Writes must go through the same services the portal uses.
+- The MCP must not query Prisma directly.
+- Write responses must include the persisted state or its version
+  so that the agent does not depend on waiting for an eventual projection.
+- `update_table_cell` must fail explicitly if the table, row or column
+  does not exist.
+- Unknown blocks or incompatible documents must be rejected, not
+  silently degraded to plain text.
 
-## Criterios De Aceptación
+## Acceptance Criteria
 
-La futura implementación cumple este contrato cuando:
+The future implementation meets this contract when:
 
-- Un agente crea una tabla que la UI reconoce como tabla nativa.
-- Un agente modifica una celda sin reemplazar el resto de la página.
-- Un agente crea un diagrama monoespaciado sin perder espacios ni saltos de línea.
-- `read_page_blocks` devuelve tipos, ids, orden y relaciones padre-hijo.
-- Un agente no necesita producir HTML, Markdown ni espaciado manual para usar
-  tablas o contenido estructurado.
-- Las operaciones respetan permisos, versionado, auditoría y eventos igual que
-  las operaciones realizadas desde el portal.
+- An agent creates a table that the UI recognizes as a native table.
+- An agent modifies a cell without replacing the rest of the page.
+- An agent creates a monospaced diagram without losing spaces or line breaks.
+- `read_page_blocks` returns types, ids, order and parent-child relationships.
+- An agent does not need to produce HTML, Markdown or manual spacing to use
+  tables or structured content.
+- Operations respect permissions, versioning, auditing and events just like
+  operations performed from the portal.
 
-## Relación Con La Arquitectura Existente
+## Relationship With the Existing Architecture
 
-- `docs/superpowers/plans/2026-08-01-neuma-editor.md` define el documento
-  JSON compatible con ProseMirror como contrato compartido.
-- `docs/superpowers/specs/2026-08-01-neuma-design.md` define MCP como
-  adaptador sobre casos de uso autorizados.
-- `docs/superpowers/plans/2026-08-05-neuma-single-page-primitive.md` prioriza
-  lecturas y escrituras acotadas por bloque.
+- `docs/superpowers/plans/2026-08-01-neuma-editor.md` defines the
+  ProseMirror-compatible JSON document as the shared contract.
+- `docs/superpowers/specs/2026-08-01-neuma-design.md` defines MCP as
+  an adapter over authorized use cases.
+- `docs/superpowers/plans/2026-08-05-neuma-single-page-primitive.md` prioritizes
+  bounded reads and writes per block.
 
-Este documento concreta cómo esas decisiones deben aplicarse a la autoría de
-contenido por agentes.
+This document makes concrete how those decisions must be applied to
+content authoring by agents.

@@ -1,701 +1,694 @@
 id: FEA-PAG
-name: La vida de una página
-purpose: Reúne las reglas de cómo nace una página, cómo se nombra, dónde vive y qué ocurre cuando cambia de sitio.
+name: The life of a page
+purpose: Groups the rules for how a page is born, how it is named, where it lives and what happens when it changes place.
 scope: pages
 rules:
   - id: BR-03b8e1f
     status: active
-    title: La exportación no abre una puerta que no existía
+    title: Export does not open a door that did not exist
     rule: >-
-      Una exportación entrega exactamente las páginas que quien la pide podría abrir de a una, con las menciones que no
-      puede leer ya tapadas, igual que en pantalla. Pedir exportar una página fuera de su alcance se responde como se
-      responde pedirla: no está disponible.
+      An export delivers exactly the pages that whoever requests it could open one by one, with the mentions they cannot
+      read already covered, just as on screen. Asking to export a page outside their reach is answered the same way as
+      asking for it: it is not available.
     why: >-
-      Una exportación es la manera más barata de sacar un espacio entero de un solo gesto. Si leyera la base por un
-      camino propio, cualquier permiso que se respete en pantalla dejaría de respetarse en el archivo, y nadie lo
-      notaría hasta que el archivo ya salió.
+      An export is the cheapest way to take out a whole space in a single gesture. If it read the database through a path
+      of its own, any permission that is respected on screen would stop being respected in the file, and nobody would
+      notice until the file had already gone out.
     context: >-
-      Por eso el servicio lee por la misma puerta que usa el listado del espacio, en vez de consultar el repositorio
-      aparte.
+      That is why the service reads through the same door the space listing uses, instead of querying the repository
+      separately.
     scenarios:
-      - title: Un espacio ajeno no se exporta
-        given: Una persona que no pertenece a un espacio restringido
-        when: Pide exportar ese espacio
-        then: No obtiene ningún archivo
-      - title: Las menciones tapadas siguen tapadas
-        given: Una página que menciona otra que quien exporta no puede leer
-        when: Se exporta esa página
-        then: El archivo muestra la mención con la etiqueta tapada, no con el título real
+      - title: A space that is not theirs is not exported
+        given: A person who does not belong to a restricted space
+        when: They ask to export that space
+        then: They get no file
+      - title: Covered mentions stay covered
+        given: A page that mentions another that whoever exports cannot read
+        when: That page is exported
+        then: The file shows the mention with the covered label, not with the real title
   - id: BR-058dcbc
     status: active
-    title: El menú lateral se pone al día con lo que hacen los demás
+    title: The side menu is brought up to date with what others do
     rule: >-
-      Cuando otra persona crea, mueve, renombra, reordena o envía a la papelera una página que el menú muestra, el menú
-      lo refleja sin recargar y sin volver a pedir todo el espacio. Una página que la persona no puede abrir no se
-      nombra ni se cuenta.
+      When another person creates, moves, renames, reorders or sends to the trash a page that the menu shows, the menu
+      reflects it without reloading and without requesting the whole space again. A page that the person cannot open is
+      neither named nor counted.
     why: >-
-      Dos personas que trabajan en el mismo espacio no deben ver árboles distintos ni enterarse de un cambio al chocar
-      con él.
-    context: El aviso solo indica qué listas cambiaron; lo que cada persona ve se vuelve a pedir con sus propios permisos.
+      Two people working in the same space must not see different trees nor find out about a change by bumping into it.
+    context: The notice only indicates which lists changed; what each person sees is requested again with their own permissions.
     scenarios:
-      - title: Un cambio ajeno
-        given: Dos personas con el mismo espacio abierto
-        when: Una renombra una página
-        then: La otra ve el nuevo nombre en su menú en menos de un segundo
+      - title: Someone else's change
+        given: Two people with the same space open
+        when: One renames a page
+        then: The other sees the new name in their menu in less than a second
   - id: BR-0d64742
     status: active
-    title: La vista previa se puede alcanzar y se puede entrar en ella
+    title: The preview can be reached and entered
     rule: >-
-      La tarjeta que aparece al descansar sobre el nombre de una página se queda mientras el puntero va hacia ella y
-      mientras está encima. Desde la tarjeta se llega a la página que muestra.
+      The card that appears when resting on a page's name stays while the pointer moves toward it and while it is over
+      it. From the card you reach the page it shows.
     why: >-
-      Una tarjeta que se va cuando uno baja a leerla no se puede leer, y una que no lleva a ninguna parte obliga a
-      volver a la palabra que la abrió. Lo que se muestra tiene que poder alcanzarse.
+      A card that goes away when you move down to read it cannot be read, and one that leads nowhere forces going back to
+      the word that opened it. What is shown has to be reachable.
     context: >-
-      El espacio entre el nombre y la tarjeta pertenece a la tarjeta, así que bajar nunca es salir. Por llevar algo
-      dentro que se puede alcanzar, la tarjeta no es un rótulo de ayuda.
+      The gap between the name and the card belongs to the card, so moving down is never leaving. Because it holds
+      something inside that can be reached, the card is not a help tooltip.
   - id: BR-1091b9a
     status: active
-    title: Compartir no deja a nadie sin quien devuelva el acceso
+    title: Sharing does not leave anyone without someone who can restore access
     rule: >-
-      Antes de guardar un cambio de permisos, la pantalla avisa lo que le cuesta a quien lo hace. Si se quita su propio
-      acceso, o se baja su rol para que ya no pueda cambiar quién tiene acceso, hay un aviso y se pide confirmar,
-      siempre que otra persona con acceso total siga pudiendo devolverlo. Si después del cambio nadie conservaría acceso
-      total, el cambio no se puede guardar. Un cliente, o alguien que no puede abrir el espacio, no cuenta como esa
-      persona. Lo mismo vale para volver a heredar de lo que está encima.
+      Before saving a permissions change, the screen warns what it costs whoever makes it. If they remove their own
+      access, or lower their role so they can no longer change who has access, there is a warning and confirmation is
+      requested, as long as another person with full access can still restore it. If after the change nobody would keep
+      full access, the change cannot be saved. A client, or someone who cannot open the space, does not count as that
+      person. The same applies to inheriting again from what is above.
     why: >-
-      Quien se queda sin acceso total no puede arreglarlo, y si nadie lo conserva, la página queda cerrada para siempre
-      para quienes podrían haberla arreglado.
+      Whoever is left without full access cannot fix it, and if nobody keeps it, the page stays closed forever to those
+      who could have fixed it.
     context: >-
-      El servidor sigue aceptando el cambio de quien tiene acceso total; la protección es de la pantalla, que usa las
-      mismas reglas de rol que el servidor para saber qué quedaría.
+      The server still accepts the change from whoever has full access; the protection belongs to the screen, which uses
+      the same role rules as the server to know what would remain.
     scenarios:
-      - title: Quitarse a uno mismo teniendo a otra persona con acceso total
-        given: Una página con dos personas con acceso total
-        when: Una de ellas se quita de la lista
-        then: Se avisa que perderá el acceso, se pide confirmar y recién entonces se guarda
-      - title: Quedar sin acceso total
-        given: Una página donde solo quien edita tiene acceso total
-        when: Esa persona baja su propio rol a editar
-        then: El cambio no se puede guardar y se explica por qué
+      - title: Removing oneself when another person has full access
+        given: A page with two people with full access
+        when: One of them removes themselves from the list
+        then: They are warned they will lose access, confirmation is requested and only then is it saved
+      - title: Being left without full access
+        given: A page where only the editor has full access
+        when: That person lowers their own role to edit
+        then: The change cannot be saved and it is explained why
   - id: BR-1224d28
     status: active
-    title: Se exporta también una selección suelta de páginas
+    title: A loose selection of pages is also exported
     rule: >-
-      Además de una página, una rama o un espacio entero, se exporta la selección que alguien haya marcado en la barra
-      lateral. Salen exactamente las páginas marcadas y ninguna más: lo que cuelga de una página marcada no viaja si no
-      fue marcado también. Salen en el orden del árbol, cada una con el camino donde vivía. Una selección que no nombra
-      ninguna página se rechaza, y quien no podría abrir una de esas páginas de a una tampoco la recibe aquí.
+      Besides a page, a branch or a whole space, the selection someone has marked in the sidebar is exported. Exactly the
+      marked pages come out and no more: what hangs from a marked page does not travel unless it was marked too. They come
+      out in tree order, each with the path where it lived. A selection that names no page is rejected, and whoever could
+      not open one of those pages one by one does not receive it here either.
     why: >-
-      Quien se lleva material para un informe elige páginas que no forman una rama: tres de un espacio y dos de otra
-      parte del mismo. Sin selección tendría que exportar de a una y armar las carpetas a mano, o exportar el espacio
-      entero y borrar lo que sobra.
+      Whoever takes material for a report picks pages that do not form a branch: three from one space and two from
+      another part of the same one. Without selection they would have to export one by one and build the folders by hand,
+      or export the whole space and delete what is left over.
     context: >-
-      El límite es de doscientas páginas por selección, para que una consulta no pueda pedir el mundo. Marcar una página
-      no arrastra a sus hijas porque marcar es un gesto explícito: si alguien quiere la rama completa, la rama ya tiene
-      su propio alcance.
+      The limit is two hundred pages per selection, so that a query cannot ask for the world. Marking a page does not drag
+      along its children because marking is an explicit gesture: if someone wants the complete branch, the branch already
+      has its own scope.
     scenarios:
-      - title: Dos páginas sueltas
-        given: Dos páginas marcadas en la barra lateral, de ramas distintas
-        when: Se exporta la selección
-        then: Se descarga un comprimido con esas dos páginas y las carpetas donde vivían
-      - title: Marcar una madre no arrastra a las hijas
-        given: Una página con subpáginas, marcada ella sola
-        when: Se exporta la selección
-        then: Sale solo esa página, sin lo que cuelga de ella
-      - title: Una selección vacía no se exporta
-        given: Ninguna página marcada
-        when: Se pide exportar la selección
-        then: No se exporta nada y el botón permanece inactivo
+      - title: Two loose pages
+        given: Two pages marked in the sidebar, from different branches
+        when: The selection is exported
+        then: An archive is downloaded with those two pages and the folders where they lived
+      - title: Marking a parent does not drag the children
+        given: A page with subpages, marked on its own
+        when: The selection is exported
+        then: Only that page comes out, without what hangs from it
+      - title: An empty selection is not exported
+        given: No page marked
+        when: Exporting the selection is requested
+        then: Nothing is exported and the button stays inactive
   - id: BR-1dfe765
     status: active
-    title: Un botón de fila puede crear la fila desde una plantilla de la colección elegida
+    title: A row button can create the row from a template of the chosen collection
     rule: >-
-      Un botón que agrega una fila a una colección puede llevar una plantilla elegida de esa colección. Al pulsarlo se
-      crea la fila con esa plantilla; si no tiene ninguna elegida se usa la plantilla por defecto de la colección. Lo
-      que el botón trae escrito, su título y su contenido, gana sobre la plantilla.
+      A button that adds a row to a collection can carry a template chosen from that collection. When pressed, the row is
+      created with that template; if it has none chosen, the collection's default template is used. What the button
+      brings written, its title and its content, wins over the template.
     why: >-
-      Un botón de «nueva incidencia» debe poder partir siempre de la plantilla de incidencias aunque la colección tenga
-      otra por defecto.
-    context: Si la plantilla elegida se borra después, pulsar el botón avisa que la plantilla ya no existe y no crea la fila.
+      A "new incident" button must always be able to start from the incidents template even if the collection has another
+      one by default.
+    context: If the chosen template is deleted afterwards, pressing the button warns that the template no longer exists and does not create the row.
     scenarios:
-      - title: El botón usa su plantilla
-        given: Un botón con la plantilla «Incidencia» y una colección cuya plantilla por defecto es otra
-        when: Se pulsa el botón
-        then: La fila nace con el contenido y los valores de «Incidencia»
+      - title: The button uses its template
+        given: A button with the "Incidencia" template and a collection whose default template is another
+        when: The button is pressed
+        then: The row is born with the content and values of "Incidencia"
   - id: BR-2a1ce65
     status: active
-    title: Lo buscado se encuentra también dentro de una palabra más larga
+    title: What is searched is also found inside a longer word
     rule: >-
-      Una búsqueda de tres letras o más encuentra las páginas y los bloques que tienen lo buscado como palabra entera y
-      también los que lo tienen dentro de una palabra más larga, sin mirar tildes, diéresis ni mayúsculas. Primero van
-      los que lo tienen como palabra entera, después los que lo tienen dentro de una palabra del título y al final los
-      que lo tienen dentro de una palabra del texto. Los signos que el buscador usa como comodines se buscan como las
-      letras que son. Con menos de tres letras se busca solo la palabra entera.
+      A search of three letters or more finds the pages and blocks that have what was searched as a whole word and also
+      those that have it inside a longer word, ignoring accents, diacritics and capitalization. First come those that have
+      it as a whole word, then those that have it inside a word of the title and finally those that have it inside a word
+      of the text. The signs the search engine uses as wildcards are searched as the characters they are. With fewer than
+      three letters only the whole word is searched.
     why: >-
-      La gente busca por el pedazo que recuerda de un nombre. Quien busca "safe" espera encontrar "ÜSAFE", y antes no lo
-      encontraba. Además, bastaba que otra página tuviera la palabra entera para que las demás quedaran ocultas.
+      People search by the piece of a name they remember. Whoever searches "safe" expects to find "ÜSAFE", and before it was
+      not found. Also, it was enough for another page to have the whole word for the others to stay hidden.
     context: >-
-      Los errores de tipeo se siguen perdonando como antes, solo cuando no aparece nada de ninguna de las dos formas.
-      Buscar dentro de las palabras recorre el texto de cada página del espacio de trabajo; si el volumen crece, hará
-      falta un índice sobre el texto sin tildes.
+      Typos are still forgiven as before, only when nothing appears in either of the two forms. Searching inside words
+      scans the text of every page in the workspace; if the volume grows, an index over the accent-free text will be
+      needed.
     scenarios:
-      - title: Un pedazo del nombre
-        given: Una página llamada "ÜSAFE - Arquitectura"
-        when: Alguien busca "safe"
-        then: La página aparece en los resultados
-      - title: La palabra entera primero
-        given: Una página con la palabra "safe" y otra con "ÜSAFE"
-        when: Alguien busca "safe"
-        then: Aparecen las dos, y la que tiene la palabra entera va primero
+      - title: A piece of the name
+        given: A page called "ÜSAFE - Arquitectura"
+        when: Someone searches "safe"
+        then: The page appears in the results
+      - title: The whole word first
+        given: A page with the word "safe" and another with "ÜSAFE"
+        when: Someone searches "safe"
+        then: Both appear, and the one with the whole word comes first
   - id: BR-4139398
     status: active
-    title: Abrir una página no espera al resto del espacio
+    title: Opening a page does not wait for the rest of the space
     rule: >-
-      Abrir una página trae esa página y lo que ella nombra, no las demás páginas del espacio. Tardar lo mismo en un
-      espacio de doce mil páginas que en uno de diez es parte de lo que la persona espera.
+      Opening a page brings that page and what it names, not the other pages of the space. Taking the same time in a space
+      of twelve thousand pages as in one of ten is part of what the person expects.
     why: >-
-      Un espacio crece sin aviso, y una página que tarda segundos porque el espacio es grande le dice a la persona que
-      crecer es castigado.
+      A space grows without notice, and a page that takes seconds because the space is large tells the person that growing
+      is punished.
     context: >-
-      Lo que una página nombra (menciones, subpáginas, relaciones y bloques sincronizados) se pide junto al abrirla. El
-      menú lateral y el resto del espacio llegan por separado y solo hasta donde la persona los abre.
+      What a page names (mentions, subpages, relations and synced blocks) is requested along with opening it. The side
+      menu and the rest of the space arrive separately and only as far as the person opens them.
     scenarios:
-      - title: Un espacio grande
-        given: Un espacio con doce mil páginas
-        when: Alguien abre una de ellas
-        then: La página se dibuja con su contenido y sus nombres sin cargar las otras once mil novecientas noventa y nueve
+      - title: A large space
+        given: A space with twelve thousand pages
+        when: Someone opens one of them
+        then: The page is drawn with its content and its names without loading the other eleven thousand nine hundred ninety-nine
   - id: BR-43e3ddc
     status: active
-    title: Quien ve la lista de personas con acceso es solo quien puede cambiarla
+    title: Only whoever can change the list sees the list of people with access
     rule: >-
-      Quién tiene acceso a una página o a una parte de ella, con qué rol y de dónde viene, solo se le dice a quien tiene
-      acceso total sobre eso. A quien puede leerla pero no administrarla se le responde que no puede verlo, sin nombres
-      ni roles. A quien ni siquiera puede leerla se le responde igual que si no existiera, y lo mismo si está en la
-      papelera. Quien no puede administrar solo sabe que algo tiene permisos propios, con un candado, y nada más.
+      Who has access to a page or to a part of it, with what role and where it comes from, is only told to whoever has full
+      access over it. Whoever can read it but not administer it is answered that they cannot see it, without names or
+      roles. Whoever cannot even read it is answered the same as if it did not exist, and the same if it is in the trash.
+      Whoever cannot administer only knows that something has permissions of its own, with a padlock, and nothing more.
     why: >-
-      La lista de personas es información de quien administra. Contestarle distinto a quien no puede leer un bloque
-      confirmaría que el bloque existe.
+      The list of people is information for whoever administers. Answering differently to whoever cannot read a block would
+      confirm that the block exists.
     context: >-
-      Las personas que se ofrecen para agregar son las del espacio de trabajo, y se marca a quienes no pueden abrir el
-      espacio, porque un rol sobre una página no les abre el espacio.
+      The people offered to add are those of the workspace, and those who cannot open the space are flagged, because a
+      role on a page does not open the space for them.
     scenarios:
-      - title: Un trabajador pide la lista
-        given: Una página abierta a todo el espacio donde un trabajador puede editar
-        when: El trabajador pide ver quién tiene acceso
-        then: Se le responde que no tiene acceso total, y no recibe nombres ni correos
+      - title: A worker asks for the list
+        given: A page open to the whole space where a worker can edit
+        when: The worker asks to see who has access
+        then: They are answered that they do not have full access, and receive no names or emails
   - id: BR-50fb993
     status: active
-    title: Lo que la búsqueda sabe de una página es siempre lo que la página tiene
+    title: What the search knows about a page is always what the page has
     rule: >-
-      Renombrar una página, cambiarle la marca o escribir en ella cambia lo que la búsqueda encuentra apenas se guarda.
-      Una página que se tira a la papelera o se borra deja de encontrarse en ese mismo momento, y un bloque que alguien
-      no puede leer nunca aparece en sus resultados.
+      Renaming a page, changing its mark or writing in it changes what the search finds as soon as it is saved. A page
+      that is thrown into the trash or deleted stops being found at that very moment, and a block that someone cannot read
+      never appears in their results.
     why: >-
-      Una página renombrada que sigue encontrándose por su nombre viejo es una mentira que nadie corrige. Y una página
-      borrada que sigue en los resultados muestra a cualquiera algo que ya no existe.
+      A renamed page that is still found by its old name is a lie that nobody corrects. And a deleted page that is still in
+      the results shows anyone something that no longer exists.
     supersedes: BR-f033642
     scenarios:
-      - title: Una página a la papelera
-        given: Una página que se encuentra por una palabra
-        when: Alguien la tira a la papelera
-        then: La siguiente búsqueda de esa palabra ya no la muestra
+      - title: A page to the trash
+        given: A page that is found by a word
+        when: Someone throws it into the trash
+        then: The next search for that word no longer shows it
   - id: BR-517fcae
     status: active
-    title: El menú lateral muestra lo que se abre y no las filas de una colección
+    title: The side menu shows what is opened and not the rows of a collection
     rule: >-
-      El menú lateral lista las páginas de arriba, el camino hasta la página abierta y los hijos de cada página que se
-      expande, de a cien. Las filas de una colección no aparecen en el menú, y una página en la papelera tampoco, salvo
-      la que está abierta.
-    why: Un menú que lista todo se vuelve inmanejable con las filas de una tabla, y la papelera ya tiene su propio lugar.
+      The side menu lists the top pages, the path to the open page and the children of each page that is expanded, a
+      hundred at a time. The rows of a collection do not appear in the menu, and neither does a page in the trash, except
+      the one that is open.
+    why: A menu that lists everything becomes unmanageable with the rows of a table, and the trash already has its own place.
     context: >-
-      A las filas se llega desde la colección, la búsqueda, las menciones y los enlaces. Cuando hay más de cien páginas
-      bajo una, el menú ofrece ver más.
+      Rows are reached from the collection, the search, mentions and links. When there are more than a hundred pages under
+      one, the menu offers to see more.
     scenarios:
-      - title: Una colección con miles de filas
-        given: Una colección con cuatro mil filas dentro de un espacio
-        when: Se mira el menú lateral
-        then: La colección aparece como una página sin flecha y ninguna de sus filas se lista
+      - title: A collection with thousands of rows
+        given: A collection with four thousand rows inside a space
+        when: The side menu is viewed
+        then: The collection appears as a page without an arrow and none of its rows is listed
   - id: BR-6201333
     status: active
-    title: Una página creada con un identificador dado se crea una sola vez
+    title: A page created with a given identifier is created only once
     rule: >-
-      Al crear una página se puede indicar el identificador que tendrá. Si se repite la misma petición con ese
-      identificador, el sistema responde con la página que ya creó y no crea otra.
-    why: Quien guarda lo escrito sin conexión envía de nuevo lo mismo al volver, y eso no debe duplicar las filas nuevas.
-    context: El identificador debe ser un UUID; cualquier otro valor se rechaza.
+      When creating a page, the identifier it will have can be indicated. If the same request is repeated with that
+      identifier, the system responds with the page it already created and does not create another.
+    why: Whoever saves what was written offline sends the same thing again on return, and that must not duplicate the new rows.
+    context: The identifier must be a UUID; any other value is rejected.
     scenarios:
-      - title: Petición repetida
-        given: Se creó una fila con un identificador dado
-        when: Se repite la creación con el mismo identificador
-        then: La respuesta es la misma fila y no existe una segunda
+      - title: Repeated request
+        given: A row was created with a given identifier
+        when: The creation is repeated with the same identifier
+        then: The response is the same row and there is no second one
   - id: BR-6f7f8a7
     status: active
-    title: Lo privado responde a su dueña, y a nadie por encima de ella
+    title: What is private answers to its owner, and to no one above them
     rule: >-
-      Un área privada la ve únicamente quien la tiene y quien haya sido invitado a ella. Ningún papel dentro de la
-      organización, ni el de mayor mando, alcanza lo privado ajeno: ni en el árbol, ni en la búsqueda, ni escribiendo la
-      dirección a mano. Compartirla solo puede hacerlo su dueña, y quien la recibe no puede volver a compartirla.
+      A private area is seen only by whoever has it and whoever has been invited to it. No role within the organization,
+      not even the highest in command, reaches someone else's private area: not in the tree, not in the search, not by
+      typing the address by hand. Only its owner can share it, and whoever receives it cannot share it again.
     why: >-
-      Un área privada que alguien más puede abrir no es privada; es una promesa rota escrita en la interfaz. Y si la
-      excepción es para quien administra, entonces la promesa nunca fue cierta para nadie.
+      A private area that someone else can open is not private; it is a broken promise written in the interface. And if the
+      exception is for whoever administers, then the promise was never true for anyone.
     context: >-
-      El área de cada persona se crea sola la primera vez que mira sus espacios. Quien decide el acceso es un único
-      punto que el resto del sistema hereda, para que ninguna pantalla pueda contestar distinto que otra.
+      Each person's area is created automatically the first time they look at their spaces. Whoever decides access is a
+      single point that the rest of the system inherits, so that no screen can answer differently from another.
   - id: BR-73da3c5
     status: active
-    title: Una copia nace junto a su original y solo ella cambia de nombre
+    title: A copy is born next to its original and only it is renamed
     rule: >-
-      Al duplicar una página se copian su contenido, sus propiedades y su ícono. La copia queda inmediatamente después
-      de la original entre sus hermanas, también entre las páginas de primer nivel de un espacio. Se puede elegir si la
-      descendencia se copia también, y esa pregunta solo aparece cuando la página tiene hijas. De toda la rama copiada,
-      solo la página pedida se renombra.
+      When duplicating a page, its content, its properties and its icon are copied. The copy is placed immediately after
+      the original among its siblings, also among a space's top-level pages. One can choose whether the descendants are
+      copied too, and that question only appears when the page has children. Of the whole copied branch, only the
+      requested page is renamed.
     why: >-
-      Una copia que aparece al final de una lista larga obliga a buscarla. Y renombrar también a las hijas ensuciaría
-      cada nombre de la rama con una marca que no dice nada de ellas.
+      A copy that appears at the end of a long list forces searching for it. And renaming the children too would dirty
+      every name in the branch with a mark that says nothing about them.
     context: >-
-      La marca de copia la pone el portal, porque el servidor no sabe en qué idioma lee cada persona. Las hermanas no se
-      renumeran; la copia se ubica a continuación de la original.
+      The copy mark is added by the portal, because the server does not know which language each person reads. The
+      siblings are not renumbered; the copy is placed right after the original.
     supersedes: BR-a096152
     scenarios:
-      - title: Duplicar una página de primer nivel
-        given: Un espacio con tres páginas de primer nivel
-        when: Se duplica la del medio
-        then: La copia aparece justo después de ella y las otras dos no se mueven
+      - title: Duplicating a top-level page
+        given: A space with three top-level pages
+        when: The middle one is duplicated
+        then: The copy appears right after it and the other two do not move
   - id: BR-80536e4
     status: active
-    title: Una página bloqueada no se escribe, ni por la pantalla ni por la vía de atrás
+    title: A locked page is not written, neither through the screen nor through the back door
     rule: >-
-      Una página bloqueada rechaza cualquier escritura de su contenido, su título y sus propiedades. El rechazo lo
-      decide el servidor, no la pantalla. Quien tiene permiso para escribir en ella es también quien puede bloquearla y
-      desbloquearla.
+      A locked page rejects any write to its content, its title and its properties. The rejection is decided by the
+      server, not the screen. Whoever has permission to write on it is also whoever can lock and unlock it.
     why: >-
-      Un candado que solo apaga los controles se salta con cualquier cliente que no los dibuje, y entonces no era un
-      candado. Y un bloqueo que solo alguien más pudiera abrir dejaría la página congelada cuando quien la bloqueó no
-      está.
-    context: El servidor responde con el error PAGE_LOCKED y estado 409. El bloqueo guarda cuándo y quién lo puso.
+      A lock that only turns off the controls is bypassed by any client that does not draw them, and then it was not a lock.
+      And a lock that only someone else could open would leave the page frozen when whoever locked it is not around.
+    context: The server responds with the error PAGE_LOCKED and status 409. The lock stores when and who put it.
   - id: BR-8b498e2
     status: active
-    title: Una página que cambia de espacio se lleva su descendencia y deja su dirección andando
+    title: A page that changes space takes its descendants along and leaves its address working
     rule: >-
-      Al mover una página a otro espacio, todas las páginas y bloques que cuelgan de ella cambian de espacio con ella,
-      en un solo paso que se aplica entero o no se aplica. Las direcciones escritas antes del traslado siguen llevando a
-      la página, ahora en el espacio donde vive.
+      When moving a page to another space, all the pages and blocks that hang from it change space with it, in a single
+      step that is applied entirely or not at all. Addresses written before the move keep leading to the page, now in the
+      space where it lives.
     why: >-
-      Una rama partida entre dos espacios deja hijas que nadie alcanza desde su madre. Y una dirección que deja de
-      responder convierte cada enlace y cada mención escritos antes del traslado en un callejón sin salida.
-    context: Quien arrastra no queda como último editor de las hijas.
+      A branch split between two spaces leaves children that nobody reaches from their parent. And an address that stops
+      responding turns every link and every mention written before the move into a dead end.
+    context: Whoever drags does not end up as the last editor of the children.
     supersedes: BR-6191a45
     scenarios:
-      - title: La rama viaja entera
-        given: Una página con hijas en un espacio
-        when: Se mueve la madre a otro espacio
-        then: Las hijas quedan en el espacio nuevo, colgando de su madre
-      - title: El traslado falla a mitad de camino
-        given: Una página que se mueve bajo una página bloqueada de otro espacio
-        when: El traslado se rechaza
-        then: La página y sus hijas quedan exactamente donde estaban
-      - title: La dirección vieja sigue sirviendo
-        given: Una página que cambió de espacio
-        when: Se abre una dirección que nombra el espacio anterior
-        then: Se llega a la página en su espacio actual
+      - title: The branch travels whole
+        given: A page with children in a space
+        when: The parent is moved to another space
+        then: The children end up in the new space, hanging from their parent
+      - title: The move fails halfway
+        given: A page that is moved under a locked page of another space
+        when: The move is rejected
+        then: The page and its children stay exactly where they were
+      - title: The old address still works
+        given: A page that changed space
+        when: An address that names the previous space is opened
+        then: The page is reached in its current space
   - id: BR-8d1f5e8
     status: active
-    title: Registrar quién lee se puede apagar, y apagado no guarda nada
+    title: Recording who reads can be turned off, and when off it stores nothing
     rule: >-
-      Se registra quién abre cada página y cuándo, y esa información solo la ve quien administra el espacio de trabajo.
-      El registro se puede apagar; apagado, no se guarda ninguna visita nueva. Una misma persona no cuenta dos veces en
-      la misma página dentro de una ventana corta de tiempo.
+      Who opens each page and when is recorded, and that information is seen only by whoever administers the workspace.
+      The recording can be turned off; when off, no new visit is stored. The same person is not counted twice on the same
+      page within a short window of time.
     why: >-
-      Saber quién lee qué es dato sensible, y por eso tiene que poder apagarse de verdad y no solo dejar de mostrarse:
-      una pantalla oculta sobre datos que se siguen guardando es lo contrario de lo que promete el interruptor.
+      Knowing who reads what is sensitive data, and therefore it has to be possible to truly turn it off and not just stop
+      displaying it: a hidden screen over data that keeps being stored is the opposite of what the switch promises.
     context: >-
-      Fallar al registrar una visita nunca impide leer la página; el fallo queda en la bitácora y nada más. La ventana
-      para no contar dos veces es de media hora.
+      Failing to record a visit never prevents reading the page; the failure goes to the log and nothing more. The window
+      for not counting twice is half an hour.
   - id: BR-93c3fc8
     status: active
-    title: Una página ilegible no se lleva por delante el espacio entero
+    title: An unreadable page does not take the whole space down with it
     rule: >-
-      Al leer las páginas de un espacio, la que esta versión no sepa leer se deja fuera de la lista y las demás siguen.
-      Que quedó fuera se registra, diciendo cuántas y desde qué lectura, para que alguien pueda ir a arreglarla. Un
-      espacio no deja de responder por una de sus páginas.
+      When reading a space's pages, the one that this version does not know how to read is left out of the list and the
+      others continue. That it was left out is recorded, saying how many and since which read, so that someone can go fix
+      it. A space does not stop responding because of one of its pages.
     why: >-
-      La lista se leía entera o no se leía, así que una sola página guardada por otra versión, arreglada a mano en la
-      base o dejada a medias por una migración hacía fallar la lectura del espacio completo, y entonces ninguna de sus
-      páginas se podía abrir. El daño de una página estropeada tiene que ser esa página, no todo lo que la acompaña. Y
-      dejarla fuera sin decirlo sería perderla igual, solo que en silencio.
+      The list was read whole or not read at all, so a single page stored by another version, fixed by hand in the database
+      or left half done by a migration made the read of the whole space fail, and then none of its pages could be opened.
+      The damage of a spoiled page has to be that page, not everything that accompanies it. And leaving it out without
+      saying so would be losing it all the same, only silently.
     context: >-
-      Es la misma idea que ya rige al exportar, donde una página ilegible no invalida el archivo entero. Una respuesta
-      que ni siquiera llega como una lista es otra cosa —no una página estropeada— y esa sí corta la lectura.
+      It is the same idea that already governs export, where an unreadable page does not invalidate the entire file. A
+      response that does not even arrive as a list is something else —not a spoiled page— and that one does cut the read.
     scenarios:
-      - title: Una página que no se deja leer
-        given: Un espacio con varias páginas, una de ellas guardada de una forma que esta versión no entiende
-        when: Se abre cualquier página del espacio
-        then: La página se abre, y en el costado aparecen todas menos la que no se pudo leer
-      - title: Queda dicho lo que faltó
-        given: Una lista de la que quedó fuera una página
-        when: Se termina de leer
-        then: Se registra cuántas quedaron fuera y desde qué lectura
-      - title: Una respuesta que no es una lista
-        given: Una respuesta que no llega como lista de páginas
-        when: Se intenta leer
-        then: La lectura falla, en vez de seguir como si el espacio estuviera vacío
+      - title: A page that cannot be read
+        given: A space with several pages, one of them stored in a way this version does not understand
+        when: Any page of the space is opened
+        then: The page opens, and at the side all appear except the one that could not be read
+      - title: What was missing is stated
+        given: A list from which a page was left out
+        when: The read finishes
+        then: It is recorded how many were left out and since which read
+      - title: A response that is not a list
+        given: A response that does not arrive as a list of pages
+        when: A read is attempted
+        then: The read fails, instead of continuing as if the space were empty
   - id: BR-9a633a0
     status: active
-    title: La búsqueda y los retroenlaces quedan al día en el mismo guardado
+    title: Search and backlinks are brought up to date in the same save
     rule: >-
-      Cuando una página cambia, la búsqueda y la sección «Vinculado desde» quedan al día en el mismo guardado que la
-      cambia. No hay una espera ni un aviso aparte que pueda perderse; si el guardado falla, no cambia nada de los tres.
+      When a page changes, the search and the "Vinculado desde" section are brought up to date in the same save that
+      changes it. There is no wait or separate notice that can be lost; if the save fails, none of the three changes.
     why: >-
-      Una mención nueva que tarda en aparecer en «Vinculado desde», o una página renombrada que no se encuentra por su
-      título nuevo, hacen dudar de todo lo demás. Un aviso aparte puede perderse sin que nadie lo note.
+      A new mention that takes time to appear in "Vinculado desde", or a renamed page that is not found by its new title,
+      make people doubt everything else. A separate notice can be lost without anyone noticing.
     supersedes: BR-ac6957c
     scenarios:
-      - title: Una mención nueva
-        given: Una página que menciona a otra
-        when: Alguien guarda la página
-        then: En ese mismo momento la página se encuentra por su texto nuevo y la mencionada la muestra en «Vinculado desde»
+      - title: A new mention
+        given: A page that mentions another
+        when: Someone saves the page
+        then: At that same moment the page is found by its new text and the mentioned one shows it in "Vinculado desde"
   - id: BR-a2dc75d
     status: active
-    title: Dónde se suelta una página dice si va dentro o al lado
+    title: Where a page is dropped says whether it goes inside or beside
     rule: >-
-      Al arrastrar una página sobre otra en el árbol, soltarla en el centro de la fila la mete dentro y soltarla en el
-      borde la deja al lado, antes o después según el borde. La marca dice cuál de las dos cosas va a pasar antes de
-      soltar, y el orden que resulta se conserva al recargar.
+      When dragging a page onto another in the tree, dropping it in the center of the row puts it inside and dropping it
+      on the edge leaves it beside, before or after depending on the edge. The mark says which of the two things will
+      happen before dropping, and the resulting order is kept on reload.
     why: >-
-      Anidar y ordenar son dos intenciones distintas y el mismo gesto tiene que servir para ambas; si soltar siempre
-      significara lo mismo, el orden entre hermanas quedaría fuera del alcance del ratón. El centro es la parte ancha
-      porque anidar es lo que se hace más seguido.
+      Nesting and ordering are two different intentions and the same gesture has to serve both; if dropping always meant
+      the same thing, the order among siblings would be out of the mouse's reach. The center is the wide part because
+      nesting is what is done most often.
     context: >-
-      Reordenar renumera la fila completa desde arriba: dos hermanas empatadas harían caer el siguiente arrastre donde
-      nadie apuntó. Una página soltada junto a las hijas de otra madre primero cambia de madre y después se coloca.
+      Reordering renumbers the whole row from the top: two tied siblings would make the next drag land where nobody
+      pointed. A page dropped next to the children of another parent first changes parent and then is placed.
   - id: BR-ac96db4
     status: active
-    title: Exportar se cuenta por persona, y de a pocas por minuto
+    title: Exporting is counted per person, and a few times per minute
     rule: >-
-      Pedir una exportación tiene un tope de cuántas veces seguidas se admite por minuto. Se cuenta por quien pide y no
-      por desde dónde pide, porque exportar exige sesión y una oficina entera comparte una dirección. Pasado el tope se
-      responde que se pidió demasiado seguido, y ninguna otra puerta del sistema queda afectada por ese tope: entrar,
-      renovar la sesión o crear una cuenta siguen contándose por su cuenta.
+      Requesting an export has a cap on how many times in a row it is admitted per minute. It is counted by whoever
+      requests and not by where they request from, because exporting requires a session and a whole office shares one
+      address. Past the cap, the response is that it was requested too often, and no other door of the system is affected
+      by that cap: signing in, renewing the session or creating an account keep being counted on their own.
     why: >-
-      Exportar lee todas las páginas activas del alcance pedido, se trae sus adjuntos y arma el archivo en memoria: es
-      de lo más caro que el servidor hace por una sola petición. Una pestaña que reintenta sola, o alguien probando,
-      tumba el servicio para todos los demás. Contar por dirección castigaría a quien comparte oficina y no pidió nada.
+      Exporting reads all the active pages of the requested scope, fetches their attachments and builds the file in
+      memory: it is among the most expensive things the server does for a single request. A tab that retries on its own,
+      or someone testing, takes the service down for everyone else. Counting by address would punish whoever shares an
+      office and requested nothing.
     scenarios:
-      - title: Exportar unas cuantas veces
-        given: Una persona con sesión iniciada
-        when: Pide exportar dentro del tope del minuto
-        then: Cada exportación se entrega
-      - title: Pasarse del tope
-        given: Una persona que ya agotó su tope del minuto
-        when: Pide otra exportación
-        then: Se le responde que pidió demasiado seguido
-      - title: Las demás puertas no se ven afectadas
-        given: Una persona que ya agotó su tope de exportaciones
-        when: Inicia sesión otra vez
-        then: Entra con normalidad
+      - title: Exporting a few times
+        given: A person who is signed in
+        when: They request export within the per-minute cap
+        then: Each export is delivered
+      - title: Going over the cap
+        given: A person who has already used up their per-minute cap
+        when: They request another export
+        then: They are answered that they requested too often
+      - title: The other doors are not affected
+        given: A person who has already used up their export cap
+        when: They sign in again
+        then: They get in normally
   - id: BR-b3786ed
     status: active
-    title: La posición de lectura se guarda por página y dura lo que la pestaña
+    title: The reading position is stored per page and lasts as long as the tab
     rule: >-
-      Al recargar una página se vuelve al punto donde se estaba leyendo. Cada página recuerda el suyo por separado. En
-      cuanto la persona se desplaza por su cuenta, se deja de restaurar y se empieza a anotar dónde quedó.
+      When reloading a page, one returns to the point where one was reading. Each page remembers its own separately. As
+      soon as the person scrolls on their own, restoring stops and noting where they ended up begins.
     why: >-
-      Recargar una página larga y aterrizar arriba obliga a buscar de nuevo el párrafo que se estaba leyendo. Y seguir
-      empujando la vista después de que la persona se movió sería pelearle el control.
+      Reloading a long page and landing at the top forces searching again for the paragraph that was being read. And
+      continuing to push the view after the person moved would be fighting them for control.
     context: >-
-      Se guarda en el almacenamiento de la pestaña, así que no viaja entre dispositivos ni sobrevive a cerrarla. Quien
-      se desplaza es la caja de lectura dentro de la ventana, no el documento.
+      It is stored in the tab's storage, so it does not travel between devices nor survive closing it. What scrolls is the
+      reading box inside the window, not the document.
   - id: BR-c737a3f
     status: active
-    title: Una página se hace vacía y se escribe después
+    title: A page is made empty and written afterwards
     rule: >-
-      Crear una página no exige nombre ni confirmación. La página se crea vacía, se abre con el cursor en su nombre, y
-      lo que se escribe en ella se guarda solo.
+      Creating a page requires neither a name nor a confirmation. The page is created empty, opens with the cursor on its
+      name, and what is written in it is saved on its own.
     why: >-
-      Un formulario antes de escribir obliga a decidir el nombre cuando todavía no se sabe de qué trata la página. El
-      nombre es una de las cosas que se escriben en ella, no un requisito para empezar.
-    context: Implica que el título puede quedar vacío en la base. Donde se lista, una página sin nombre se lee «Sin título».
+      A form before writing forces deciding the name when it is not yet known what the page is about. The name is one of
+      the things written in it, not a requirement to begin.
+    context: It implies that the title can be left empty in the database. Where it is listed, a page without a name reads "Untitled".
     scenarios:
-      - title: Se crea y se escribe
-        given: Alguien con permiso de edición está en un espacio
-        when: Pulsa crear una página
-        then: La página existe de inmediato y se abre con el cursor en el título, sin ningún botón de confirmación
-      - title: El nombre se guarda sin pedirlo
-        given: Una página recién creada y sin nombre
-        when: Se escribe un título y no se pulsa nada más
-        then: El título queda guardado
+      - title: It is created and written
+        given: Someone with edit permission is in a space
+        when: They press create a page
+        then: The page exists immediately and opens with the cursor on the title, without any confirmation button
+      - title: The name is saved without asking
+        given: A newly created page with no name
+        when: A title is written and nothing else is pressed
+        then: The title is saved
   - id: BR-c9aaeaa
     status: active
-    title: Una página en la papelera no se escribe, ni por la pantalla ni por la vía de atrás
+    title: A page in the trash is not written, neither through the screen nor through the back door
     rule: >-
-      Una página en la papelera rechaza cualquier escritura de su contenido, su título y sus propiedades, venga del
-      editor, de la API o de un agente. Para cambiarla, primero se la trae de vuelta. El rechazo lo decide el servidor.
+      A page in the trash rejects any write to its content, its title and its properties, whether it comes from the
+      editor, the API or an agent. To change it, it is first brought back. The rejection is decided by the server.
     why: >-
-      Lo que está en la papelera está saliendo: nadie lo ve en el árbol ni lo encuentra al buscar. Un cambio ahí no lo
-      lee nadie, y al restaurarla aparecería algo que nadie revisó.
+      What is in the trash is on its way out: nobody sees it in the tree nor finds it when searching. A change there is
+      read by nobody, and on restoring it something would appear that nobody reviewed.
     context: >-
-      El servidor responde con el error PAGE_INVALID_LIFECYCLE y estado 409. Al agente se le dice que la restaure
-      primero o que le pida a una persona.
+      The server responds with the error PAGE_INVALID_LIFECYCLE and status 409. The agent is told to restore it first or
+      to ask a person.
     scenarios:
-      - title: Un agente escribe en una página borrada
-        given: Una página en la papelera
-        when: Un agente le agrega un bloque
-        then: No se escribe nada y se le dice que la traiga de vuelta primero
+      - title: An agent writes to a deleted page
+        given: A page in the trash
+        when: An agent adds a block to it
+        then: Nothing is written and it is told to bring it back first
   - id: BR-d5883eb
     status: active
-    title: Eliminar para siempre espera 30 días y solo lo decide un administrador
+    title: Deleting forever waits 30 days and is decided only by an administrator
     rule: >-
-      Vaciar la papelera o eliminar para siempre una página no la borra en el acto. La página queda en la papelera con
-      la fecha en que se borrará, 30 días después, y hasta ese momento cualquiera con acceso puede restaurarla. Solo un
-      administrador puede pedir que se elimine para siempre. Cada pedido queda registrado con quién lo hizo, la página y
-      cómo terminó, borrada o cancelada por una restauración.
+      Emptying the trash or deleting a page forever does not delete it on the spot. The page stays in the trash with the
+      date on which it will be deleted, 30 days later, and until then anyone with access can restore it. Only an
+      administrator can request that it be deleted forever. Each request is recorded with who made it, the page and how it
+      ended, deleted or cancelled by a restore.
     why: >-
-      Un borrado inmediato no tiene vuelta atrás, y vaciar la papelera de un espacio se lleva en un gesto el trabajo de
-      muchas personas. El plazo da tiempo a notar el error, y el registro dice quién lo pidió aunque la página ya no
-      exista.
+      An immediate deletion has no way back, and emptying a space's trash takes away the work of many people in one gesture.
+      The waiting period gives time to notice the mistake, and the record says who requested it even if the page no longer
+      exists.
     context: >-
-      El servidor borra cada hora lo que pasó su fecha, y recién entonces borra los archivos adjuntos. Restaurar la
-      página antes del plazo cancela el borrado. Un agente no puede eliminar para siempre.
+      The server deletes every hour whatever has passed its date, and only then deletes the attached files. Restoring the
+      page before the deadline cancels the deletion. An agent cannot delete forever.
     scenarios:
-      - title: Un administrador vacía la papelera
-        given: Un espacio con páginas en la papelera
-        when: Un administrador vacía la papelera
-        then: Las páginas siguen en la papelera con la fecha en que se borran, y quedan registradas a su nombre
-      - title: Se restaura antes del plazo
-        given: Una página programada para borrarse
-        when: Alguien la restaura antes de la fecha
-        then: La página vuelve con su contenido y el registro queda como cancelado
-      - title: Alguien que no administra intenta borrar
-        given: Una persona con rol de trabajador
-        when: Pide eliminar para siempre una página de la papelera
-        then: Se rechaza y la página no queda programada
+      - title: An administrator empties the trash
+        given: A space with pages in the trash
+        when: An administrator empties the trash
+        then: The pages stay in the trash with the date they will be deleted, and are recorded in their name
+      - title: Restored before the deadline
+        given: A page scheduled for deletion
+        when: Someone restores it before the date
+        then: The page comes back with its content and the record is left as cancelled
+      - title: Someone who does not administer tries to delete
+        given: A person with the worker role
+        when: They request to delete a page from the trash forever
+        then: It is rejected and the page is not scheduled
   - id: BR-d829da6
     status: active
-    title: Lo que se exporta se lee como Markdown y sabe volver
+    title: What is exported reads as Markdown and knows how to come back
     rule: >-
-      Una página se exporta a Markdown. Lo que Markdown ya sabe decir —párrafos, encabezados, listas, tareas, citas,
-      código, tablas, imágenes, separadores— se escribe con su propia sintaxis. Lo que Markdown no sabe decir se escribe
-      de dos maneras según dónde viva: dentro de una línea, como enlace con su propio destino; como bloque, con una
-      cerca de tres dos puntos que nombra el tipo y lleva sus datos. Cada página produce su propio archivo. Exportar
-      varias entrega un comprimido cuya estructura de carpetas es la jerarquía que tenían las páginas. Una colección
-      sale siempre comprimida, porque son muchas páginas a la vez.
+      A page is exported to Markdown. What Markdown already knows how to say —paragraphs, headings, lists, tasks, quotes,
+      code, tables, images, separators— is written with its own syntax. What Markdown does not know how to say is written
+      in two ways depending on where it lives: inside a line, as a link with its own destination; as a block, with a fence
+      of three colons that names the type and carries its data. Each page produces its own file. Exporting several
+      delivers an archive whose folder structure is the hierarchy the pages had. A collection always comes out archived,
+      because it is many pages at once.
     why: >-
-      Un Markdown que solo conserva el texto plano convierte la exportación en una copia de lectura y nada más: lo que
-      sale no puede volver. Y un formato que se aparta de Markdown para ser reversible deja de leerse en cualquier
-      editor, que es la única razón de elegir Markdown. Un archivo por página es lo que espera cualquier herramienta que
-      lea Markdown, y las carpetas son cómo se dice una jerarquía sin inventar sintaxis.
+      A Markdown that keeps only plain text turns the export into a reading copy and nothing more: what comes out cannot
+      come back. And a format that departs from Markdown in order to be reversible stops being readable in any editor,
+      which is the only reason to choose Markdown. One file per page is what any tool that reads Markdown expects, and
+      folders are how a hierarchy is expressed without inventing syntax.
     context: >-
-      Reemplaza a la regla anterior, que decía que varias páginas salían en un solo archivo con una marca por página.
-      Eso fue una decisión de diseño tomada al construir, no una decisión de producto, y no era la que correspondía.
-      Sigue siendo cierto que hay cosas que no vuelven enteras: un bloque tomado de otra página sale como el texto que
-      mostraba, no como el vínculo vivo.
+      Replaces the previous rule, which said that several pages came out in a single file with a mark per page. That was a
+      design decision taken while building, not a product decision, and it was not the right one. It is still true that
+      some things do not come back whole: a block taken from another page comes out as the text it showed, not as the live
+      link.
     supersedes: BR-cb028f9
     scenarios:
-      - title: Una página sola
-        given: Una página sin subpáginas
-        when: Se exporta
-        then: Se descarga un archivo Markdown con esa página
-      - title: Una rama
-        given: Una página con subpáginas
-        when: Se exporta con ellas
-        then: Se descarga un comprimido con un archivo por página y las carpetas reflejando la jerarquía
-      - title: Una colección
-        given: Una colección con sus filas
-        when: Se exporta
-        then: Se descarga un comprimido, porque cada fila es una página y son muchas
+      - title: A single page
+        given: A page without subpages
+        when: It is exported
+        then: A Markdown file with that page is downloaded
+      - title: A branch
+        given: A page with subpages
+        when: It is exported with them
+        then: An archive is downloaded with one file per page and the folders reflecting the hierarchy
+      - title: A collection
+        given: A collection with its rows
+        when: It is exported
+        then: An archive is downloaded, because each row is a page and there are many
   - id: BR-de71d1b
     status: active
-    title: Se exporta una página, una rama o un espacio entero
+    title: A page, a branch or a whole space is exported
     rule: >-
-      Al exportar se elige cuánto sale: solo la página, la página con todo lo que cuelga de ella, o el espacio completo.
-      A una página sin subpáginas no se le pregunta nada, porque no hay nada que decidir. Las páginas salen en el orden
-      del árbol —la madre antes que sus hijas, y una hija antes que su hermana— y cada una lleva escrito el camino donde
-      vivía. Las páginas en la papelera no salen.
+      When exporting, how much comes out is chosen: only the page, the page with everything that hangs from it, or the
+      complete space. A page without subpages is asked nothing, because there is nothing to decide. The pages come out in
+      tree order —the parent before its children, and a child before its sibling— and each one carries written the path
+      where it lived. Pages in the trash do not come out.
     why: >-
-      Quien exporta casi nunca quiere «todo o nada»: quiere llevarse un manual con sus anexos, o vaciar un espacio antes
-      de cerrarlo. Sin la elección, la primera necesidad obliga a exportar de a una y la segunda obliga a repetir el
-      gesto por cada página. Y un archivo con las páginas en desorden y sin decir de dónde vienen no se puede volver a
-      armar.
+      Whoever exports almost never wants "all or nothing": they want to take a manual with its appendices, or empty a space
+      before closing it. Without the choice, the first need forces exporting one by one and the second forces repeating
+      the gesture for each page. And a file with the pages out of order and without saying where they come from cannot be
+      put back together.
     context: >-
-      El orden y el camino los decide el mismo árbol que se ve en la barra lateral, para que el archivo se lea igual que
-      se leía en pantalla.
+      The order and the path are decided by the same tree seen in the sidebar, so that the file reads the way it read on
+      screen.
     scenarios:
-      - title: Una página sola no pregunta
-        given: Una página sin subpáginas
-        when: Se pide exportarla
-        then: Se descarga el archivo de inmediato, sin preguntar nada
-      - title: Una página con hijas pregunta
-        given: Una página con subpáginas
-        when: Se pide exportarla
-        then: Se pregunta si salen también sus subpáginas, y la respuesta decide qué contiene el archivo
-      - title: La papelera no sale
-        given: Un espacio con páginas en la papelera
-        when: Se exporta el espacio entero
-        then: El archivo contiene solo las páginas vivas
+      - title: A single page does not ask
+        given: A page without subpages
+        when: Exporting it is requested
+        then: The file is downloaded immediately, without asking anything
+      - title: A page with children asks
+        given: A page with subpages
+        when: Exporting it is requested
+        then: It is asked whether its subpages come out too, and the answer decides what the file contains
+      - title: The trash does not come out
+        given: A space with pages in the trash
+        when: The whole space is exported
+        then: The file contains only the live pages
   - id: BR-e92b734
     status: active
-    title: Una página ilegible no se lleva el archivo entero
+    title: An unreadable page does not take the whole file with it
     rule: >-
-      Si al exportar el cuerpo de una página no se puede leer, la página sale igual: con su nombre y su lugar en el
-      árbol, y vacía por dentro. El resto del archivo se escribe completo.
+      If when exporting the body of a page cannot be read, the page comes out anyway: with its name and its place in the
+      tree, and empty inside. The rest of the file is written complete.
     why: >-
-      Perder un cuerpo es un daño menor que perder todo lo que alguien pidió llevarse. Un fallo que cancela la
-      exportación entera deja a quien la pidió sin nada y sin saber cuál de cien páginas fue la culpable.
-    context: Ocurre con contenido guardado por una versión del esquema que ya no se reconoce.
+      Losing one body is a smaller harm than losing everything someone asked to take. A failure that cancels the entire
+      export leaves whoever requested it with nothing and not knowing which of a hundred pages was to blame.
+    context: It happens with content stored by a schema version that is no longer recognized.
     scenarios:
-      - title: El archivo llega igual
-        given: Un espacio donde una página tiene el cuerpo guardado en un formato irreconocible
-        when: Se exporta el espacio entero
-        then: Se descarga el archivo con todas las páginas, y la ilegible aparece con su nombre y sin cuerpo
+      - title: The file arrives anyway
+        given: A space where one page has its body stored in an unrecognizable format
+        when: The whole space is exported
+        then: The file is downloaded with all the pages, and the unreadable one appears with its name and without a body
   - id: BR-ef13a8b
     status: active
-    title: Lo exportado se abre sin conexión, con los adjuntos dentro y los enlaces al archivo vecino
+    title: What is exported opens offline, with the attachments inside and the links to the neighboring file
     rule: >-
-      El comprimido de una exportación lleva dentro los archivos que cuelgan de las páginas exportadas, todos en una
-      carpeta común llamada assets. Lo que la página mostraba apunta a ese archivo por un camino relativo, igual que un
-      enlace a otra página que también viajó. Un enlace a una página que se quedó fuera se deja tal como estaba. Un
-      adjunto que el almacenamiento ya no puede entregar se omite del comprimido sin tumbar la exportación, y el texto
-      que lo mencionaba sigue diciendo qué era.
+      The export archive carries inside the files that hang from the exported pages, all in a common folder called assets.
+      What the page showed points to that file by a relative path, just like a link to another page that also traveled. A
+      link to a page that was left out is left as it was. An attachment that storage can no longer deliver is omitted from
+      the archive without taking the export down, and the text that mentioned it keeps saying what it was.
     why: >-
-      Una exportación que necesita el servidor encendido para verse no es una copia: es un espejo. Quien se lleva un
-      manual lo abre en un computador sin sesión, o lo guarda por años. Con caminos relativos el comprimido funciona en
-      cualquier carpeta donde se descomprima, y con los adjuntos dentro no hay imágenes rotas.
+      An export that needs the server turned on to be viewed is not a copy: it is a mirror. Whoever takes a manual opens it
+      on a computer without a session, or keeps it for years. With relative paths the archive works in any folder where it
+      is unpacked, and with the attachments inside there are no broken images.
     context: >-
-      Los adjuntos van en una carpeta común y no junto a cada página porque la misma imagen puede aparecer en varias
-      páginas y hay una sola de ella. Cada archivo lleva por delante su identificador, para que dos adjuntos con el
-      mismo nombre no se pisen. Un bloque de archivo conserva el identificador que ya tenía y gana el camino al lado,
-      para que el comprimido lo abra una persona y siga volviendo entero al importarse.
+      Attachments go in a common folder and not next to each page because the same image can appear on several pages and
+      there is only one of it. Each file carries its identifier in front, so that two attachments with the same name do not
+      overwrite each other. A file block keeps the identifier it already had and gains the path alongside, so that the
+      archive can be opened by a person and still comes back whole when imported.
     scenarios:
-      - title: Una imagen viaja con la página
-        given: Una página con una imagen subida
-        when: Se exporta junto a otra página
-        then: El comprimido incluye la imagen en assets y el Markdown apunta a ella por camino relativo
-      - title: Un enlace entre dos páginas exportadas
-        given: Dos páginas exportadas juntas, una menciona a la otra
-        when: Se abre el archivo de la primera
-        then: La mención apunta al archivo de la segunda por camino relativo
-      - title: Un enlace a una página que no viajó
-        given: Una página exportada que menciona otra que quedó fuera
-        when: Se abre el archivo exportado
-        then: La mención queda tal como estaba, sin apuntar a un archivo que no existe
+      - title: An image travels with the page
+        given: A page with an uploaded image
+        when: It is exported together with another page
+        then: The archive includes the image in assets and the Markdown points to it by relative path
+      - title: A link between two exported pages
+        given: Two pages exported together, one mentions the other
+        when: The first one's file is opened
+        then: The mention points to the second one's file by relative path
+      - title: A link to a page that did not travel
+        given: An exported page that mentions another that was left out
+        when: The exported file is opened
+        then: The mention is left as it was, without pointing to a file that does not exist
   - id: BR-fc54608
     status: active
-    title: Quien tiene acceso total decide quién ve y quién edita una página o una parte de ella
+    title: Whoever has full access decides who sees and who edits a page or a part of it
     rule: >-
-      Una página, o una parte de ella, puede tener sus propios permisos: se elige quién puede leerla, quién puede
-      editarla y quién tiene acceso total. Lo que no declara permisos propios sigue a lo que tiene encima, y si nada
-      encima los declara, a lo que permite el espacio. Lo que declara permisos queda cerrado para quien no figura en la
-      lista, incluidos los administradores. Un cliente nunca pasa de lectura, aunque la lista le dé más. Cualquier
-      persona del espacio de trabajo con acceso al espacio puede figurar, sea o no administradora.
+      A page, or a part of it, can have its own permissions: one chooses who can read it, who can edit it and who has full
+      access. What does not declare permissions of its own follows what is above it, and if nothing above declares them, what
+      the space allows. What declares permissions is closed to whoever is not on the list, including administrators. A
+      client never goes beyond reading, even if the list gives them more. Any person of the workspace with access to the
+      space can be listed, whether or not they are an administrator.
     why: >-
-      Una sección de una página (un presupuesto, una nota interna) se comparte con menos gente que la página, y hacerlo
-      no debe obligar a mover el texto a otra página.
+      A section of a page (a budget, an internal note) is shared with fewer people than the page, and doing so must not
+      force moving the text to another page.
     context: >-
-      El diálogo «Compartir» muestra la lista de quien tiene acceso, de dónde viene (de qué página hereda o si es
-      propia), y permite agregar y quitar personas, cambiar su rol, dejar de heredar y volver a heredar. Se abre desde
-      la página y, para una parte de ella, desde el menú del bloque.
+      The "Share" dialog shows the list of who has access, where it comes from (which page it inherits from or whether
+      it is its own), and allows adding and removing people, changing their role, stopping inheriting and inheriting again.
+      It is opened from the page and, for a part of it, from the block's menu.
     scenarios:
-      - title: Una sección restringida
+      - title: A restricted section
         given: >-
-          Una página abierta para todo el espacio y una sección con permisos propios que solo nombran a una
-          administradora
-        when: Un trabajador abre la página
-        then: La sección no aparece en pantalla, ni en la búsqueda, ni en lo que el navegador recibe
-      - title: Volver a heredar
-        given: Una sección con permisos propios
-        when: Quien tiene acceso total elige volver a seguir a la página
-        then: La sección vuelve a verse para quien ve la página
+          A page open to the whole space and a section with permissions of its own that only name one administrator
+        when: A worker opens the page
+        then: The section does not appear on screen, nor in the search, nor in what the browser receives
+      - title: Inheriting again
+        given: A section with permissions of its own
+        when: Whoever has full access chooses to follow the page again
+        then: The section is seen again by whoever sees the page
   - id: BR-6191a45
     status: superseded
-    title: Una página que cambia de espacio se lleva su descendencia y deja su dirección andando
+    title: A page that changes space takes its descendants along and leaves its address working
     rule: >-
-      Al mover una página a otro espacio, todas las páginas que cuelgan de ella cambian de espacio con ella. Las
-      direcciones escritas antes del traslado siguen llevando a la página, ahora en el espacio donde vive.
+      When moving a page to another space, all the pages that hang from it change space with it. Addresses written before
+      the move keep leading to the page, now in the space where it lives.
     why: >-
-      Una rama partida entre dos espacios deja hijas que nadie alcanza desde su madre. Y una dirección que deja de
-      responder convierte cada enlace y cada mención escritos antes del traslado en un callejón sin salida.
+      A branch split between two spaces leaves children that nobody reaches from their parent. And an address that stops
+      responding turns every link and every mention written before the move into a dead end.
     context: >-
-      Cada página arrastrada avisa por su cuenta al índice de búsqueda, porque el índice registra a qué espacio
-      pertenece cada una. Quien arrastra no queda como último editor de las hijas.
+      Each dragged page notifies the search index on its own, because the index records which space each one belongs to.
+      Whoever drags does not end up as the last editor of the children.
     superseded_by: BR-8b498e2
     scenarios:
-      - title: La rama viaja entera
-        given: Una página con hijas en un espacio
-        when: Se mueve la madre a otro espacio
-        then: Las hijas quedan en el espacio nuevo, colgando de su madre
-      - title: La dirección vieja sigue sirviendo
-        given: Una página que cambió de espacio
-        when: Se abre una dirección que nombra el espacio anterior
-        then: Se llega a la página en su espacio actual
+      - title: The branch travels whole
+        given: A page with children in a space
+        when: The parent is moved to another space
+        then: The children end up in the new space, hanging from their parent
+      - title: The old address still works
+        given: A page that changed space
+        when: An address that names the previous space is opened
+        then: The page is reached in its current space
   - id: BR-a096152
     status: superseded
-    title: Una copia nace junto a su original y solo ella cambia de nombre
+    title: A copy is born next to its original and only it is renamed
     rule: >-
-      Al duplicar una página se copian su contenido, sus propiedades y su ícono. La copia queda inmediatamente después
-      de la original entre sus hermanas. Se puede elegir si la descendencia se copia también, y esa pregunta solo
-      aparece cuando la página tiene hijas. De toda la rama copiada, solo la página pedida se renombra.
+      When duplicating a page, its content, its properties and its icon are copied. The copy is placed immediately after
+      the original among its siblings. One can choose whether the descendants are copied too, and that question only
+      appears when the page has children. Of the whole copied branch, only the requested page is renamed.
     why: >-
-      Una copia que aparece al final de una lista larga obliga a buscarla. Y renombrar también a las hijas ensuciaría
-      cada nombre de la rama con una marca que no dice nada de ellas.
+      A copy that appears at the end of a long list forces searching for it. And renaming the children too would dirty
+      every name in the branch with a mark that says nothing about them.
     context: >-
-      La marca de copia la pone el portal, porque el servidor no sabe en qué idioma lee cada persona. Para dejar sitio a
-      la copia se renumeran las hermanas que venían después.
+      The copy mark is added by the portal, because the server does not know which language each person reads. To make room
+      for the copy, the siblings that came after are renumbered.
     superseded_by: BR-73da3c5
   - id: BR-ac6957c
     status: superseded
-    title: Cada cambio de una página llega a la búsqueda y a los retroenlaces, por separado
+    title: Each change to a page reaches the search and the backlinks, separately
     rule: >-
-      Cuando una página cambia, la búsqueda y la sección «Vinculado desde» reciben cada una su propio aviso del cambio.
-      Que una de las dos lo tome, lo reintente o falle no oculta el aviso a la otra, y ninguna recibe el mismo aviso dos
-      veces.
+      When a page changes, the search and the "Vinculado desde" section each receive their own notice of the change. That
+      one of the two takes it, retries it or fails does not hide the notice from the other, and neither receives the same
+      notice twice.
     why: >-
-      Si las dos compartieran un solo aviso, el primero en tomarlo lo daría por atendido y la otra nunca se enteraría;
-      una mención nueva no aparecería en «Vinculado desde» o una página renombrada no se encontraría por su nuevo
-      título.
+      If the two shared a single notice, the first to take it would consider it handled and the other would never find out;
+      a new mention would not appear in "Vinculado desde" or a renamed page would not be found by its new title.
     context: >-
-      Un aviso que falla se reintenta solo para quien falló. Al actualizar desde una versión anterior, cada cambio ya
-      registrado se vuelve a avisar una vez a las dos, porque antes pudo llegar a una sola.
+      A notice that fails is retried only for whoever failed. When updating from a previous version, each change already
+      recorded is notified once again to both, because before it may have reached only one.
     superseded_by: BR-9a633a0
     scenarios:
-      - title: Una mención nueva
-        given: Una página que menciona a otra, con la búsqueda y los retroenlaces funcionando
-        when: Alguien guarda la página
-        then: La página se encuentra por su texto nuevo y la mencionada la muestra en «Vinculado desde»
-      - title: La búsqueda caída un momento
-        given: El índice de búsqueda falla al recibir un cambio
-        when: Los retroenlaces procesan ese mismo cambio
-        then: Los retroenlaces quedan al día y la búsqueda reintenta su aviso más tarde
+      - title: A new mention
+        given: A page that mentions another, with the search and the backlinks working
+        when: Someone saves the page
+        then: The page is found by its new text and the mentioned one shows it in "Vinculado desde"
+      - title: The search down for a moment
+        given: The search index fails when receiving a change
+        when: The backlinks process that same change
+        then: The backlinks are up to date and the search retries its notice later
   - id: BR-cb028f9
     status: superseded
-    title: Lo que se exporta se lee como Markdown y sabe volver
+    title: What is exported reads as Markdown and knows how to come back
     rule: >-
-      Una página se exporta a Markdown. Lo que Markdown ya sabe decir —párrafos, encabezados, listas, tareas, citas,
-      código, tablas, imágenes, separadores— se escribe con su propia sintaxis. Lo que Markdown no sabe decir se escribe
-      de dos maneras según dónde viva: dentro de una línea, como enlace con su propio destino; como bloque, con una
-      cerca de tres dos puntos que nombra el tipo y lleva sus datos. Exportar varias páginas produce un solo archivo,
-      con cada página abierta por una marca que dice dónde vivía.
+      A page is exported to Markdown. What Markdown already knows how to say —paragraphs, headings, lists, tasks, quotes,
+      code, tables, images, separators— is written with its own syntax. What Markdown does not know how to say is written
+      in two ways depending on where it lives: inside a line, as a link with its own destination; as a block, with a fence
+      of three colons that names the type and carries its data. Exporting several pages produces a single file, with each
+      page opened by a mark that says where it lived.
     why: >-
-      Un Markdown que solo conserva el texto plano convierte la exportación en una copia de lectura y nada más: lo que
-      sale no puede volver. Y un formato que se aparta de Markdown para ser reversible deja de leerse en cualquier
-      editor, que es la única razón de elegir Markdown.
+      A Markdown that keeps only plain text turns the export into a reading copy and nothing more: what comes out cannot
+      come back. And a format that departs from Markdown in order to be reversible stops being readable in any editor,
+      which is the only reason to choose Markdown.
     context: >-
-      Hay cosas que no pueden volver enteras y conviene decirlo: un bloque tomado de otra página sale como el texto que
-      mostraba, no como el vínculo vivo. Un solo archivo en vez de una carpeta comprimida evita una dependencia nueva y
-      hace más simple la lectura de vuelta.
+      There are things that cannot come back whole and it is worth saying so: a block taken from another page comes out as
+      the text it showed, not as the live link. A single file instead of a compressed folder avoids a new dependency and
+      makes reading back simpler.
     superseded_by: BR-d829da6
   - id: BR-f033642
     status: superseded
-    title: Lo que la búsqueda sabe de una página se rehace cada vez que la página cambia
+    title: What the search knows about a page is redone every time the page changes
     rule: >-
-      Renombrar una página o cambiarle la marca avisa al índice de búsqueda, igual que escribir en ella. Una página que
-      se tira a la papelera o se borra deja de encontrarse, y ese olvido se pide con una versión que el índice pueda
-      guardar.
+      Renaming a page or changing its mark notifies the search index, just like writing in it. A page that is thrown into
+      the trash or deleted stops being found, and that forgetting is requested with a version that the index can store.
     why: >-
-      Una página renombrada que sigue encontrándose por su nombre viejo es una mentira que nadie corrige, porque nadie
-      sabe que está ahí. Y un olvido que falla no se nota: la página desaparece de la vista y sigue apareciendo en los
-      resultados de cualquiera.
+      A renamed page that is still found by its old name is a lie that nobody corrects, because nobody knows it is there.
+      And a forgetting that fails goes unnoticed: the page disappears from view and keeps appearing in anyone's results.
     context: >-
-      Cada cambio se anuncia una sola vez, distinguido por el momento en que se escribió. El índice proyecta fuera del
-      servidor, así que el aviso viaja por la bandeja de salida.
+      Each change is announced only once, distinguished by the moment it was written. The index projects outside the
+      server, so the notice travels through the outbox.
     superseded_by: BR-50fb993
