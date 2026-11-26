@@ -1,60 +1,60 @@
-# 010: Adoptar Prisma ORM 8 con contrato y migraciones propias
+# 010: Adopt Prisma ORM 8 with its own contract and migrations
 
 **Status:** Accepted
 **Date:** 2026-10-11
 
 ## Context
 
-Prisma ORM 8 no es una versión nueva de Prisma 7: es otra herramienta. Cambia la API de consultas (`db.orm.public.Page.where(...).first()` en lugar de `prisma.page.findUnique(...)`), el esquema pasa a ser un «contrato» (`// use prisma-8`), las migraciones son archivos `migration.ts` que se compilan a `ops.json`, y desaparecen `@prisma/client`, `@prisma/adapter-pg`, `generate`, `migrate deploy` y los códigos `P2002`/`P2025`. A la fecha de esta decisión el cliente para PostgreSQL (`@prisma/orm-postgres`) sigue en versión candidata (`8.0.0-rc.17`, CLI `8.0.0-rc.22`); Prisma anuncia la versión final para octubre de 2026 y mantiene Prisma 7 durante 18 meses después.
+Prisma ORM 8 is not a new version of Prisma 7: it is a different tool. It changes the query API (`db.orm.public.Page.where(...).first()` instead of `prisma.page.findUnique(...)`), the schema becomes a "contract" (`// use prisma-8`), migrations are `migration.ts` files that compile to `ops.json`, and `@prisma/client`, `@prisma/adapter-pg`, `generate`, `migrate deploy` and the `P2002`/`P2025` codes go away. As of this decision, the PostgreSQL client (`@prisma/orm-postgres`) is still a release candidate (`8.0.0-rc.17`, CLI `8.0.0-rc.22`); Prisma announces the final release for October 2026 and keeps supporting Prisma 7 for 18 months after that.
 
-Se decidió migrar ahora y no esperar la versión final, sabiendo que obliga a reescribir la capa de datos completa y a migrar datos en las bases existentes.
+We decided to migrate now instead of waiting for the final release, knowing that it forces a rewrite of the whole data layer and a data migration on existing databases.
 
-Hechos que condicionan el diseño, todos verificados con un prototipo y contra la documentación oficial:
+Facts that constrain the design, all verified with a prototype and against the official documentation:
 
-- Las columnas de fecha que creó Prisma 7 son `timestamp(3)` sin zona horaria. Prisma 8 las lee como texto; su tipo de fecha (`DateTime`) es `timestamptz`.
-- El contrato no puede representar dos cosas que la búsqueda necesita: las columnas `tsvector` generadas y los índices de trigramas con clase de operador (`gin_trgm_ops`). La introspección descarta la clase de operador, así que esos índices nunca verificarían.
-- Prisma 7 creó las unicidades como índices únicos, no como restricciones. `upsert({ conflictOn })` solo acepta columnas de una restricción `@@unique`.
-- Todo el SQL generado nombra el esquema (`"public"."Page"`).
-- Una base existente se adopta con `prisma db sign`, que se niega a firmar si el esquema no coincide exactamente con el contrato.
+- The date columns created by Prisma 7 are `timestamp(3)` without time zone. Prisma 8 reads them as text; its date type (`DateTime`) is `timestamptz`.
+- The contract cannot represent two things that search needs: generated `tsvector` columns and trigram indexes with an operator class (`gin_trgm_ops`). Introspection discards the operator class, so those indexes would never verify.
+- Prisma 7 created uniqueness as unique indexes, not as constraints. `upsert({ conflictOn })` only accepts columns of a `@@unique` constraint.
+- All generated SQL names the schema (`"public"."Page"`).
+- An existing database is adopted with `prisma db sign`, which refuses to sign if the schema does not exactly match the contract.
 
 ## Alternatives Considered
 
-- **Quedarse en Prisma 7.10 hasta la versión final de Prisma 8.** PRO: sin riesgo de cambios entre versiones candidatas; Prisma 7 tiene soporte asegurado. CON: la migración queda pendiente, y es igual de grande con o sin la versión final. Rechazada por decisión del producto.
-- **Leer el `schema.prisma` de Prisma 7 desde Prisma 8 (`prisma7Schema(...)`).** PRO: un solo archivo de esquema durante la transición. CON: falla con los campos `Unsupported("tsvector")` y deja las fechas como texto. Rechazada.
-- **Tipar las fechas como `DateTime` (`Temporal.Instant`).** PRO: el tipo que Prisma 8 propone por defecto. CON: obliga a cambiar `Date` por `Temporal` en todo el dominio, los DTOs y las pruebas. Rechazada en favor de `TimestamptzJsDate`, que lee `timestamptz` como `Date` con la misma precisión de milisegundos que tenía Prisma 7.
-- **Reescribir la búsqueda con el ORM y `@@fullTextIndex`.** PRO: menos SQL directo. CON: no soporta el vector ponderado por idioma ni los índices de trigramas sin acentos; cambiaría el ranking. Rechazada: la búsqueda sigue en SQL directo con `db.raw.sql`.
+- **Stay on Prisma 7.10 until the final release of Prisma 8.** PRO: no risk of changes between release candidates; Prisma 7 has guaranteed support. CON: the migration stays pending, and it is just as large with or without the final release. Rejected by product decision.
+- **Read the Prisma 7 `schema.prisma` from Prisma 8 (`prisma7Schema(...)`).** PRO: a single schema file during the transition. CON: it fails with `Unsupported("tsvector")` fields and leaves dates as text. Rejected.
+- **Type dates as `DateTime` (`Temporal.Instant`).** PRO: the type Prisma 8 proposes by default. CON: it forces replacing `Date` with `Temporal` across the domain, the DTOs and the tests. Rejected in favor of `TimestamptzJsDate`, which reads `timestamptz` as `Date` with the same millisecond precision Prisma 7 had.
+- **Rewrite search with the ORM and `@@fullTextIndex`.** PRO: less raw SQL. CON: it does not support the language-weighted vector or the accent-insensitive trigram indexes; it would change the ranking. Rejected: search stays in raw SQL with `db.raw.sql`.
 
 ## Decision
 
-Usaremos Prisma ORM 8 (`prisma` y `@prisma/orm-postgres`) como única capa de acceso a datos. Concretamente:
+We will use Prisma ORM 8 (`prisma` and `@prisma/orm-postgres`) as the only data access layer. Specifically:
 
-1. **Contrato escrito a mano** en `packages/db/prisma/{models,enums}`, un archivo por modelo y por enum, con los nombres exactos de tablas, restricciones e índices que ya existen. Los enums son `native_enum` para conservar los tipos de PostgreSQL. Las fechas son `TimestamptzJsDate`, y `updatedAt` es `temporal.updatedAtJsDate()`.
-2. **Lo que el contrato no puede expresar vive en SQL dentro de la migración base**: las extensiones `unaccent` y `pg_trgm`, la función `immutable_unaccent`, las columnas `tsvector` generadas y sus índices GIN, y los índices de trigramas. `db verify` sin `--strict` tolera esos elementos adicionales.
-3. **Migraciones** en `packages/db/migrations/app`:
-   - `baseline` reproduce exactamente el esquema que dejaba Prisma 7, comprobado comparando `pg_dump`;
-   - `timestamps_with_time_zone` convierte las fechas con `USING columna AT TIME ZONE 'UTC'` (Prisma 7 siempre guardó UTC), vuelve obligatorias las cuatro columnas lista y normaliza los `null` de JSON a `NULL` de SQL;
-   - `unique_constraints` promueve los índices únicos a restricciones con `ADD CONSTRAINT ... USING INDEX`, sin reconstruirlos.
-4. **Adopción automática de bases de Prisma 7**: `packages/db/scripts/migrate-deploy.ts` firma la base en el estado de la línea base si encuentra `_prisma_migrations` y no encuentra la marca de Prisma 8, y luego aplica lo pendiente.
-5. **`@neuma/db` expone una API mínima**: `createNeumaDatabase`, `NeumaDatabase`, `NeumaTransaction`, los enums como objetos `as const` con su tipo del mismo nombre, `isUniqueViolation` (por `sqlState` 23505) y los tipos de JSON. En el backend, `PrismaService` envuelve el cliente con `models`, `modelsFor(transaction)`, `transaction`, `sql`, `tables` y `runner`.
+1. **Hand-written contract** in `packages/db/prisma/{models,enums}`, one file per model and per enum, with the exact names of the tables, constraints and indexes that already exist. Enums are `native_enum` to keep the PostgreSQL types. Dates are `TimestamptzJsDate`, and `updatedAt` is `temporal.updatedAtJsDate()`.
+2. **What the contract cannot express lives in SQL inside the baseline migration**: the `unaccent` and `pg_trgm` extensions, the `immutable_unaccent` function, the generated `tsvector` columns and their GIN indexes, and the trigram indexes. `db verify` without `--strict` tolerates those extra elements.
+3. **Migrations** in `packages/db/migrations/app`:
+   - `baseline` reproduces exactly the schema Prisma 7 left behind, checked by comparing `pg_dump` output;
+   - `timestamps_with_time_zone` converts the dates with `USING column AT TIME ZONE 'UTC'` (Prisma 7 always stored UTC), makes the four list columns required, and normalizes JSON `null`s to SQL `NULL`;
+   - `unique_constraints` promotes the unique indexes to constraints with `ADD CONSTRAINT ... USING INDEX`, without rebuilding them.
+4. **Automatic adoption of Prisma 7 databases**: `packages/db/scripts/migrate-deploy.ts` signs the database at the baseline state if it finds `_prisma_migrations` and does not find the Prisma 8 marker, and then applies whatever is pending.
+5. **`@neuma/db` exposes a minimal API**: `createNeumaDatabase`, `NeumaDatabase`, `NeumaTransaction`, the enums as `as const` objects with a type of the same name, `isUniqueViolation` (by `sqlState` 23505) and the JSON types. In the backend, `PrismaService` wraps the client with `models`, `modelsFor(transaction)`, `transaction`, `sql`, `tables` and `runner`.
 
 ## Consequences
 
-- Positivas: una sola versión de Prisma, sin cliente generado en `src/generated` (el contrato emitido se commitea), fechas con zona horaria en la base, y `upsert` atómico sobre cualquier unicidad.
-- Negativas:
-  - La API es candidata: entre una rc y la siguiente pueden cambiar detalles y habrá que ajustar código.
-  - Faltan funciones que Prisma 7 tenía. El `increment` se reemplaza por SQL directo, las actualizaciones anidadas por escrituras separadas en una transacción, los niveles de aislamiento por `SET TRANSACTION`, y `update` que no encuentra fila devuelve `null` en lugar de lanzar, así que cada caso lanza su propio error con contexto.
-  - El SQL directo no acepta `Date`, arreglos ni `null` interpolados: se pasan como `toISOString()::timestamptz`, como una lista JSON (`buildSqlTextList`) o como `NULL::tipo` escrito en la sentencia.
-  - Prisma 8 no tiene Studio ni comando de seed; el seed es un script que crea su propio cliente.
-- Un despliegue existente no requiere pasos manuales: la imagen de migraciones lo adopta.
+- Positive: a single Prisma version, no generated client in `src/generated` (the emitted contract is committed), time-zone-aware dates in the database, and atomic `upsert` on any uniqueness.
+- Negative:
+  - The API is a release candidate: details can change from one rc to the next and code will need adjusting.
+  - Some features Prisma 7 had are missing. `increment` is replaced by raw SQL, nested updates by separate writes in a transaction, isolation levels by `SET TRANSACTION`, and an `update` that finds no row returns `null` instead of throwing, so each case throws its own error with context.
+  - Raw SQL does not accept interpolated `Date`, arrays or `null`: they are passed as `toISOString()::timestamptz`, as a JSON list (`buildSqlTextList`) or as `NULL::type` written in the statement.
+  - Prisma 8 has no Studio or seed command; the seed is a script that creates its own client.
+- An existing deployment requires no manual steps: the migrations image adopts it.
 
 ## Governance
 
-- Cada cambio de esquema es: editar el contrato, `bun run db:generate` (`contract emit`), `bun run db:migrate --name <nombre>` (`migration plan`), revisar `migration.ts`, recompilarlo con `node migrations/app/<dir>/migration.ts` y commitear la carpeta, el snapshot y la referencia `db`.
-- `prisma migration check` debe pasar; una migración que borre o convierta datos se revisa a mano antes de commitear, porque `db migrate` aplica las operaciones destructivas sin preguntar.
-- Al salir la versión final de Prisma 8, se actualizan `prisma` y `@prisma/orm-postgres` y se revisa su changelog contra los puntos de este ADR.
+- Every schema change is: edit the contract, `bun run db:generate` (`contract emit`), `bun run db:migrate --name <name>` (`migration plan`), review `migration.ts`, recompile it with `node migrations/app/<dir>/migration.ts` and commit the folder, the snapshot and the `db` reference.
+- `prisma migration check` must pass; a migration that deletes or converts data is reviewed by hand before committing, because `db migrate` applies destructive operations without asking.
+- When the final version of Prisma 8 ships, `prisma` and `@prisma/orm-postgres` are updated and their changelog is reviewed against the points in this ADR.
 
 ## Notes
 
-- Author: El-Vitas, con Claude
+- Author: El-Vitas, with Claude
 - Created: 2026-10-11
-- Fuentes: guías oficiales «Coming from Prisma ORM 7», «Migrate from Prisma ORM 7 to 8 (PostgreSQL)», «Release status», referencia del cliente ORM y de consultas directas.
+- Sources: the official guides "Coming from Prisma ORM 7", "Migrate from Prisma ORM 7 to 8 (PostgreSQL)", "Release status", and the ORM client and raw query reference.

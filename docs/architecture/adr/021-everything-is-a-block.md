@@ -1,140 +1,140 @@
-# 021: Todo es un bloque, incluso la página
+# 021: Everything is a block, even the page
 
 **Status:** Accepted
 **Date:** 2026-10-19
-**Supersedes:** 008 (la primitiva de contenido y el almacenamiento), 020 (un documento Yjs por página en Hocuspocus)
+**Supersedes:** 008 (the content primitive and its storage), 020 (one Yjs document per page in Hocuspocus)
 
 ## Context
 
-Neuma guarda cada página como un documento ProseMirror en `Page.content`, más un estado Yjs en `CollaborationSnapshot`. Los bloques existen dentro de ese documento y se copian a `PageBlock` y `SearchDocument` para buscar (ADR 008, nivel 3). Ese modelo tiene cuatro límites que el producto ya no acepta:
+Neuma stores each page as a ProseMirror document in `Page.content`, plus a Yjs state in `CollaborationSnapshot`. Blocks exist inside that document and are copied to `PageBlock` and `SearchDocument` for search (ADR 008, level 3). That model has four limits the product no longer accepts:
 
-- una página y un bloque son dos cosas distintas, y cada capacidad (permisos, mover, enlazar, versiones, papelera) se resuelve dos veces;
-- no hay permisos por bloque, porque quien abre el documento de una página recibe todo su contenido;
-- cada guardado reescribe la página entera, aunque cambie una letra;
-- la búsqueda y los retroenlaces llegan con atraso, porque un worker los proyecta después.
+- a page and a block are two different things, and every capability (permissions, move, link, versions, trash) is solved twice;
+- there are no per-block permissions, because whoever opens a page's document receives all of its content;
+- every save rewrites the entire page, even if one letter changes;
+- search and backlinks arrive with a lag, because a worker projects them afterwards.
 
-El 19 de octubre de 2026 se diseñó el modelo de reemplazo. Una página es un registro `block` de tipo `page`, igual que un párrafo. Un cambio es una transacción de operaciones sobre registros. El texto de cada bloque tiene su propio CRDT. Un canal en vivo avisa versiones, y los permisos se heredan de los bloques que los declaran.
+On October 19, 2026 the replacement model was designed. A page is a `block` record of type `page`, just like a paragraph. A change is a transaction of operations over records. Each block's text has its own CRDT. A live channel announces versions, and permissions are inherited from the blocks that declare them.
 
 ## Alternatives Considered
 
-- **Mantener un documento por página, con mejoras (nivel 3).**
-  - PRO: no se rehace el editor ni la colaboración.
-  - CON: los cuatro límites siguen. Página y bloque siguen siendo dos cosas, y los permisos por bloque son imposibles con un solo documento por página.
-- **Bloques como filas con un servidor de transformación operacional (OT), sin CRDT.**
-  - PRO: el servidor decide el orden de todo.
-  - CON: hay que escribir la transformación de texto concurrente, que Yjs ya resuelve y probó.
-- **Bloques como filas, operaciones en transacciones y Yjs por bloque para el texto (elegida).**
-  - PRO: una sola entidad; permisos por bloque; cambios pequeños; búsqueda y retroenlaces en la misma transacción.
-  - CON: se rehace el editor, la colaboración y todo lector de `Page.content`, y hay que migrar las páginas existentes.
+- **Keep one document per page, with improvements (level 3).**
+  - PRO: the editor and collaboration are not redone.
+  - CON: the four limits remain. Page and block remain two things, and per-block permissions are impossible with a single document per page.
+- **Blocks as rows with an operational transformation (OT) server, no CRDT.**
+  - PRO: the server decides the order of everything.
+  - CON: the concurrent text transformation has to be written, which Yjs already solves and has proven.
+- **Blocks as rows, operations in transactions and Yjs per block for the text (chosen).**
+  - PRO: a single entity; per-block permissions; small changes; search and backlinks in the same transaction.
+  - CON: the editor, collaboration and every reader of `Page.content` are redone, and existing pages have to be migrated.
 
 ## Decision
 
-### Una sola entidad: `Block`
+### A single entity: `Block`
 
-Todo lo que hoy es `Page` o un nodo dentro de `Page.content` pasa a ser una fila de `Block`.
+Everything that today is a `Page` or a node inside `Page.content` becomes a `Block` row.
 
-| Campo | Qué guarda |
+| Field | What it stores |
 |---|---|
-| `id`, `spaceId`, `type` | identidad y tipo: `page`, `paragraph`, `heading`, `toggle`, `collection` y los demás tipos del contenido actual |
-| `parentId` | el bloque padre; nulo en un bloque raíz del espacio |
-| `children` | ids de los hijos, en orden |
-| `properties` | el texto armado (texto, marcas y nodos en línea) y las propiedades del tipo; en una fila de colección, sus valores |
-| `format` | presentación: color, alineación, tamaño, ícono, portada |
-| `text` | el texto plano del bloque, para buscar |
-| `textState` | el estado Yjs del texto, solo en bloques que tienen texto |
-| `permissions` | solo en bloques que los declaran; los demás heredan |
-| `alive`, `lifecycle`, `lockedAt` | existencia, papelera y bloqueo |
-| `version` | sube con cada operación aplicada |
-| `createdAt/By`, `editedAt/By` | autoría |
+| `id`, `spaceId`, `type` | identity and type: `page`, `paragraph`, `heading`, `toggle`, `collection` and the other types in the current content |
+| `parentId` | the parent block; null on a root block of the space |
+| `children` | ids of the children, in order |
+| `properties` | the assembled text (text, marks and inline nodes) and the type's properties; in a collection row, its values |
+| `format` | presentation: color, alignment, size, icon, cover |
+| `text` | the block's plain text, for search |
+| `textState` | the Yjs state of the text, only in blocks that have text |
+| `permissions` | only in blocks that declare them; the others inherit |
+| `alive`, `lifecycle`, `lockedAt` | existence, trash and lock |
+| `version` | increases with every applied operation |
+| `createdAt/By`, `editedAt/By` | authorship |
 
-Se mantienen de ADR 008:
-- un `Space` sigue siendo el límite de permisos;
-- una colección es un bloque de tipo `page` con esquema, y sus filas son sus hijos;
-- una mención produce un enlace dirigido entre bloques.
+Kept from ADR 008:
+- a `Space` remains the permissions boundary;
+- a collection is a block of type `page` with a schema, and its rows are its children;
+- a mention produces a directed link between blocks.
 
-### Un cambio es una transacción de operaciones
+### A change is a transaction of operations
 
-`POST /api/v1/transactions` recibe `{ transactions: [{ id, operations }] }`. Cada operación tiene la forma `{ pointer: { table: "block", id }, path, command, args }`.
+`POST /api/v1/transactions` receives `{ transactions: [{ id, operations }] }`. Each operation has the form `{ pointer: { table: "block", id }, path, command, args }`.
 
-- Comandos:
-  - `set` y `update`, que reemplazan o mezclan campos;
-  - `listAfter`, `listBefore` y `listRemove`, que cambian `children` relativo a un id;
-  - `applyText`, que lleva un update de Yjs para el texto del bloque;
-  - `setPermission`, que cambia permisos.
-- Cada transacción del cliente es una transacción de Postgres:
-  1. bloquea las filas que toca;
-  2. revisa el permiso de cada puntero;
-  3. valida el resultado con el esquema del tipo;
-  4. sube `version`;
-  5. y aplica todo o nada.
-- **Conflictos:**
-  - el texto se mezcla con Yjs;
-  - el orden de los hijos se arma con inserciones relativas a un id;
-  - en los demás campos gana el último en escribir, y una `expectedVersion` que no coincide queda registrada.
-- **Reintento seguro.** El `id` de la transacción es único: si un cliente la reenvía después de un corte, el servidor responde lo mismo y no la aplica dos veces.
-- **Aplicar `applyText`** combina el update con `textState` y recalcula `properties` y `text` en la misma transacción.
+- Commands:
+  - `set` and `update`, which replace or merge fields;
+  - `listAfter`, `listBefore` and `listRemove`, which change `children` relative to an id;
+  - `applyText`, which carries a Yjs update for the block's text;
+  - `setPermission`, which changes permissions.
+- Each client transaction is a Postgres transaction:
+  1. it locks the rows it touches;
+  2. it checks the permission of each pointer;
+  3. it validates the result against the type's schema;
+  4. it bumps `version`;
+  5. and it applies all or nothing.
+- **Conflicts:**
+  - text is merged with Yjs;
+  - the order of children is built with insertions relative to an id;
+  - in the other fields the last writer wins, and an `expectedVersion` that does not match is recorded.
+- **Safe retry.** The transaction `id` is unique: if a client resends it after a disconnect, the server answers the same and does not apply it twice.
+- **Applying `applyText`** merges the update with `textState` and recomputes `properties` and `text` in the same transaction.
 
-### Lo que antes era una proyección, ahora va en la misma transacción
+### What used to be a projection now goes in the same transaction
 
-- **Búsqueda.** `text` es una columna del bloque, con un `tsvector` generado y un índice trigram. Se busca sobre `Block` directamente, y desaparecen `PageBlock` y `SearchDocument`. Un cambio se encuentra apenas se confirma la transacción.
-- **Retroenlaces.** La transacción que cambia un bloque reconcilia sus enlaces salientes.
-- **El outbox** queda para consumidores externos o lentos, y se limpia lo procesado.
+- **Search.** `text` is a column of the block, with a generated `tsvector` and a trigram index. Search runs directly on `Block`, and `PageBlock` and `SearchDocument` disappear. A change is found as soon as the transaction commits.
+- **Backlinks.** The transaction that changes a block reconciles its outgoing links.
+- **The outbox** remains for external or slow consumers, and what has been processed is cleaned up.
 
-### Canal en vivo propio
+### Own live channel
 
-Un WebSocket en el backend reemplaza a Hocuspocus.
+A WebSocket in the backend replaces Hocuspocus.
 
-- El cliente se suscribe a las páginas que tiene abiertas.
-- Al confirmar una transacción, Postgres avisa con `NOTIFY`. El backend envía a cada suscriptor que puede leer el bloque las operaciones aplicadas y la nueva `version`.
-- Al reconectar, el cliente pide con `POST /api/v1/sync` los bloques cuya versión tiene atrasada.
-- La presencia (en qué bloque está cada persona) viaja por el mismo canal, con vencimiento.
+- The client subscribes to the pages it has open.
+- When a transaction commits, Postgres notifies with `NOTIFY`. The backend sends each subscriber who can read the block the applied operations and the new `version`.
+- On reconnect, the client asks with `POST /api/v1/sync` for the blocks whose version it is behind on.
+- Presence (which block each person is in) travels over the same channel, with expiry.
 
-### Permisos por bloque
+### Per-block permissions
 
-- El rol efectivo sobre un bloque es el que da su ancestro más cercano con `permissions`, dentro de lo que el espacio permite.
-- Cualquier bloque, no solo una página, puede declarar permisos.
-- Quien no puede leer un bloque no lo recibe ni en la lectura ni en el canal. Su id se quita de `children` antes de responder, así no se revela que existe.
-- Las reglas actuales de privacidad del espacio y de páginas privadas se mantienen.
+- The effective role on a block is the one given by its nearest ancestor with `permissions`, within what the space allows.
+- Any block, not just a page, can declare permissions.
+- Whoever cannot read a block does not receive it, neither in the read nor on the channel. Its id is removed from `children` before responding, so its existence is not revealed.
+- The current privacy rules for the space and for private pages are kept.
 
 ### Editor
 
-ProseMirror sigue siendo la vista de una página. Su documento se arma desde los bloques, y cada nodo de bloque lleva el id de su fila. Una capa nueva traduce cada transacción del editor:
-- los cambios de estructura (crear, mover, borrar, cambiar tipo o formato) pasan a operaciones `set`, `update` y `list*`;
-- el texto dentro de un bloque se edita sobre su `Y.Text`, con las marcas como atributos y los nodos en línea como embeds, y viaja como `applyText`.
+ProseMirror remains the view of a page. Its document is built from the blocks, and each block node carries the id of its row. A new layer translates each editor transaction:
+- structure changes (create, move, delete, change type or format) become `set`, `update` and `list*` operations;
+- text inside a block is edited on its `Y.Text`, with marks as attributes and inline nodes as embeds, and travels as `applyText`.
 
-### Historial
+### History
 
-Una versión de página es una foto de su subárbol, tomada al cerrar una racha de edición, igual que hoy con `PageVersion`.
+A page version is a snapshot of its subtree, taken when a burst of editing ends, just like `PageVersion` today.
 
-### Migración
+### Migration
 
-Un comando de una sola vez convierte cada `Page` y su `Page.content` en filas de `Block`, genera el `textState` desde el texto con sus marcas y conserva ids, versiones y papelera. Antes corre un respaldo completo.
+A one-time command converts each `Page` and its `Page.content` into `Block` rows, generates the `textState` from the text with its marks and keeps ids, versions and trash. A full backup runs first.
 
 ## Consequences
 
-- Positivas:
-  - una página y un párrafo se mueven, enlazan, versionan, borran y protegen igual;
-  - permisos por bloque, que pueden ir más abajo que la página;
-  - un cambio escribe solo lo que cambió;
-  - búsqueda y retroenlaces inmediatos, sin worker ni copias aparte;
-  - el MCP y los agentes editan y citan bloques por id, como filas.
-- Negativas:
-  - se rehacen el editor (208 archivos), la colaboración, el MCP, la exportación, las colecciones, el historial y la búsqueda;
-  - la migración toca todo el contenido existente;
-  - la capa entre ProseMirror y los bloques es código propio que hay que probar a fondo;
-  - abrir una página lee muchas filas en vez de una; se resuelve con una consulta por subárbol y un índice por `parentId`.
-- Aceptado como costo: mientras dure el cambio, el modelo viejo y el nuevo conviven detrás de una bandera, y el modelo viejo se retira solo cuando el nuevo pasa todas las pruebas.
+- Positive:
+  - a page and a paragraph are moved, linked, versioned, deleted and protected the same way;
+  - per-block permissions, which can go deeper than the page;
+  - a change writes only what changed;
+  - immediate search and backlinks, with no worker or separate copies;
+  - the MCP and agents edit and cite blocks by id, as rows.
+- Negative:
+  - the editor (208 files), collaboration, the MCP, export, collections, history and search are redone;
+  - the migration touches all existing content;
+  - the layer between ProseMirror and the blocks is our own code that has to be tested thoroughly;
+  - opening a page reads many rows instead of one; this is addressed with one query per subtree and an index on `parentId`.
+- Accepted as a cost: while the change lasts, the old and new models coexist behind a flag, and the old model is retired only when the new one passes all tests.
 
 ## Governance
 
-El cambio entra por etapas, en el orden de `docs/superpowers/plans/2026-10-19-todo-es-un-bloque.md`, cada una con pruebas primero. Ninguna etapa borra el modelo viejo hasta que la migración se pruebe contra una copia de la base de producción. Las reglas de negocio que suponen un documento por página se reemplazan con `rules:add` y `supersedes` al implementar su etapa:
-- BR-1e9a26a, «El documento en vivo lo siembra el servidor, una sola vez»;
-- BR-585748e, «La página se guarda desde su documento en vivo».
+The change goes in by stages, in the order of `docs/superpowers/plans/2026-10-19-everything-is-a-block.md`, each with tests first. No stage deletes the old model until the migration is tested against a copy of the production database. The business rules that assume one document per page are replaced with `rules:add` and `supersedes` when their stage is implemented:
+- BR-1e9a26a, "The live document is seeded by the server, only once";
+- BR-585748e, "The page is saved from its live document".
 
 ## Notes
 
-- Author: El-Vitas, con Claude
+- Author: El-Vitas, with Claude
 - Created: 2026-10-19
 - Approved by: El-Vitas, 2026-10-19
-- Modified: 2026-10-19. El editor manda sus transacciones y sus lecturas `sync` por el canal en vivo, con el mismo servicio que los endpoints HTTP. Pasar cada tecla por el servidor de Next sumaba un salto, y el WebSocket directo al backend ya está permitido (ADR 014). El MCP y las acciones del servidor siguen usando HTTP.
-- Modified: 2026-10-24. Una `expectedVersion` que no coincide ya no solo queda registrada. En las celdas de una fila y al mover una fila (`PATCH …/properties` y `PATCH …/move`), el servidor la compara dentro del bloqueo de la fila y responde 409 `PAGE_VERSION_CONFLICT` sin escribir nada. El portal muestra el conflicto en el panel de rechazados, con «Reintentar» para que gane el valor de la persona (ADR 029).
+- Modified: 2026-10-19. The editor sends its transactions and its `sync` reads over the live channel, with the same service as the HTTP endpoints. Passing every keystroke through the Next server added a hop, and the WebSocket directly to the backend is already allowed (ADR 014). The MCP and the server actions keep using HTTP.
+- Modified: 2026-10-24. An `expectedVersion` that does not match is no longer just recorded. In a row's cells and when moving a row (`PATCH …/properties` and `PATCH …/move`), the server compares it inside the row lock and answers 409 `PAGE_VERSION_CONFLICT` without writing anything. The portal shows the conflict in the rejected panel, with "Retry" so that the person's value wins (ADR 029).

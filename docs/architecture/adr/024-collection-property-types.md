@@ -1,249 +1,249 @@
-# 024: Nuevos tipos de propiedad de colección y opciones identificadas por id
+# 024: New collection property types and options identified by id
 
 **Status:** Accepted
 **Date:** 2026-10-20
 **Depends on:** `021-everything-is-a-block.md`, `023-comments-as-discussions.md`
-**Precedes:** la etapa 4 del plan `2026-10-20-trabajo-diario.md` (vistas por reductores), que filtra, ordena y agrupa sobre lo que este ADR fija.
+**Precedes:** stage 4 of the plan `2026-10-20-daily-work.md` (views by reducers), which filters, sorts and groups on top of what this ADR fixes.
 
 ## Context
 
-Una colección es un bloque `page` con un esquema (`PageSchemaProperty`, una fila por propiedad con `key`, `label`, `type`, `required`, `options`) y vistas (`PageSchemaView`). Los valores de cada fila viven en `properties.values` de su bloque, indexados por `key`. Hoy hay ocho tipos: título, texto, selección, selección múltiple, persona, fecha, casilla y número. El plan pide once más (etapa 3), y la etapa 4 construirá la consulta del servidor encima de ellos.
+A collection is a `page` block with a schema (`PageSchemaProperty`, one row per property with `key`, `label`, `type`, `required`, `options`) and views (`PageSchemaView`). The values of each row live in the `properties.values` of its block, indexed by `key`. Today there are eight types: title, text, select, multi-select, person, date, checkbox and number. The plan asks for eleven more (stage 3), and stage 4 will build the server query on top of them.
 
-Cuatro cosas del modelo actual no aguantan los tipos nuevos:
+Four things in the current model do not hold up with the new types:
 
-- **Las opciones se identifican por su nombre.** Una selección guarda `"En curso"` en cada fila. Renombrar una opción reescribe todas las filas, y dos personas que renombran y editan a la vez se pisan (BR-699e037 existe para parchar eso). Los filtros guardados, las columnas colapsadas y los límites de columna de las vistas también citan nombres. Agrupar por nombre es justo lo que hay que evitar.
-- **Persona guarda un solo id** y **fecha guarda un solo instante**, sin rango ni varios valores.
-- **Un número es un número a secas**, sin moneda, porcentaje ni decimales.
-- **`required` existe en el servidor** (una fila sin ese valor se rechaza) pero ninguna pantalla lo ofrece, y la regla actual rechaza editar cualquier otra propiedad de una fila vieja que no tenga el valor.
+- **Options are identified by their name.** A select stores `"En curso"` in each row. Renaming an option rewrites all the rows, and two people who rename and edit at the same time step on each other (BR-699e037 exists to patch that). Saved filters, collapsed columns and the views' column limits also quote names. Grouping by name is exactly what has to be avoided.
+- **Person stores a single id** and **date stores a single instant**, with no range or multiple values.
+- **A number is just a number**, with no currency, percentage or decimals.
+- **`required` exists on the server** (a row without that value is rejected) but no screen offers it, and the current rule rejects editing any other property of an old row that lacks the value.
 
-El servidor ya valida cada transacción contra el esquema del tipo (ADR 021, paso 3) y las lecturas de filas ya quitan lo que el lector no puede ver. Los tipos nuevos tienen que sostener las dos garantías.
+The server already validates each transaction against the type's schema (ADR 021, step 3) and row reads already strip what the reader cannot see. The new types have to uphold both guarantees.
 
 ## Alternatives Considered
 
-### Identidad de las opciones
+### Option identity
 
-- **Seguir por nombre.**
-  - PRO: cero migración.
-  - CON: renombrar es una reescritura masiva y concurrente. Cada tipo nuevo con opciones (estado) heredaría el problema, y la agrupación del tablero quedaría atada al texto visible.
-- **Id estable por opción, asignado por el servidor (elegida).**
-  - PRO: renombrar toca solo el esquema. Filas, filtros y vistas no cambian. El orden de las opciones puede cambiar sin afectar a nadie.
-  - CON: una migración que reescribe filas y vistas, y cada borde (MCP, exportación) debe traducir id a nombre.
-- **Índice posicional.**
-  - PRO: valores cortos.
-  - CON: reordenar o borrar una opción corre los índices de todas las filas.
+- **Keep going by name.**
+  - PRO: zero migration.
+  - CON: renaming is a massive, concurrent rewrite. Each new type with options (status) would inherit the problem, and board grouping would stay tied to the visible text.
+- **Stable id per option, assigned by the server (chosen).**
+  - PRO: renaming touches only the schema. Rows, filters and views do not change. The order of options can change without affecting anyone.
+  - CON: a migration that rewrites rows and views, and every edge (MCP, export) must translate id to name.
+- **Positional index.**
+  - PRO: short values.
+  - CON: reordering or deleting an option shifts the indexes of all rows.
 
-### Dónde viven los valores calculados (creación, edición, id único)
+### Where computed values live (creation, edit, unique id)
 
-- **Copiarlos a `properties.values` en cada transacción.**
-  - PRO: el motor de filtros lee todo de un solo lugar.
-  - CON: cada edición escribe una clave más, la copia puede divergir de las columnas, y las filas existentes necesitan un relleno.
-- **Leerlos de las columnas del bloque (elegida para creación y edición).**
-  - PRO: una sola fuente, nada que sincronizar, y la etapa 4 ordena y filtra con un índice sobre `createdAt` y `editedAt`.
-  - CON: el motor compartido recibe un valor compuesto (almacenado más derivado), no solo `values`.
-- **Id único: secuencia de Postgres por colección.**
-  - PRO: lo resuelve el motor.
-  - CON: obliga a crear y borrar secuencias con DDL desde la aplicación, dentro de la transacción de esquema.
-- **Id único: contador en la fila de la propiedad (elegida).**
-  - PRO: `UPDATE ... RETURNING` bajo el bloqueo de fila, dentro de la transacción de la fila que se crea. Si la transacción falla, el número no se consume.
-  - CON: serializa la creación de filas de esa colección mientras dure la transacción. Es corta, y solo afecta a colecciones que tienen la propiedad.
+- **Copy them to `properties.values` on every transaction.**
+  - PRO: the filter engine reads everything from a single place.
+  - CON: each edit writes one more key, the copy can diverge from the columns, and existing rows need a backfill.
+- **Read them from the block's columns (chosen for creation and edit).**
+  - PRO: a single source, nothing to synchronize, and stage 4 sorts and filters with an index on `createdAt` and `editedAt`.
+  - CON: the shared engine receives a composite value (stored plus derived), not just `values`.
+- **Unique id: a Postgres sequence per collection.**
+  - PRO: the engine handles it.
+  - CON: it forces creating and dropping sequences with DDL from the application, inside the schema transaction.
+- **Unique id: a counter on the property row (chosen).**
+  - PRO: `UPDATE ... RETURNING` under the row lock, inside the transaction of the row being created. If the transaction fails, the number is not consumed.
+  - CON: it serializes row creation in that collection for the duration of the transaction. It is short, and only affects collections that have the property.
 
-### Relaciones
+### Relations
 
-- **Tabla de aristas `BlockRelation`.**
-  - PRO: integridad referencial y consulta inversa con índice.
-  - CON: una tabla más, y la lectura de una fila necesita una unión para saber a qué apunta. Duplica lo que ya hace `properties.values`.
-- **Ids dentro de `properties.values`, con la propiedad espejo mantenida por el servidor (elegida).**
-  - PRO: coherente con el resto de los valores, viaja en la misma lectura de la fila, y los permisos filtran con el mismo mecanismo que `children`.
-  - CON: la consulta inversa de una relación de una vía necesita un índice GIN sobre el JSON (se mide en la etapa 4), y no hay clave foránea que impida un id colgante. Las lecturas descartan los ids que ya no apuntan a una fila viva.
+- **`BlockRelation` edge table.**
+  - PRO: referential integrity and an indexed inverse query.
+  - CON: one more table, and reading a row needs a join to know what it points to. It duplicates what `properties.values` already does.
+- **Ids inside `properties.values`, with the mirror property maintained by the server (chosen).**
+  - PRO: consistent with the rest of the values, travels in the same row read, and permissions filter with the same mechanism as `children`.
+  - CON: the inverse query of a one-way relation needs a GIN index on the JSON (measured in stage 4), and there is no foreign key preventing a dangling id. Reads discard ids that no longer point to a live row.
 
-### Estado
+### Status
 
-- **Una selección con un campo `group` opcional.**
-  - PRO: un tipo menos.
-  - CON: el estado tiene invariantes propios (siempre tiene valor, tres grupos fijos, al menos una opción por grupo) que una selección no tiene. Habría que ramificar dentro de la selección.
-- **Un tipo `STATUS` aparte (elegida).**
-  - PRO: sus reglas viven en su definición.
-  - CON: un tipo más que enseñar en cada lista de tipos.
+- **A select with an optional `group` field.**
+  - PRO: one type fewer.
+  - CON: status has its own invariants (it always has a value, three fixed groups, at least one option per group) that a select does not have. It would require branching inside select.
+- **A separate `STATUS` type (chosen).**
+  - PRO: its rules live in its definition.
+  - CON: one more type to teach in every list of types.
 
 ## Decision
 
-### Opciones con id
+### Options with id
 
-Cada opción de `SELECT`, `MULTI_SELECT` y `STATUS` pasa a `{ id, value, color }`, más `group` en estado.
+Each option of `SELECT`, `MULTI_SELECT` and `STATUS` becomes `{ id, value, color }`, plus `group` in status.
 
-- `id` es una cadena aleatoria de 8 caracteres `[a-z0-9]`, única dentro de su propiedad. La asigna el servidor al guardar una opción que llega sin id. El cliente nunca la propone.
-- Las filas guardan el **id**. Selección guarda un id, selección múltiple una lista de ids.
-- `value` es el nombre visible y sigue siendo único dentro de la propiedad.
-- Renombrar una opción cambia solo `value` en el esquema. No reescribe filas ni vistas. `rewriteSchemaOption` pasa a operar por id.
-- Quitar una opción sigue quitando su id de las filas en la misma operación, con la excepción de estado (abajo).
-- Un id que una fila guarda y el esquema ya no conoce se trata como vacío al leer, nunca como un valor. Nada lo reinterpreta por nombre.
-- Las vistas citan ids: valores de filtro de selección, estado y persona, `collapsedGroups` y `columnLimits` cuando agrupan por una propiedad de opciones.
-- **Migración.** Una sola migración de datos (ver más abajo) convierte los nombres existentes a ids.
-- **MCP.** Las herramientas aceptan nombres de opción y los traducen a id en el borde. Un nombre desconocido es un error con la lista de nombres válidos. Las lecturas devuelven `{ id, name }`. Un agente no necesita conocer los ids.
+- `id` is a random 8-character `[a-z0-9]` string, unique within its property. The server assigns it when saving an option that arrives without an id. The client never proposes one.
+- Rows store the **id**. Select stores one id, multi-select a list of ids.
+- `value` is the visible name and remains unique within the property.
+- Renaming an option changes only `value` in the schema. It does not rewrite rows or views. `rewriteSchemaOption` now operates by id.
+- Removing an option still removes its id from the rows in the same operation, with the exception of status (below).
+- An id that a row stores and the schema no longer knows is treated as empty when read, never as a value. Nothing reinterprets it by name.
+- Views quote ids: filter values of select, status and person, `collapsedGroups` and `columnLimits` when they group by an options property.
+- **Migration.** A single data migration (see below) converts the existing names to ids.
+- **MCP.** The tools accept option names and translate them to ids at the edge. An unknown name is an error with the list of valid names. Reads return `{ id, name }`. An agent does not need to know the ids.
 
-### Catálogo de tipos
+### Type catalog
 
-Los once tipos nuevos suman `STATUS`, `RELATION`, `URL`, `EMAIL`, `PHONE`, `FILES`, `CREATED_TIME`, `EDITED_TIME`, `CREATED_BY`, `EDITED_BY` y `UNIQUE_ID`. Tres tipos existentes cambian de forma: persona, fecha y número.
+The eleven new types add `STATUS`, `RELATION`, `URL`, `EMAIL`, `PHONE`, `FILES`, `CREATED_TIME`, `EDITED_TIME`, `CREATED_BY`, `EDITED_BY` and `UNIQUE_ID`. Three existing types change shape: person, date and number.
 
-| Tipo | Valor guardado en `values[key]` | Configuración |
+| Type | Value stored in `values[key]` | Configuration |
 |---|---|---|
-| `STATUS` | id de opción (cadena), siempre presente | opciones con `group`: `TO_DO`, `IN_PROGRESS`, `COMPLETE` |
-| `RELATION` | lista de ids de filas de la colección destino | `targetCollectionId`, `mirrorPropertyKey` (nulo si es de una vía) |
-| `URL` | cadena | ninguna |
-| `EMAIL` | cadena | ninguna |
-| `PHONE` | cadena | ninguna |
-| `FILES` | lista de ids de `FileAsset` | ninguna |
-| `CREATED_TIME`, `EDITED_TIME` | nada. Se lee de `Block.createdAt` y `Block.editedAt` | ninguna |
-| `CREATED_BY`, `EDITED_BY` | nada. Se lee de `Block.createdById` y `Block.editedById` | ninguna |
-| `UNIQUE_ID` | entero asignado por el servidor | `prefix` (opcional) |
-| `PERSON` (cambia) | lista de ids de usuario | `allowsMultiple` (falso por defecto) |
-| `DATE` (cambia) | `{ start, end? }` | ninguna |
-| `NUMBER` (cambia) | número | `format` (`NUMBER`, `PERCENT`, `CURRENCY`), `decimals`, `currency` |
+| `STATUS` | option id (string), always present | options with `group`: `TO_DO`, `IN_PROGRESS`, `COMPLETE` |
+| `RELATION` | list of row ids of the target collection | `targetCollectionId`, `mirrorPropertyKey` (null if one-way) |
+| `URL` | string | none |
+| `EMAIL` | string | none |
+| `PHONE` | string | none |
+| `FILES` | list of `FileAsset` ids | none |
+| `CREATED_TIME`, `EDITED_TIME` | nothing. Read from `Block.createdAt` and `Block.editedAt` | none |
+| `CREATED_BY`, `EDITED_BY` | nothing. Read from `Block.createdById` and `Block.editedById` | none |
+| `UNIQUE_ID` | integer assigned by the server | `prefix` (optional) |
+| `PERSON` (changes) | list of user ids | `allowsMultiple` (false by default) |
+| `DATE` (changes) | `{ start, end? }` | none |
+| `NUMBER` (changes) | number | `format` (`NUMBER`, `PERCENT`, `CURRENCY`), `decimals`, `currency` |
 
-La configuración vive en una columna nueva `PageSchemaProperty.config` (JSON, nula en los tipos sin configuración), validada con un esquema Zod por tipo en `packages/shared`. Las opciones siguen en `options`.
+The configuration lives in a new column `PageSchemaProperty.config` (JSON, null in types without configuration), validated with a Zod schema per type in `packages/shared`. Options remain in `options`.
 
-### Estado
+### Status
 
-- Tres grupos fijos. Cada grupo tiene al menos una opción. Una propiedad nueva nace con tres opciones, una por grupo.
-- La fila siempre tiene valor. Al crearla, el servidor escribe la primera opción del grupo `TO_DO`. Escribir un valor vacío se rechaza. Al agregar la propiedad a una colección con filas, esas filas reciben el mismo valor en la misma transacción.
-- Quitar una opción mueve sus filas a la primera opción restante del mismo grupo. Quitar la última opción de un grupo se rechaza.
-- El filtro admite una opción (`IS`, `IS_NOT`) o un grupo entero con dos operadores nuevos, `IS_IN_GROUP` e `IS_NOT_IN_GROUP`, cuyo valor es el nombre del grupo.
+- Three fixed groups. Each group has at least one option. A new property is born with three options, one per group.
+- The row always has a value. When creating it, the server writes the first option of the `TO_DO` group. Writing an empty value is rejected. When the property is added to a collection with rows, those rows receive the same value in the same transaction.
+- Removing an option moves its rows to the first remaining option of the same group. Removing the last option of a group is rejected.
+- The filter admits an option (`IS`, `IS_NOT`) or an entire group with two new operators, `IS_IN_GROUP` and `IS_NOT_IN_GROUP`, whose value is the group name.
 
-### Relación
+### Relation
 
-- **Destino.** Una colección del mismo espacio que el escritor puede leer. Se admite apuntar a la propia colección (la espejo, si la hay, es otra propiedad).
-- **Validación al escribir.** Cada id debe ser una fila viva, hija de la colección destino y legible por quien escribe. Un id ilegible o inexistente rechaza la transacción con el mismo mensaje en ambos casos, para no revelar que la fila existe. Tope de 100 ids por celda.
-- **Cómo se escribe.** Con dos comandos propios del pipeline de bloques, `addRelation` y `removeRelation`, con argumentos `{ property, targetId, after? }`. `after` es el id de la relación tras la cual se inserta (o ninguno para el final). Son relativos a un id, como `listAfter`, así que conservan el orden y dos personas que agregan filas distintas a la misma celda no se pisan. Ambos son idempotentes. `set` de la lista completa se rechaza en una propiedad de relación. `listAfter` y `listRemove` no se generalizan a `properties.values`.
-- **Dos vías.** Crear la relación en dos vías crea la propiedad espejo en el destino en la misma transacción de esquema (exige poder escribir ambas colecciones y que el destino tenga espacio bajo el tope de propiedades). Al aplicar un comando, la misma transacción bloquea las filas espejo (en orden de id, para evitar bloqueos cruzados) y agrega o quita el id de origen en su celda.
-- **Permiso del lado espejo.** Escribir el espejo exige poder **editar** la fila destino, no solo leerla. Si quien escribe no puede editarla, se rechaza toda la operación con un error tipado (`RELATION_MIRROR_FORBIDDEN`) que nombra que es el lado espejo. Un lector no modifica una página que no puede editar. Si la celda espejo pasaría de 100 ids, toda la transacción se rechaza.
-- **Quitar la propiedad.** Borrar un lado deja el otro como relación de una vía y conserva sus valores. Si se manda a la papelera o se purga la colección destino, la propiedad muestra «colección eliminada» y sus valores no se devuelven.
-- **Lecturas con permisos.** Toda respuesta que incluya filas (lectura de colección, MCP, exportación, y en la etapa 4 los conteos y agregados) quita de cada celda de relación los ids que el lector no puede leer antes de responder, con una sola comprobación en lote por página de filas. El conteo de la celda y cualquier agregado se calculan después de ese filtro. Un id no legible nunca se cuenta.
+- **Target.** A collection in the same space that the writer can read. Pointing to the collection itself is allowed (the mirror, if any, is another property).
+- **Validation on write.** Each id must be a live row, a child of the target collection and readable by the writer. An unreadable or nonexistent id rejects the transaction with the same message in both cases, so as not to reveal that the row exists. Cap of 100 ids per cell.
+- **How it is written.** With two commands of the block pipeline's own, `addRelation` and `removeRelation`, with arguments `{ property, targetId, after? }`. `after` is the id of the relation after which it is inserted (or none for the end). They are relative to an id, like `listAfter`, so they preserve order and two people adding different rows to the same cell do not step on each other. Both are idempotent. `set` of the full list is rejected on a relation property. `listAfter` and `listRemove` are not generalized to `properties.values`.
+- **Two-way.** Creating the relation as two-way creates the mirror property in the target in the same schema transaction (it requires being able to write both collections and that the target has room under the property cap). When a command is applied, the same transaction locks the mirror rows (in id order, to avoid crossed locks) and adds or removes the source id in their cell.
+- **Mirror-side permission.** Writing the mirror requires being able to **edit** the target row, not just read it. If the writer cannot edit it, the whole operation is rejected with a typed error (`RELATION_MIRROR_FORBIDDEN`) that names that it is the mirror side. A reader does not modify a page they cannot edit. If the mirror cell would go over 100 ids, the whole transaction is rejected.
+- **Removing the property.** Deleting one side leaves the other as a one-way relation and keeps its values. If the target collection is sent to the trash or purged, the property shows "collection deleted" and its values are not returned.
+- **Reads with permissions.** Every response that includes rows (collection read, MCP, export, and in stage 4 the counts and aggregates) strips from each relation cell the ids the reader cannot read before responding, with a single batch check per page of rows. The cell count and any aggregate are computed after that filter. An unreadable id is never counted.
 
-### URL, correo y teléfono
+### URL, email and phone
 
-Se guardan como cadena recortada.
-- **URL.** Debe parsear con esquema `http` o `https` y tener host. Máximo 2048 caracteres. El portal antepone `https://` cuando la persona escribe solo el host. El servidor no corrige nada.
-- **Correo.** Un `@`, dominio con punto, sin espacios, máximo 254 caracteres.
-- **Teléfono.** Dígitos, espacios y `+ - ( )`, entre 6 y 20 dígitos.
+They are stored as a trimmed string.
+- **URL.** Must parse with an `http` or `https` scheme and have a host. Maximum 2048 characters. The portal prepends `https://` when the person types only the host. The server corrects nothing.
+- **Email.** One `@`, a domain with a dot, no spaces, maximum 254 characters.
+- **Phone.** Digits, spaces and `+ - ( )`, between 6 and 20 digits.
 
-### Archivos
+### Files
 
-La celda guarda la lista de ids de `FileAsset` (máximo 10). No se duplica el archivo ni se guarda el nombre.
-- Cada id debe ser un activo `ACTIVE` del mismo workspace que subió quien escribe, o uno que ya está en esa celda.
-- Al adjuntarlo, si el activo no tiene `pageId`, se le asigna el de la fila. Un activo referenciado por una celda cuenta como en uso para la limpieza de huérfanos.
-- Las lecturas de filas devuelven junto a los ids el nombre, tamaño y tipo, leídos de `FileAsset`.
+The cell stores the list of `FileAsset` ids (maximum 10). The file is not duplicated and the name is not stored.
+- Each id must be an `ACTIVE` asset of the same workspace uploaded by the writer, or one that is already in that cell.
+- When attaching it, if the asset has no `pageId`, the row's is assigned. An asset referenced by a cell counts as in use for orphan cleanup.
+- Row reads return, next to the ids, the name, size and type, read from `FileAsset`.
 
-### Fecha y autor de creación y edición
+### Creation and edit date and author
 
-No se guardan en `values`. Una escritura sobre estas claves se rechaza. El lector compone un valor derivado desde las columnas del bloque (`withDerivedValues`) y se lo entrega al motor de filtros, orden y agrupación de `packages/shared`. La etapa 4 usa las columnas directamente en SQL. «Editado» refleja cualquier edición de la fila, incluido su cuerpo y las escrituras espejo de una relación.
+They are not stored in `values`. A write to these keys is rejected. The reader composes a derived value from the block's columns (`withDerivedValues`) and hands it to the filter, sort and grouping engine of `packages/shared`. Stage 4 uses the columns directly in SQL. "Edited" reflects any edit of the row, including its body and the mirror writes of a relation.
 
-### Id único
+### Unique id
 
-- El valor es el entero. La vista lo muestra como `prefix-N`, o `N` sin prefijo. Cambiar el prefijo cambia cómo se muestra en todas las filas, sin tocar datos.
-- El contador es una columna nueva `PageSchemaProperty.nextValue` (entero, 1 por defecto, solo se usa en `UNIQUE_ID`). Al crear una fila en la colección, la transacción hace `UPDATE ... SET nextValue = nextValue + 1 ... RETURNING` sobre esa fila, escribe el valor en la fila nueva y confirma todo junto. Una escritura del cliente sobre esa clave se rechaza.
-- Al agregar la propiedad a una colección con filas, el servidor las numera por `createdAt` y `id` en la transacción de esquema.
-- Los números no se reutilizan si se borra una fila. Una fila que entra a la colección por un movimiento recibe el siguiente.
+- The value is the integer. The view shows it as `prefix-N`, or `N` without a prefix. Changing the prefix changes how it is displayed in all rows, without touching data.
+- The counter is a new column `PageSchemaProperty.nextValue` (integer, 1 by default, only used in `UNIQUE_ID`). When creating a row in the collection, the transaction runs `UPDATE ... SET nextValue = nextValue + 1 ... RETURNING` on that row, writes the value into the new row and commits everything together. A client write to that key is rejected.
+- When the property is added to a collection with rows, the server numbers them by `createdAt` and `id` in the schema transaction.
+- Numbers are not reused if a row is deleted. A row that enters the collection through a move receives the next one.
 
-### Persona con varios valores
+### Person with multiple values
 
-La celda de persona guarda siempre una lista de ids de usuario. `allowsMultiple` en falso limita la lista a un elemento y es lo que migran las propiedades actuales. Cada id debe ser un miembro del directorio, como hoy.
+The person cell always stores a list of user ids. `allowsMultiple` set to false limits the list to one element and is what current properties migrate to. Each id must be a member of the directory, as today.
 
-### Fecha con rango
+### Date with range
 
-`{ "start": "2026-10-20", "end": "2026-10-25" }`, con `end` ausente en una fecha simple. `start` y `end` usan la misma precisión, `YYYY-MM-DD` o un instante ISO con desfase, y `end` no es anterior a `start`. Las agrupaciones por día, semana y mes usan `start`.
+`{ "start": "2026-10-20", "end": "2026-10-25" }`, with `end` absent on a simple date. `start` and `end` use the same precision, `YYYY-MM-DD` or an ISO instant with offset, and `end` is not earlier than `start`. Groupings by day, week and month use `start`.
 
-### Formatos de número
+### Number formats
 
-El valor guardado es siempre el número plano.
-- `NUMBER`: sin unidad.
-- `CURRENCY`: unidades mayores, con `currency` como código ISO 4217. El portal formatea con `Intl.NumberFormat`.
-- `PERCENT`: se guarda la fracción (`0.25` se muestra «25 %»), para que las sumas y los promedios sigan siendo aritmética correcta. El editor convierte y redondea al escribir.
-- `decimals` (0 a 8, o nulo para libre): el servidor rechaza un valor con más decimales de los configurados. El editor redondea antes de enviar. Se acepta el error de punto flotante para montos grandes. Los agregados de la etapa 4 suman en `numeric` de Postgres.
+The stored value is always the plain number.
+- `NUMBER`: no unit.
+- `CURRENCY`: major units, with `currency` as an ISO 4217 code. The portal formats with `Intl.NumberFormat`.
+- `PERCENT`: the fraction is stored (`0.25` is shown as "25 %"), so that sums and averages remain correct arithmetic. The editor converts and rounds when typing.
+- `decimals` (0 to 8, or null for free): the server rejects a value with more decimals than configured. The editor rounds before sending. Floating-point error is accepted for large amounts. The stage 4 aggregates sum in Postgres `numeric`.
 
 ### `required`
 
-- Se ofrece en el editor de cada propiedad, y la columna lleva un asterisco en el encabezado. No se ofrece para título (siempre requerido), casilla, estado, ni para los tipos calculados (creación, edición, id único), que ya siempre tienen valor.
-- Se exige al crear una fila y cuando se escribe o se vacía esa propiedad. Editar otra propiedad de una fila vieja que no tenía el valor ya no se rechaza (cambio respecto de hoy, donde la regla bloqueaba cualquier edición). La fila muestra «falta» en la propiedad.
-- Vacío significa lo que dice cada tipo: texto en blanco, lista sin elementos, rango ausente.
-- El formulario de fila nueva no se puede confirmar con una propiedad requerida vacía.
+- It is offered in each property's editor, and the column carries an asterisk in the header. It is not offered for title (always required), checkbox, status, or for the computed types (creation, edit, unique id), which always have a value.
+- It is enforced when creating a row and when that property is written or emptied. Editing another property of an old row that did not have the value is no longer rejected (a change from today, where the rule blocked any edit). The row shows "missing" on the property.
+- Empty means what each type says: blank text, list without elements, absent range.
+- The new-row form cannot be confirmed with an empty required property.
 
-### Qué soporta cada tipo
+### What each type supports
 
-El motor compartido de filtros, orden y agrupación se organiza por tipo lógico. Se añaden los tipos lógicos `STATUS`, `RELATION` y `FILES`. Persona pasa a `MULTI_TAG`.
+The shared filter, sort and grouping engine is organized by logical type. The logical types `STATUS`, `RELATION` and `FILES` are added. Person becomes `MULTI_TAG`.
 
-| Tipo | Filtro | Orden | Agrupa | Texto exportado |
+| Type | Filter | Sort | Groups | Exported text |
 |---|---|---|---|---|
-| `TITLE`, `RICH_TEXT`, `URL`, `EMAIL`, `PHONE` | es, no es, contiene, no contiene, vacío | alfabético | no | el texto |
-| `SELECT` | es, no es, vacío | por posición de la opción | sí, por opción | el nombre |
-| `MULTI_SELECT` | contiene, no contiene, vacío | por la primera opción, por posición | sí, la fila aparece en cada valor | nombres separados por coma |
-| `STATUS` | es, no es, en el grupo, no en el grupo | por grupo y luego por posición | sí, por opción o por grupo | el nombre |
-| `PERSON` | contiene, no contiene, vacío | por el primer nombre | sí, la fila aparece en cada persona | nombres separados por coma |
-| `DATE` | es (el día cae en el rango), antes (`end` o `start`), después (`start`), vacío | por `start` y luego `end` | sí, por día, semana o mes de `start` | `AAAA-MM-DD` o `AAAA-MM-DD → AAAA-MM-DD` |
-| `CHECKBOX` | es | falso antes que verdadero | sí | `true` o `false` |
-| `NUMBER` | es, no es, mayor, menor, vacío | numérico | sí | número con su formato |
-| `UNIQUE_ID` | como número | numérico | no | `PREFIJO-N` |
-| `CREATED_TIME`, `EDITED_TIME` | como fecha | cronológico | sí, por día, semana o mes | instante ISO |
-| `CREATED_BY`, `EDITED_BY` | es, no es | por nombre | sí | nombre |
-| `RELATION` | contiene (un id), no contiene, vacío | por cantidad | no | títulos de las filas legibles, separados por coma |
-| `FILES` | vacío, no vacío | no | no | nombres de archivo separados por coma |
+| `TITLE`, `RICH_TEXT`, `URL`, `EMAIL`, `PHONE` | is, is not, contains, does not contain, empty | alphabetical | no | the text |
+| `SELECT` | is, is not, empty | by option position | yes, by option | the name |
+| `MULTI_SELECT` | contains, does not contain, empty | by the first option, by position | yes, the row appears in each value | comma-separated names |
+| `STATUS` | is, is not, in the group, not in the group | by group and then by position | yes, by option or by group | the name |
+| `PERSON` | contains, does not contain, empty | by the first name | yes, the row appears under each person | comma-separated names |
+| `DATE` | is (the day falls in the range), before (`end` or `start`), after (`start`), empty | by `start` and then `end` | yes, by day, week or month of `start` | `YYYY-MM-DD` or `YYYY-MM-DD → YYYY-MM-DD` |
+| `CHECKBOX` | is | false before true | yes | `true` or `false` |
+| `NUMBER` | is, is not, greater, less, empty | numeric | yes | number with its format |
+| `UNIQUE_ID` | as number | numeric | no | `PREFIX-N` |
+| `CREATED_TIME`, `EDITED_TIME` | as date | chronological | yes, by day, week or month | ISO instant |
+| `CREATED_BY`, `EDITED_BY` | is, is not | by name | yes | name |
+| `RELATION` | contains (one id), does not contain, empty | by count | no | titles of the readable rows, comma-separated |
+| `FILES` | empty, not empty | no | no | file names, comma-separated |
 
-Las reglas que la etapa 4 hereda:
-- Ordenar una propiedad de opciones usa el orden de las opciones del esquema, que la persona controla. Reemplaza el orden alfabético de hoy, y se puede expresar en SQL sin unir nombres.
-- Agrupar por una propiedad de varios valores repite la fila en cada grupo. El reductor `groups` informa aparte el conteo de filas distintas, para que un total no se infle.
-- Las filas sin valor forman el grupo «sin valor», salvo en estado, que no lo tiene.
-- Las vistas citan tipos y opciones por id y llave. Un filtro o un orden sobre una propiedad borrada se deja de aplicar, como hoy.
-- El tablero conserva su lista actual de propiedades que agrupan, más estado. No agrupa por varios valores en esta etapa.
+The rules that stage 4 inherits:
+- Sorting an options property uses the order of the schema's options, which the person controls. It replaces today's alphabetical order, and can be expressed in SQL without joining names.
+- Grouping by a multi-value property repeats the row in each group. The `groups` reducer reports the count of distinct rows separately, so that a total does not get inflated.
+- Rows without a value form the "no value" group, except in status, which does not have one.
+- Views quote types and options by id and key. A filter or sort on a deleted property stops being applied, as today.
+- The board keeps its current list of grouping properties, plus status. It does not group by multiple values in this stage.
 
-### Migración
+### Migration
 
-Una sola migración (`packages/db`, conforme a su `AGENTS.md`) hace, en este orden y en una transacción:
-1. agrega los once valores al enum `DatabasePropertyType`, y las columnas `PageSchemaProperty.config` y `PageSchemaProperty.nextValue`;
-2. asigna un id a cada opción de cada selección y selección múltiple;
-3. reescribe en `Block.properties.values` los nombres de opción por sus ids. Un nombre que no está entre las opciones se cuenta y se informa en la salida, no se reinterpreta;
-4. reescribe en `PageSchemaView.configuration` los valores de filtro, `collapsedGroups` y `columnLimits` que apuntan a una propiedad de opciones;
-5. convierte los valores de persona de cadena a lista de un elemento, con `allowsMultiple` en falso, y cambia en las vistas los operadores `IS` e `IS_NOT` de persona a `CONTAINS` y `NOT_CONTAINS`;
-6. convierte los valores de fecha de cadena a `{ start }`;
-`PageVersion.content` no se toca: es el documento del cuerpo de la página (títulos y bloques de contenido), y no guarda `properties.values`.
+A single migration (`packages/db`, per its `AGENTS.md`) does, in this order and in one transaction:
+1. adds the eleven values to the `DatabasePropertyType` enum, and the `PageSchemaProperty.config` and `PageSchemaProperty.nextValue` columns;
+2. assigns an id to each option of each select and multi-select;
+3. rewrites in `Block.properties.values` the option names to their ids. A name that is not among the options is counted and reported in the output, not reinterpreted;
+4. rewrites in `PageSchemaView.configuration` the filter values, `collapsedGroups` and `columnLimits` that point to an options property;
+5. converts person values from string to a one-element list, with `allowsMultiple` set to false, and changes in the views the person operators `IS` and `IS_NOT` to `CONTAINS` and `NOT_CONTAINS`;
+6. converts date values from string to `{ start }`;
+`PageVersion.content` is not touched: it is the page body document (titles and content blocks), and does not store `properties.values`.
 
-Cuenta valores y vistas antes y después, y falla si no coinciden. Se prueba contra una copia de la base con colecciones reales, y se corre primero en una base desechable. Como no hay producción (mismo criterio del ADR 022), no hay convivencia entre el formato viejo y el nuevo.
+It counts values and views before and after, and fails if they do not match. It is tested against a copy of the database with real collections, and is run first on a disposable database. Since there is no production (same criterion as ADR 022), there is no coexistence between the old and the new format.
 
 ## Consequences
 
-- Positivas:
-  - renombrar una opción es un cambio de una fila del esquema y no puede pisar a nadie;
-  - cada tipo nuevo se valida en el servidor con la misma tubería de transacciones, y las relaciones respetan permisos al leer;
-  - la etapa 4 recibe una tabla clara de qué filtra, ordena y agrupa cada tipo, y valores que pueden pasar a SQL con un índice;
-  - creación y edición no divergen de las columnas porque no se copian;
-  - `required` deja de ser una regla invisible.
-- Negativas:
-  - la migración reescribe filas, vistas y versiones, y toca tres formas de valor a la vez (opciones, persona, fecha);
-  - toda lectura de filas con relaciones paga una comprobación de permisos en lote;
-  - la relación en dos vías hace que escribir una celda toque filas ajenas, que se bloquean y suben su `version`;
-  - el contador del id único serializa la creación de filas de esa colección;
-  - cambiar el orden de selección de alfabético a posicional es un cambio visible para quien lo usaba;
-  - sin clave foránea, una relación puede guardar ids colgantes que las lecturas descartan;
-  - como el id de una opción es propio de su propiedad, mover una fila a otra colección cuyas selecciones tienen otros ids se rechaza (409), en vez de guardar valores que aquella colección no entiende;
-  - al guardar la forma, completar los estados por defecto y los números del id único de las filas que ya existían, y limpiar las opciones quitadas, ocurre dentro de la misma transacción de Postgres que el cambio del esquema (la tubería de bloques acepta una transacción ya abierta, `applyTrustedWithin`); si un paso falla, no queda ni la propiedad ni las filas a medias. El costo es que guardar la forma de una colección con una fila que quien guarda no puede editar se rechaza entera;
-  - una transacción cruda de bloques (`POST /transactions`, el canal en vivo) no puede escribir en `values` un id único ni un campo de creación o edición: la tubería lo rechaza con `BLOCK_PROPERTY_SERVER_ASSIGNED`. La tubería lee el esquema de la colección de la fila que toca, así que esa lectura ahora ocurre en toda transacción cliente que cambie una fila. El resto de la validación de valores sigue siendo la de la API de páginas y la del MCP.
-  - el MCP sube archivos con `upload_file` (base64, nombre y tipo, hasta 10 MB) por el mismo servicio de archivos que el portal, y devuelve el id que se pone en una columna de archivos. La ruta del MCP sube el límite del cuerpo de Fastify (1 MiB por defecto) a lo que cabe un archivo de 10 MB en base64.
-- Aceptado como costo: cambiar el tipo de una propiedad sigue fuera (BR-37f128e). Cada tipo nuevo se crea nuevo, y la conversión es una pregunta separada.
+- Positive:
+  - renaming an option is a change to one schema row and cannot step on anyone;
+  - each new type is validated on the server with the same transaction pipeline, and relations respect permissions on read;
+  - stage 4 receives a clear table of what each type filters, sorts and groups, and values that can move to SQL with an index;
+  - creation and edit do not diverge from the columns because they are not copied;
+  - `required` stops being an invisible rule.
+- Negative:
+  - the migration rewrites rows, views and versions, and touches three value shapes at once (options, person, date);
+  - every read of rows with relations pays a batch permission check;
+  - the two-way relation means that writing one cell touches other rows, which are locked and bump their `version`;
+  - the unique id counter serializes row creation in that collection;
+  - changing the select sort from alphabetical to positional is a visible change for whoever used it;
+  - without a foreign key, a relation can store dangling ids that reads discard;
+  - since an option's id belongs to its property, moving a row to another collection whose selects have other ids is rejected (409), instead of storing values that the other collection does not understand;
+  - when saving the shape, completing the default statuses and the unique id numbers of the rows that already existed, and cleaning up removed options, happens inside the same Postgres transaction as the schema change (the block pipeline accepts an already-open transaction, `applyTrustedWithin`); if a step fails, neither the property nor the rows are left half done. The cost is that saving the shape of a collection with a row that the saver cannot edit is rejected entirely;
+  - a raw block transaction (`POST /transactions`, the live channel) cannot write a unique id or a creation or edit field in `values`: the pipeline rejects it with `BLOCK_PROPERTY_SERVER_ASSIGNED`. The pipeline reads the collection schema of the row it touches, so that read now happens in every client transaction that changes a row. The rest of the value validation remains that of the pages API and of the MCP.
+  - the MCP uploads files with `upload_file` (base64, name and type, up to 10 MB) through the same file service as the portal, and returns the id to be put in a files column. The MCP route raises Fastify's body limit (1 MiB by default) to what a 10 MB file fits in base64.
+- Accepted as a cost: changing a property's type remains out (BR-37f128e). Each new type is created new, and conversion is a separate question.
 
 ## Governance
 
-Las reglas de negocio de `FEA-CLC` que este ADR cambia se reemplazan con `rules:add` y `supersedes` al implementar:
-- BR-12b587f (cada opción lleva nombre y color: ahora también id);
-- BR-37f128e (renombrar una opción deja de ser un aviso sobre filas);
-- BR-699e037 (el renombrado de una opción se aplica por id);
-- BR-d7ada57 (el valor soltado debe ser una opción que la propiedad ofrece: ahora un id).
+The `FEA-CLC` business rules that this ADR changes are replaced with `rules:add` and `supersedes` on implementation:
+- BR-12b587f (each option carries a name and color: now also an id);
+- BR-37f128e (renaming an option stops being a warning about rows);
+- BR-699e037 (the rename of an option is applied by id);
+- BR-d7ada57 (the dropped value must be an option the property offers: now an id).
 
-Se añaden reglas para estado, relación (permisos y espejo), id único, y `required`. Cada tipo nuevo entra con pruebas de validación, filtro, orden, agrupación y exportación escritas antes del código. Un tipo futuro (fórmula, rollup, etapa 10) se decide en su propio ADR y reutiliza `config` y la tabla de capacidades.
+Rules are added for status, relation (permissions and mirror), unique id, and `required`. Each new type enters with validation, filter, sort, grouping and export tests written before the code. A future type (formula, rollup, stage 10) is decided in its own ADR and reuses `config` and the capabilities table.
 
 ## Notes
 
-- Author: El-Vitas, con Claude
+- Author: El-Vitas, with Claude
 - Created: 2026-10-20
 - Approved by: El-Vitas, 2026-10-20
-- Modified: 2026-10-20. Aprobado con tres cambios. La relación se edita con dos comandos propios (`addRelation`, `removeRelation`) y no con `listAfter`/`listRemove`. Escribir el lado espejo exige permiso de edición sobre la fila destino. Se confirmó que `PageVersion.content` no guarda valores de filas, así que la migración no la toca.
-- Implementado el 2026-10-20 con tres diferencias respecto de lo propuesto, todas de alcance: el tablero no agrupa por persona ni por selección múltiple (queda la lista previa más estado y los tiempos de creación y edición); un estado no se agrupa «por grupo» sino por opción; y el MCP lee relaciones y archivos pero no los escribe. Las reglas de `FEA-CLC` se reemplazaron o agregaron con `rules:add` (BR-12b587f, BR-37f128e, BR-699e037 y BR-d7ada57 quedaron reemplazadas).
-- No existe exportación de colecciones todavía. `toExportText` es el renderizado de texto compartido que usarán el MCP, la exportación de páginas y el copiado.
-- Referencia: `docs/superpowers/plans/2026-10-20-trabajo-diario.md` (etapa 3)
+- Modified: 2026-10-20. Approved with three changes. The relation is edited with two commands of its own (`addRelation`, `removeRelation`) and not with `listAfter`/`listRemove`. Writing the mirror side requires edit permission on the target row. It was confirmed that `PageVersion.content` does not store row values, so the migration does not touch it.
+- Implemented on 2026-10-20 with three differences from what was proposed, all of scope: the board does not group by person or by multi-select (the previous list plus status and the creation and edit times remains); a status is not grouped "by group" but by option; and the MCP reads relations and files but does not write them. The `FEA-CLC` rules were replaced or added with `rules:add` (BR-12b587f, BR-37f128e, BR-699e037 and BR-d7ada57 were replaced).
+- There is no collection export yet. `toExportText` is the shared text rendering that the MCP, page export and copying will use.
+- Reference: `docs/superpowers/plans/2026-10-20-daily-work.md` (stage 3)

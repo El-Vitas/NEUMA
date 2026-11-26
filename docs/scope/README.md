@@ -22,7 +22,7 @@ Read `../architecture/adr/021-everything-is-a-block.md` before touching the page
 
 Read `../architecture/adr/009-files-live-in-content-not-in-a-parallel-list.md` before touching attachments. The content is the single source of truth for where a file lives; `FileAsset.pageId` is ownership and permission, not placement.
 
-The block model is executed by `../superpowers/plans/2026-10-19-todo-es-un-bloque.md`. The attachment decision (009) follows `../superpowers/plans/2026-08-05-neuma-single-page-primitive.md`, Phase 5.
+The block model is executed by `../superpowers/plans/2026-10-19-everything-is-a-block.md`. The attachment decision (009) follows `../superpowers/plans/2026-08-05-neuma-single-page-primitive.md`, Phase 5.
 
 ## Functional Verification
 

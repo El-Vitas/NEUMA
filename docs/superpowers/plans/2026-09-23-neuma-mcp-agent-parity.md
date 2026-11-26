@@ -1,362 +1,362 @@
-# MCP · Que el agente haga lo que hace una persona
+# MCP · Let the agent do what a person does
 
-> Estado: aprobado. F0, F1 y F2 hechos; F3 pendiente.
+> Status: approved. F0, F1 and F2 done; F3 pending.
 >
-> Ejecuta el nivel 3 de la escalera de `docs/architecture/adr/008-adopt-single-page-primitive.md`
-> y el contrato de `docs/architecture/mcp-content-authoring.md`. Cierra `AG-01`,
-> `AG-02` y `AG-03` de `docs/scope/verification/08-agentes-y-experiencia.md`.
+> Executes level 3 of the ladder in `docs/architecture/adr/008-adopt-single-page-primitive.md`
+> and the contract in `docs/architecture/mcp-content-authoring.md`. Closes `AG-01`,
+> `AG-02` and `AG-03` of `docs/scope/verification/08-agents-and-experience.md`.
 
-## Qué se busca
+## What is sought
 
-Un agente conectado con un token trabaja en Neuma como una persona con
-los permisos de ese token:
+An agent connected with a token works in Neuma like a person with the
+permissions of that token:
 
-- encuentra un bloque concreto, sabe en qué página y sección vive, y llega a él;
-- recibe una URL de página o de bloque copiada del portal y la abre;
-- escribe en una página sin pisar a quien la tiene abierta;
-- opera un tablero: crea tareas, cambia sus propiedades, las mueve de estado,
-  crea vistas y cambia columnas.
+- it finds a specific block, knows which page and section it lives in, and gets to it;
+- it receives a page or block URL copied from the portal and opens it;
+- it writes on a page without overwriting whoever has it open;
+- it operates a board: creates tasks, changes their properties, moves them
+  between statuses, creates views and changes columns.
 
-Hoy tiene tres herramientas de lectura (`list_spaces`, `read_page`,
-`search_neuma`). Ve cada página como un bulto, la búsqueda contesta
-«está en esta página» y no «está en este bloque», y no puede escribir nada.
+Today it has three read tools (`list_spaces`, `read_page`,
+`search_neuma`). It sees each page as a lump, search answers
+"it is on this page" and not "it is in this block", and it cannot write anything.
 
-## Lo que se encontró al revisar el código
+## What was found when reviewing the code
 
-Estos cuatro hallazgos deciden el diseño.
+These four findings decide the design.
 
-1. **La edición colaborativa no sincroniza nada.** Comprobado en el navegador
-   el 2026-09-23: con la misma página abierta en dos pestañas, lo escrito en una
-   no llega a la otra aunque las dos dicen «Edición colaborativa conectada», y
-   `CollaborationSnapshot` está vacía. En Hocuspocus 4, `handleConnection` ya no
-   escucha el socket: quien lo conecta reenvía cada mensaje con `handleMessage`
-   y el cierre con `handleClose`, como hace el `Server.ts` de la propia librería.
-   `collaboration.transport.ts` solo llama a `handleConnection`, así que el
-   servidor nunca recibe un mensaje. Lo que hoy guarda es el autoguardado, sobre
+1. **Collaborative editing syncs nothing.** Checked in the browser
+   on 2026-09-23: with the same page open in two tabs, what is typed in one
+   does not reach the other even though both say "Collaborative editing connected", and
+   `CollaborationSnapshot` is empty. In Hocuspocus 4, `handleConnection` no longer
+   listens to the socket: whoever connects it forwards each message with `handleMessage`
+   and the close with `handleClose`, as the library's own `Server.ts` does.
+   `collaboration.transport.ts` only calls `handleConnection`, so the
+   server never receives a message. What it saves today is the autosave, on
    `Page.content`.
 
-   **Arreglarlo destapa el problema siguiente.** El editor siembra el documento
-   colaborativo desde `Page.content` solo cuando está vacío
-   (`pages.collaboration.session.lib.ts`). En cuanto Yjs guarde de verdad, una
-   escritura del servidor directo en `Page.content`, como la de
-   `addBlocksToPageAction`, no aparecerá en el editor y el siguiente autoguardado
-   la borrará. El ADR 008 advierte este caso: «if a Yjs session's state can ever
+   **Fixing it exposes the next problem.** The editor seeds the collaborative
+   document from `Page.content` only when it is empty
+   (`pages.collaboration.session.lib.ts`). As soon as Yjs really saves, a
+   direct server write to `Page.content`, like the one in
+   `addBlocksToPageAction`, will not show up in the editor and the next autosave
+   will erase it. ADR 008 warns about this case: "if a Yjs session's state can ever
    diverge from `Page.content` without an autosave reconciling it, the canonical
-   record is wrong». Por eso el transporte y el escritor del servidor se
-   arreglan juntos, nunca el primero solo.
-2. **El autoguardado manda las propiedades enteras desde la copia local.**
-   `pages.editor.tsx` envía `propertyValues` completo con cada guardado. Si el
-   agente mueve una tarea a «Hecho» mientras alguien la tiene abierta, el
-   próximo autoguardado la devuelve a su estado anterior. Hoy pasa igual entre
-   dos personas.
-3. **El esquema de ProseMirror vive en el portal** (`pages.editor.schema.ts`,
-   949 líneas, con el dibujo en DOM mezclado). Para escribir en Yjs desde el
-   servidor, el backend necesita el esquema.
-4. **La base de bloques ya está.** El editor da un UUID a cada bloque, el enlace
-   a un bloque ya existe en el menú del bloque (`…/pages/<página>#<bloque>`), y
-   hay un exportador a Markdown en `packages/shared`, aunque solo cubre diez
-   tipos de bloque. El `id` es opcional en `pageContentSchema`, así que puede
-   haber contenido sin ids.
+   record is wrong". That is why the transport and the server writer are
+   fixed together, never the first alone.
+2. **Autosave sends the whole properties from the local copy.**
+   `pages.editor.tsx` sends the complete `propertyValues` with each save. If the
+   agent moves a task to "Done" while someone has it open, the
+   next autosave returns it to its previous state. Today the same happens between
+   two people.
+3. **The ProseMirror schema lives in the portal** (`pages.editor.schema.ts`,
+   949 lines, with the DOM rendering mixed in). To write to Yjs from the server,
+   the backend needs the schema.
+4. **The block foundation is already there.** The editor gives each block a UUID, the link
+   to a block already exists in the block menu (`…/pages/<page>#<block>`), and
+   there is a Markdown exporter in `packages/shared`, although it only covers ten
+   block types. The `id` is optional in `pageContentSchema`, so there can
+   be content without ids.
 
-## Decisiones de diseño
+## Design decisions
 
-- **El MCP es un adaptador.** Cada herramienta llama a los mismos servicios que
-  usa el portal, con las mismas validaciones. Nunca consulta Prisma directo.
-- **La referencia es `(página, bloque)`.** Todo bloque tiene id, y toda
-  respuesta nombra la página y el bloque.
-- **Se lee Markdown con anclas; se escriben bloques estructurados.** El modelo
-  lee Markdown mejor y más barato que el JSON del editor. Escribir va en bloques
-  tipados, como fija el contrato de autoría, y el texto dentro de cada bloque
-  admite marcas en línea (negrita, cursiva, código, enlace, mención).
-- **Toda escritura de contenido pasa por el documento colaborativo.** Un escritor
-  del servidor abre una conexión directa de Hocuspocus, aplica el cambio en una
-  sola transacción de Yjs y escribe `Page.content` y su `PageVersion` con el
-  resultado. Quien tenga la página abierta lo ve en vivo, y la lectura
-  siguiente del agente ya lo trae. `addBlocksToPageAction` pasa a usar el mismo
-  escritor.
-- **Las propiedades se guardan por clave.** El servidor mezcla solo las claves
-  que llegaron, de forma atómica, y el autoguardado deja de mandar las que no
-  cambiaron.
-- **Todo lo que el agente referencia pasa por las reglas del token.** Una
-  mención, una subpágina, un bloque sincronizado o una colección incrustada que
-  apunta a una página que el token no alcanza se contesta como inexistente. El
-  ADR 008 exige esto mismo para los títulos de las menciones.
-- **Cada escritura queda registrada** con la persona dueña, el token y el bloque
-  que tocó. Sin registro no hay escritura.
-- **Paridad con una persona, no más.** Una página bloqueada no se escribe. Lo
-  que el documento `14` decida sobre páginas verificadas aplicará igual al
-  agente, sin un camino aparte.
+- **The MCP is an adapter.** Each tool calls the same services the portal
+  uses, with the same validations. It never queries Prisma directly.
+- **The reference is `(page, block)`.** Every block has an id, and every
+  response names the page and the block.
+- **Markdown with anchors is read; structured blocks are written.** The model
+  reads Markdown better and cheaper than the editor's JSON. Writing goes in typed
+  blocks, as the authoring contract sets, and the text inside each block
+  admits inline marks (bold, italic, code, link, mention).
+- **Every content write goes through the collaborative document.** A server
+  writer opens a direct Hocuspocus connection, applies the change in a
+  single Yjs transaction and writes `Page.content` and its `PageVersion` with the
+  result. Whoever has the page open sees it live, and the agent's next
+  read already brings it. `addBlocksToPageAction` switches to the same
+  writer.
+- **Properties are saved by key.** The server merges only the keys that
+  arrived, atomically, and autosave stops sending the ones that did not
+  change.
+- **Everything the agent references goes through the token's rules.** A
+  mention, a subpage, a synced block or an embedded collection that
+  points to a page the token cannot reach is answered as nonexistent. ADR
+  008 demands this same thing for the titles of mentions.
+- **Every write is recorded** with the owning person, the token and the block
+  it touched. Without a record there is no write.
+- **Parity with a person, no more.** A locked page is not written. What
+  document `14` decides about verified pages will apply equally to the
+  agent, with no separate path.
 
-## Enlaces a páginas y bloques
+## Links to pages and blocks
 
-- **Bloque:** ya existe «Copiar enlace» en el menú del bloque.
-- **Página:** falta. Se agrega «Copiar enlace» en el menú de la página y en el
-  menú de la página en el árbol lateral.
-- **Forma:** `https://<portal>/<idioma>/spaces/<espacio>/pages/<página>#<bloque>`.
-  El agente acepta la URL completa, solo la ruta, o los ids sueltos. El idioma
-  y el dominio no cambian el resultado.
-- Un enlace a un bloque que ya no existe contesta «el bloque no existe; esta es
-  la página», no un error mudo (`AG-03`).
+- **Block:** "Copy link" already exists in the block menu.
+- **Page:** missing. "Copy link" is added in the page menu and in the
+  page menu in the sidebar tree.
+- **Shape:** `https://<portal>/<locale>/spaces/<space>/pages/<page>#<block>`.
+  The agent accepts the full URL, just the path, or loose ids. The locale
+  and the domain do not change the result.
+- A link to a block that no longer exists answers "the block does not exist; this is
+  the page", not a silent error (`AG-03`).
 
-## Herramientas
+## Tools
 
-Cada herramienta exige un permiso del token, evaluado en la página donde actúa
-con la regla más cercana.
+Each tool requires a token permission, evaluated on the page where it acts
+with the nearest rule.
 
-### Leer (`pages:read`, `collections:read`)
+### Read (`pages:read`, `collections:read`)
 
-| Herramienta | Entrada | Devuelve |
+| Tool | Input | Returns |
 |---|---|---|
-| `search` | texto, filtros (espacio, página raíz, tipo), cursor | bloques: fragmento, id del bloque, página, ruta de páginas y encabezado bajo el que está |
-| `fetch` | URL, o id de página, o id de bloque; cursor | **página**: título, ruta, propiedades si es fila, Markdown con el id de cada bloque, subpáginas, retroenlaces y comentarios. **Bloque**: el bloque, su sección y la página a la que pertenece |
-| `list_pages` | espacio o página padre, cursor | el árbol de un nivel, con cuántos hijos tiene cada página |
-| `list_spaces` | — | ya existe |
-| `get_collection` | colección | columnas con sus tipos y opciones, y vistas con su configuración |
-| `query_collection` | colección, una vista o un filtro y orden propios, cursor | filas con sus propiedades tipadas |
+| `search` | text, filters (space, root page, type), cursor | blocks: snippet, block id, page, page path and the heading it sits under |
+| `fetch` | URL, or page id, or block id; cursor | **page**: title, path, properties if it is a row, Markdown with each block's id, subpages, backlinks and comments. **Block**: the block, its section and the page it belongs to |
+| `list_pages` | space or parent page, cursor | the tree one level deep, with how many children each page has |
+| `list_spaces` | — | already exists |
+| `get_collection` | collection | columns with their types and options, and views with their configuration |
+| `query_collection` | collection, a view or a filter and order of its own, cursor | rows with their typed properties |
 
-El Markdown de `fetch` cubre **todos** los tipos de bloque del esquema, no solo
-los diez de hoy. Un tipo que no se sabe escribir sale como marcador con su id y
-su tipo, nunca desaparece.
+`fetch`'s Markdown covers **all** the schema's block types, not just
+today's ten. A type that cannot be written comes out as a marker with its id and
+its type; it never disappears.
 
-### Escribir en páginas (`pages:write`)
+### Write pages (`pages:write`)
 
-| Herramienta | Qué hace |
+| Tool | What it does |
 |---|---|
-| `create_page` | crea una página en un espacio o bajo otra página, con bloques iniciales opcionales |
-| `insert_blocks` | agrega bloques antes o después de un bloque, dentro de uno (hijos), o al principio o final de la página |
-| `update_block` | reemplaza un bloque y conserva su id |
-| `update_table_cell` | cambia una celda por tabla, fila y columna (contrato de autoría) |
-| `move_blocks` | mueve bloques dentro de la página o a otra |
-| `delete_blocks` | borra bloques por id |
-| `update_page` | título e ícono |
-| `move_page` / `duplicate_page` | igual que en el portal, con la misma advertencia de acceso |
-| `comment_on_block` | deja un comentario en un bloque |
+| `create_page` | creates a page in a space or under another page, with optional initial blocks |
+| `insert_blocks` | adds blocks before or after a block, inside one (children), or at the start or end of the page |
+| `update_block` | replaces a block and keeps its id |
+| `update_table_cell` | changes a cell by table, row and column (authoring contract) |
+| `move_blocks` | moves blocks within the page or to another |
+| `delete_blocks` | deletes blocks by id |
+| `update_page` | title and icon |
+| `move_page` / `duplicate_page` | same as in the portal, with the same access warning |
+| `comment_on_block` | leaves a comment on a block |
 
-No existe `rewrite_page`. Cada escritura devuelve el estado que quedó guardado,
-para que el agente no tenga que volver a leer.
+There is no `rewrite_page`. Each write returns the state that was saved,
+so the agent does not have to read again.
 
-### Operar colecciones (`collections:write`)
+### Operate collections (`collections:write`)
 
-| Herramienta | Qué hace |
+| Tool | What it does |
 |---|---|
-| `create_row` | crea una fila (una página bajo la colección) con título, propiedades y bloques opcionales |
-| `update_row_properties` | cambia una o varias propiedades. **Mover una tarea de estado es esto** |
+| `create_row` | creates a row (a page under the collection) with title, properties and optional blocks |
+| `update_row_properties` | changes one or several properties. **Moving a task between statuses is this** |
 
-Los valores se validan contra el esquema de la colección: una opción que no
-existe se rechaza con las opciones válidas, en vez de guardarse a medias.
+Values are validated against the collection's schema: an option that does not
+exist is rejected with the valid options, instead of being half saved.
 
-### Configurar colecciones (`collections:configure`)
+### Configure collections (`collections:configure`)
 
-| Herramienta | Qué hace |
+| Tool | What it does |
 |---|---|
-| `update_collection_schema` | agrega, renombra o quita columnas y opciones (renombrar una opción reescribe las filas, como hoy) |
-| `create_view` / `update_view` / `delete_view` | tabla, tablero, lista, galería, calendario o gráfico, con filtros, orden, agrupación y columnas visibles |
+| `update_collection_schema` | adds, renames or removes columns and options (renaming an option rewrites the rows, as today) |
+| `create_view` / `update_view` / `delete_view` | table, board, list, gallery, calendar or chart, with filters, order, grouping and visible columns |
 
-### Papelera (`pages:trash`)
+### Trash (`pages:trash`)
 
-`trash_page` y `restore_page`, con la misma vista previa del portal.
+`trash_page` and `restore_page`, with the same preview as the portal.
 
-### Fuera, a propósito
+### Left out, on purpose
 
-Borrar para siempre, vaciar la papelera y administrar miembros y espacios. Son
-actos de administración, y ningún permiso del token los cubre. Verificar,
-bloquear y asignar responsable empezaron aquí y entraron en F3, con su propio
-permiso (`pages:manage`).
+Deleting forever, emptying the trash and managing members and spaces. They are
+administration acts, and no token permission covers them. Verifying,
+locking and assigning an owner started here and entered in F3, with their own
+permission (`pages:manage`).
 
-## Datos nuevos
+## New data
 
-- **`PageBlock`**, la proyección del nivel 3: id del bloque, página, espacio,
-  bloque padre, orden, tipo, texto, ruta de encabezados y versión de la página.
-  La rellena el mismo proyector de la búsqueda, desde los eventos `PAGE_*`.
-- **La búsqueda indexa bloques.** Cada bloque con texto es una fila de
-  `SearchDocument` que guarda su página. El filtro del token pasa a mirar la
-  página del bloque, así que las exclusiones siguen valiendo sin reescribirse.
-- **Backfill de ids.** Una migración asigna id a todo bloque que no lo tenga, en
-  `Page.content` y en el documento Yjs guardado, usando el mismo escritor. Desde
-  ahí, `id` pasa a ser obligatorio en el esquema.
-- **Registro de acciones del agente.** Una tabla con token, persona, herramienta,
-  página, bloques, resultado y hora.
+- **`PageBlock`**, the level 3 projection: block id, page, space,
+  parent block, order, type, text, heading path and page version.
+  The same search projector fills it, from the `PAGE_*` events.
+- **Search indexes blocks.** Each block with text is a `SearchDocument` row
+  that stores its page. The token's filter now looks at the block's
+  page, so exclusions keep applying without being rewritten.
+- **Id backfill.** A migration assigns an id to every block that lacks one, in
+  `Page.content` and in the stored Yjs document, using the same writer. From
+  then on, `id` becomes mandatory in the schema.
+- **Agent action log.** A table with token, person, tool,
+  page, blocks, result and time.
 
-## Seguridad
+## Security
 
-Cada caso lleva su prueba de integración, como las 32 de hoy, y se comprueba que
-la prueba falla cuando se rompe el filtro.
+Each case carries its integration test, like today's 32, and it is verified that
+the test fails when the filter is broken.
 
-- Un bloque de una página excluida no sale en `search` ni se abre con `fetch`,
-  aunque se tenga su id o su URL.
-- Una mención, subpágina, bloque sincronizado o colección incrustada hacia una
-  página inaccesible no revela título ni contenido.
-- Una URL o un id inaccesible contesta lo mismo que uno inexistente.
-- No se escribe en una página sin `pages:write` en ella, ni se crea una fila en
-  una colección con solo `collections:read`.
-- `move_page` y `move_blocks` exigen escritura en el origen y en el destino.
-- Una página bloqueada rechaza toda escritura.
-- Los valores de propiedades se validan contra el esquema. Los bloques, contra
-  `pageContentSchema`. Lo inválido se rechaza entero, nunca se guarda a medias.
-- Hay topes por llamada (bloques, texto y filas), además del límite de
-  frecuencia que ya existe.
-- Si la persona dueña pierde el acceso, el token lo pierde en la llamada
-  siguiente.
+- A block of an excluded page does not appear in `search` nor open with `fetch`,
+  even with its id or its URL.
+- A mention, subpage, synced block or embedded collection pointing to an
+  inaccessible page reveals neither title nor content.
+- An inaccessible URL or id answers the same as a nonexistent one.
+- Nothing is written to a page without `pages:write` on it, nor is a row created in
+  a collection with only `collections:read`.
+- `move_page` and `move_blocks` require write at the source and at the destination.
+- A locked page rejects every write.
+- Property values are validated against the schema. Blocks, against
+  `pageContentSchema`. Anything invalid is rejected whole, never half saved.
+- There are caps per call (blocks, text and rows), in addition to the rate
+  limit that already exists.
+- If the owning person loses access, the token loses it on the next
+  call.
 
-## Fases
+## Phases
 
-Cada fase se cierra probándola con Claude conectado de verdad, con sus reglas de
-negocio en `fea-tok` y `fea-mcp`, y con `check` y las pruebas en cero.
+Each phase closes by testing it with Claude really connected, with its business
+rules in `fea-tok` and `fea-mcp`, and with `check` and the tests at zero.
 
-**F0 · Cimientos de escritura.** El transporte de la colaboración reenviando
-mensajes y cierres a Hocuspocus, el esquema de ProseMirror en `packages/shared`
-(estructura sin DOM; el portal le agrega el dibujo), el escritor por Yjs,
-`addBlocksToPageAction` sobre el escritor, y propiedades por clave. Arregla los
-hallazgos 1 y 2 también para las personas.
+**F0 · Write foundations.** The collaboration transport forwarding
+messages and closes to Hocuspocus, the ProseMirror schema in `packages/shared`
+(structure without DOM; the portal adds the rendering), the Yjs writer,
+`addBlocksToPageAction` on top of the writer, and properties by key. It fixes
+findings 1 and 2 for people too.
 
-> **Hecho el 2026-09-27**, verificado en el navegador. Además de lo previsto
-> aparecieron y quedaron resueltos:
+> **Done on 2026-09-27**, verified in the browser. Besides what was planned,
+> the following appeared and were resolved:
 >
-> - `UUID_PATTERN` solo aceptaba UUID v1 a v5, y los ids de página son v7: toda
->   conexión en vivo se rechazaba con `permission-denied`.
-> - Cada navegador sembraba el documento al encontrarlo vacío; dos a la vez lo
->   duplicaban. Ahora siembra el servidor en `onLoadDocument`.
-> - Con varias pestañas abiertas, cada una guardaba el contenido y cortaba su
->   propia versión. Ahora guarda el servidor, en `onStoreDocument`, y no corta
->   versión si nada cambió.
-> - Una página bloqueada se podía escribir por Yjs: el bloqueo solo lo respetaba
->   el editor.
-> - `updateProperties` reescribía el contenido y leía fuera de la transacción.
->   Ahora bloquea la fila y toca solo las propiedades.
-> - El autoguardado quedaba marcado como pendiente para siempre en desarrollo
->   (el doble montaje de React dejaba `isMountedRef` en falso) y avisaba de
->   «cambios sin guardar» al salir.
+> - `UUID_PATTERN` only accepted UUID v1 to v5, and page ids are v7: every
+>   live connection was rejected with `permission-denied`.
+> - Each browser seeded the document when finding it empty; two at once
+>   duplicated it. Now the server seeds in `onLoadDocument`.
+> - With several tabs open, each one saved the content and cut its
+>   own version. Now the server saves, in `onStoreDocument`, and does not cut a
+>   version if nothing changed.
+> - A locked page could be written through Yjs: only the editor
+>   respected the lock.
+> - `updateProperties` rewrote the content and read outside the transaction.
+>   Now it locks the row and touches only the properties.
+> - Autosave stayed marked as pending forever in development
+>   (React's double mount left `isMountedRef` false) and warned about
+>   "unsaved changes" on leaving.
 >
-> Se retiró `PATCH /pages/:id`, la única vía que escribía el contenido sin pasar
-> por el documento en vivo. El contenido se escribe con `PUT …/content` y
-> `POST …/blocks`; el título con `PATCH …/title`; las propiedades con
+> `PATCH /pages/:id` was retired, the only path that wrote content without going
+> through the live document. Content is written with `PUT …/content` and
+> `POST …/blocks`; the title with `PATCH …/title`; properties with
 > `PATCH …/properties`.
 
-**F1 · Leer y ubicarse.** Ids obligatorios y backfill, `PageBlock`, búsqueda por
-bloque, Markdown de todos los bloques, `fetch`, `search`, `list_pages`, URLs, y
-«Copiar enlace» de página. Cierra `AG-01` y `AG-03`.
+**F1 · Read and find your bearings.** Mandatory ids and backfill, `PageBlock`, search by
+block, Markdown for all blocks, `fetch`, `search`, `list_pages`, URLs, and
+page "Copy link". Closes `AG-01` and `AG-03`.
 
-> **Hecho el 2026-09-28**, probado con un cliente MCP real contra el servidor de
-> desarrollo y en el navegador. Quedó así:
+> **Done on 2026-09-28**, tested with a real MCP client against the
+> development server and in the browser. It ended up like this:
 >
-> - Las herramientas son `search`, `fetch`, `list_spaces` y `list_pages`. Las de
->   antes, `read_page` y `search_neuma`, se retiraron.
-> - `fetch` abre un enlace del portal (con o sin idioma), un id de página o un id
->   de bloque. Una página llega en Markdown con el id de cada bloque, sus
->   propiedades si es una fila, sus comentarios, lo que cuelga de ella y quién la
->   enlaza; una página larga llega de a tramos, con un cursor. Un bloque llega con
->   su sección y su página.
-> - `search` devuelve bloques con su página, su sección y su enlace, más las
->   páginas que coinciden por título, y se puede filtrar por espacio, por página
->   raíz y por tipo de bloque. Tolera errores de tipeo.
-> - «Copiar enlace» está en el encabezado de la página, para todos, y en su menú
->   del árbol.
+> - The tools are `search`, `fetch`, `list_spaces` and `list_pages`. The earlier
+>   ones, `read_page` and `search_neuma`, were retired.
+> - `fetch` opens a portal link (with or without locale), a page id or a block
+>   id. A page arrives in Markdown with each block's id, its
+>   properties if it is a row, its comments, what hangs from it and who
+>   links it; a long page arrives in chunks, with a cursor. A block arrives with
+>   its section and its page.
+> - `search` returns blocks with their page, section and link, plus the
+>   pages that match by title, and can be filtered by space, by root
+>   page and by block type. It tolerates typos.
+> - "Copy link" is in the page header, for everyone, and in its tree
+>   menu.
 >
-> Se apartó del plan en tres puntos:
+> It departed from the plan in three points:
 >
-> - **Los bloques no van a `SearchDocument`.** Un id de bloque solo es único
->   dentro de su página, porque duplicar una página o mover bloques conserva los
->   ids, y `SearchDocument` exige un id de origen único en toda la base. `PageBlock`
->   tiene la clave (página, bloque) y su propio índice de texto. La búsqueda del
->   portal sigue siendo por página.
-> - **El relleno no es una migración.** Un proceso aparte pisaría el documento en
->   vivo de quien tenga la página abierta. Es un mantenimiento que corre dentro del
->   backend quien administra el espacio de trabajo (`POST /maintenance/pages/blocks`):
->   da ids a las páginas que no los tienen y proyecta todas. Se puede correr las
->   veces que haga falta.
-> - **`id` sigue siendo opcional en el esquema.** El servidor lo asigna en toda
->   escritura (crear, sembrar el documento en vivo y escribir en él), así que ya no
->   entra contenido sin ids. Volverlo obligatorio al leer rompería contenido
->   guardado que el relleno todavía no tocó, sin ganar nada.
+> - **Blocks do not go to `SearchDocument`.** A block id is only unique
+>   within its page, because duplicating a page or moving blocks keeps the
+>   ids, and `SearchDocument` requires a source id unique across the whole database. `PageBlock`
+>   has the (page, block) key and its own text index. The portal's search
+>   is still per page.
+> - **The backfill is not a migration.** A separate process would overwrite the live document of
+>   whoever has the page open. It is a maintenance task that runs inside the
+>   backend, run by whoever administers the workspace (`POST /maintenance/pages/blocks`):
+>   it gives ids to the pages that lack them and projects all of them. It can be run as
+>   many times as needed.
+> - **`id` is still optional in the schema.** The server assigns it on every
+>   write (create, seed the live document and write to it), so content
+>   without ids no longer gets in. Making it mandatory when reading would break stored
+>   content the backfill has not touched yet, with nothing gained.
 >
-> Queda anotado para después: una propiedad de persona se entrega como el id de la
-> persona, no su nombre; y la búsqueda y los retroenlaces leen la misma bandeja de
-> eventos, así que con los dos proyectores corriendo uno le puede quitar eventos al
-> otro.
+> Noted for later: a person property is delivered as the person's id,
+> not their name; and search and backlinks read the same event
+> queue, so with both projectors running one can take events away from the
+> other.
 
-**F2 · Colecciones.** `get_collection`, `query_collection`, `create_row`,
-`update_row_properties` y la configuración de columnas y vistas.
+**F2 · Collections.** `get_collection`, `query_collection`, `create_row`,
+`update_row_properties` and the configuration of columns and views.
 
-> **Hecho.** Se apartó del plan en cuatro puntos:
+> **Done.** It departed from the plan in four points:
 >
-> - El registro de acciones (`AgentAction`) llegó en F2 y no en F3, porque F2 es la
->   primera fase que escribe. Anota lo hecho, lo rechazado y lo fallido.
-> - `update_row_properties` quedó como `update_row`, que cambia también el título.
->   Mover una tarea de columna es cambiar su estado ahí.
-> - La configuración quedó en cuatro herramientas: `update_collection_columns`,
->   `create_view`, `update_view` y `delete_view`.
-> - Para que el agente siga las mismas reglas que el portal, pasaron a `shared` la
->   clave de una columna nueva (`buildPagePropertyKey`) y dos reglas de vistas
->   (`removeSchemaView` y `makeSchemaViewDefault`).
+> - The action log (`AgentAction`) arrived in F2 and not in F3, because F2 is the
+>   first phase that writes. It records what was done, rejected and failed.
+> - `update_row_properties` ended up as `update_row`, which also changes the title.
+>   Moving a task between columns is changing its status there.
+> - The configuration ended up in four tools: `update_collection_columns`,
+>   `create_view`, `update_view` and `delete_view`.
+> - So that the agent follows the same rules as the portal, the key of a new column
+>   (`buildPagePropertyKey`) and two view rules
+>   (`removeSchemaView` and `makeSchemaViewDefault`) moved to `shared`.
 >
-> Lo probaron agentes haiku con preguntas naturales y solo el MCP. Hicieron falta
-> dos instrucciones más: anotar las tareas del equipo en Neuma y no en la
-> lista propia del agente, y que un tablero puede tener su nombre en otro idioma.
+> Haiku agents tested it with natural questions and only the MCP. Two more
+> instructions were needed: note the team's tasks in Neuma and not in the
+> agent's own list, and that a board can have its name in another language.
 >
-> El título y las propiedades de una fila se guardan en una sola escritura
-> (`updateProperties` acepta el título), así que quedan las dos cosas o ninguna.
+> A row's title and properties are saved in a single write
+> (`updateProperties` accepts the title), so both things happen or neither.
 
-**F3 · Escribir en páginas.** Las herramientas de `pages:write` y `pages:trash`.
-Cierra `AG-02`.
+**F3 · Write pages.** The `pages:write` and `pages:trash` tools.
+Closes `AG-02`.
 
-> **Hecho el 2026-09-30**, probado con pruebas de integración contra la base real,
-> con agentes haiku que reciben pedidos vagos y solo el MCP, y en el navegador.
-> Quedó así:
+> **Done on 2026-09-30**, tested with integration tests against the real database,
+> with haiku agents that receive vague requests and only the MCP, and in the browser.
+> It ended up like this:
 >
-> - **Bloques.** `create_page`, `insert_blocks`, `update_block`, `move_blocks` y
->   `delete_blocks` escriben todo el menú de bloques: texto, títulos, listas,
->   tareas, citas, destacados, código, diagramas, fórmulas, tablas, desplegables,
->   índice, subpáginas, colecciones incrustadas, botones, columnas, tarjetas de
->   enlace, videos incrustados y bloques sincronizados. Todo pasa por el documento
->   en vivo, así que quien tiene la página abierta lo ve al momento.
-> - **Formato.** El texto lleva negrita, cursiva, código, tachado, subrayado,
->   color y resaltado, y `update_block` pinta un bloque entero. `fetch` devuelve
->   lo mismo que se escribe: el subrayado y los colores en HTML en línea, y los
->   colores de un bloque en su ancla.
-> - **Tablas.** `update_table` cambia celdas, agrega filas y las quita, sin tocar
->   la identidad ni los comentarios de lo demás.
-> - **Comentarios.** `comment_on_block` comenta un bloque o unas palabras suyas,
->   firmado por la persona dueña del token; `delete_comment` lo quita. `fetch`
->   muestra cada comentario con su id.
-> - **Páginas enteras.** `update_page` (título, emoji, quitar la portada,
->   bloquear, verificar y dueño), `move_page`, `duplicate_page`, `trash_page` y
+> - **Blocks.** `create_page`, `insert_blocks`, `update_block`, `move_blocks` and
+>   `delete_blocks` write the whole block menu: text, headings, lists,
+>   tasks, quotes, callouts, code, diagrams, formulas, tables, toggles,
+>   index, subpages, embedded collections, buttons, columns, link
+>   cards, embedded videos and synced blocks. Everything goes through the live
+>   document, so whoever has the page open sees it instantly.
+> - **Formatting.** Text carries bold, italic, code, strikethrough, underline,
+>   color and highlight, and `update_block` paints a whole block. `fetch` returns
+>   the same thing that is written: underline and colors as inline HTML, and
+>   a block's colors in its anchor.
+> - **Tables.** `update_table` changes cells, adds rows and removes them, without touching
+>   the identity or the comments of the rest.
+> - **Comments.** `comment_on_block` comments a block or some of its words,
+>   signed by the person who owns the token; `delete_comment` removes it. `fetch`
+>   shows each comment with its id.
+> - **Whole pages.** `update_page` (title, emoji, remove the cover,
+>   lock, verify and owner), `move_page`, `duplicate_page`, `trash_page` and
 >   `restore_page`.
-> - **Dibujos revisados en el servidor.** Antes de guardar, el backend lee cada
->   diagrama con el mismo Mermaid del portal (en un worker aparte), cada fórmula
->   con KaTeX y cada ícono contra los paquetes que dibuja el portal, y revisa que
->   un diagrama de arquitectura agrupe bien. Si algo falla, no se escribe nada y
->   el agente recibe el error con el número de bloque.
+> - **Drawings checked on the server.** Before saving, the backend reads each
+>   diagram with the same Mermaid as the portal (in a separate worker), each formula
+>   with KaTeX and each icon against the packages the portal draws, and checks that
+>   an architecture diagram groups correctly. If something fails, nothing is written and
+>   the agent receives the error with the block number.
 >
-> Se apartó del plan en cinco puntos:
+> It departed from the plan in five points:
 >
-> - `update_table_cell` quedó como `update_table`, que además agrega y quita filas.
-> - **Verificar, bloquear y asignar dueño entraron**, en `update_page`, aunque este
->   plan los dejaba fuera como actos de confianza. Por eso piden un permiso propio
->   del token, `pages:manage`, aparte de escribir: lo trae el nivel completo y no
->   el de lectura y escritura, y solo lo da quien puede escribir.
-> - Mandar a la papelera, mover y copiar con hijas piden el permiso en todo el
->   árbol: si una página de abajo tiene su propia regla que no lo permite, no se
->   hace nada y se nombra esa página.
-> - El registro de acciones abre la acción como pendiente antes de escribir y la
->   cierra después, así no queda una escritura sin anotar.
-> - Lo que el agente no puede: subir imágenes, videos, audios y archivos, ni
->   poner una portada nueva, por el riesgo de que el servidor pida direcciones que
->   le dé el agente. Los íconos de página son solo emojis; los símbolos del
->   portal quedan para después.
+> - `update_table_cell` ended up as `update_table`, which also adds and removes rows.
+> - **Verifying, locking and assigning an owner got in**, in `update_page`, although this
+>   plan left them out as trust acts. That is why they ask for a permission of
+>   their own on the token, `pages:manage`, separate from writing: the full level
+>   brings it and the read-and-write one does not, and only someone who can write grants it.
+> - Sending to the trash, moving and copying with children ask for the permission across the whole
+>   tree: if a page below has its own rule that does not allow it, nothing
+>   is done and that page is named.
+> - The action log opens the action as pending before writing and
+>   closes it afterwards, so no write is left unrecorded.
+> - What the agent cannot do: upload images, videos, audio and files, nor
+>   set a new cover, because of the risk of the server fetching addresses
+>   given by the agent. Page icons are emojis only; the portal's
+>   symbols are left for later.
 >
-> En el camino se arreglaron en el portal: el texto de varias líneas que se
-> cortaba dentro de las cajas de un diagrama, un marco de diagrama que se salía de
-> la pantalla (ahora acotado, con alto ajustable que se guarda y zoom de quien
-> mira), un diagrama o una fórmula sincronizados que se veían como código, y el
-> «no existe» de la primera visita a una página creada fuera del portal.
+> Along the way the following were fixed in the portal: multi-line text that
+> was cut off inside a diagram's boxes, a diagram frame that spilled off
+> the screen (now bounded, with an adjustable height that is saved and zoom for whoever
+> is looking), a synced diagram or formula that showed as code, and the
+> "does not exist" on the first visit to a page created outside the portal.
 
-F0 va primero porque F2 y F3 escriben, y sin F0 esas escrituras se pierden.
+F0 goes first because F2 and F3 write, and without F0 those writes are lost.
 
-## Por decidir
+## To decide
 
-1. **Formato de escritura.** Bloques estructurados con marcas en línea dentro
-   del texto, como propone este plan, o también Markdown completo como atajo.
-   El contrato vigente pide lo primero.
-2. **Propiedades en vivo.** Con la mezcla por clave, nadie pisa a nadie. Que el
-   cambio del agente aparezca en vivo en una tarea abierta exige llevar las
-   propiedades al documento Yjs. Este plan lo deja para después de F3.
+1. **Write format.** Structured blocks with inline marks inside the text,
+   as this plan proposes, or full Markdown as a shortcut too.
+   The current contract asks for the former.
+2. **Live properties.** With key-wise merging, nobody overwrites anybody. Making the
+   agent's change show up live in an open task requires moving the
+   properties into the Yjs document. This plan leaves that for after F3.
