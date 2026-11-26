@@ -222,7 +222,7 @@ describe('Restoring a trashed page (Integration)', () => {
     const stored = await blocks.where({ id: trashed.id }).select('lockedAt', 'text', 'verifiedAt').all().firstOrThrow();
     expect(stored).toEqual({ lockedAt: null, text: 'En la papelera', verifiedAt: null });
     const matching = await blocks
-      .where({ type: 'page' })
+      .where({ spaceId, type: 'page' })
       .where((block) => block.text.like('En la papelera%'))
       .aggregate((aggregate) => ({ total: aggregate.count() }));
     expect(matching.total).toBe(1);
