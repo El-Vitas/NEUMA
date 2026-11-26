@@ -39,7 +39,7 @@ packages/eslint-rules/rules
 **/components.json
 plugins
 scripts
-jscpd.json
+.jscpd.json
 sonar-project.properties
 .scannerwork
 
