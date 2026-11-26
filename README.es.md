@@ -9,9 +9,7 @@
 
 **Neural Enterprise Unified Memory & Agents.** El cerebro de la empresa: cada bloque es una neurona, cada enlace una sinapsis, y los agentes piensan con él.
 
-<p align="center">
-  <img src="docs/media/neuma-es.webp" alt="Un agente busca en NEUMA la decisión de precios, escribe el borrador del correo en la página de Camila citando la fuente y marca la tarea como lista." width="960">
-</p>
+https://github.com/user-attachments/assets/04d71b3c-a57b-44cc-9eb9-a5b708c616dc
 
 NEUMA es la memoria interna de una organización. Todo es un bloque, incluso la página: espacios con páginas que se editan en vivo entre varias personas, colecciones con vistas, búsqueda de texto completo y retroenlaces. Los agentes de IA trabajan en ella como una persona más, a través de un servidor MCP con los mismos permisos que la aplicación.
 
