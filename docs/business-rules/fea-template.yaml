@@ -1,21 +1,21 @@
 id: FEA-XXX
-name: Nombre del feature
-purpose: Qué reglas de negocio agrupa este archivo y por qué existe.
-scope: nombre-del-modulo
+name: Feature name
+purpose: What business rules this file groups and why it exists.
+scope: module-name
 rules:
   - id: BR-XXX
     status: draft
-    title: Título corto de la regla
-    rule: Enunciado normativo de la regla (el sistema debe...).
-    why: Razón de negocio detrás de la regla.
+    title: Short rule title
+    rule: Normative statement of the rule (the system must...).
+    why: Business reason behind the rule.
     context: >-
-      Contexto opcional: alcance, casos borde, decisiones relacionadas o estado de implementación.
+      Optional context: scope, edge cases, related decisions or implementation status.
     scenarios:
-      - title: Escenario feliz
-        given: Estado inicial del sistema
-        when: Acción del usuario o del sistema
-        then: Resultado esperado verificable
-      - title: Escenario de rechazo
-        given: Estado inicial que viola la regla
-        when: Acción que intenta violarla
-        then: El sistema rechaza la acción y comunica el motivo
+      - title: Happy scenario
+        given: Initial state of the system
+        when: User or system action
+        then: Verifiable expected result
+      - title: Rejection scenario
+        given: Initial state that violates the rule
+        when: Action that tries to violate it
+        then: The system rejects the action and communicates the reason

@@ -1,833 +1,821 @@
 id: FEA-TOK
-name: Tokens de acceso para agentes
-purpose: Reglas de los tokens con que un agente (por MCP) actúa en Company Brain en nombre de una persona.
+name: Access tokens for agents
+purpose: Rules for the tokens with which an agent (through MCP) acts in Company Brain on behalf of a person.
 scope: access-tokens
 rules:
   - id: BR-04b7bf1
     status: active
-    title: El agente sabe si una página es de fiar y qué hay en la papelera
+    title: The agent knows whether a page can be trusted and what is in the trash
     rule: >-
-      Al abrir una página entera, el agente recibe si está verificada, quién la verificó y hasta cuándo, si la
-      verificación ya venció, si está bloqueada y quién es su dueño. En la búsqueda puede quedarse solo con páginas
-      verificadas y vigentes, filtrar por quién creó la página y por cuándo se editó, y cada resultado dice si su página
-      está verificada. Puede listar la papelera para recuperar una página sin conocer su id, y ve solo las páginas que
-      su token puede leer donde estaban.
+      When opening a whole page, the agent receives whether it is verified, who verified it and until when, whether the
+      verification has already expired, whether it is locked and who its owner is. In search it can keep only verified and
+      current pages, filter by who created the page and by when it was edited, and each result says whether its page is
+      verified. It can list the trash to recover a page without knowing its id, and sees only the pages that its token can
+      read where they were.
     why: >-
-      Un agente que responde preguntas debe poder preferir la información que alguien revisó y avisar cuando lo que
-      encontró puede estar desactualizado. Sin ver la papelera, no podía recuperar una página que alguien borró por
-      error, salvo que ya supiera su id.
+      An agent that answers questions must be able to prefer information that someone reviewed and warn when what it found
+      may be out of date. Without seeing the trash, it could not recover a page that someone deleted by mistake, unless it
+      already knew its id.
     context: >-
-      Una verificación vencida no es lo mismo que una página sin verificar. Se sabe quién respondió por ella, pero eso
-      ya no vale. El vencimiento se compara con el momento en que se lee, así una verificación vencida se informa aunque
-      nadie haya tocado la página desde entonces.
+      An expired verification is not the same as an unverified page. It is known who vouched for it, but that no longer
+      counts. The expiry is compared against the moment of reading, so an expired verification is reported even if nobody
+      has touched the page since.
     scenarios:
-      - title: Verificación vencida
-        given: Una página verificada cuyo plazo de verificación ya pasó
-        when: El agente la abre
-        then: Se le dice que la verificación venció, quién la había verificado y que la página puede estar desactualizada
-      - title: Papelera con una página cerrada al token
-        given: Una página en la papelera con una regla de página que cierra su lectura al token
-        when: El agente lista la papelera
-        then: Esa página no aparece
+      - title: Expired verification
+        given: A verified page whose verification period has already passed
+        when: The agent opens it
+        then: It is told that the verification expired, who had verified it and that the page may be out of date
+      - title: Trash with a page closed to the token
+        given: A page in the trash with a page rule that closes its reading to the token
+        when: The agent lists the trash
+        then: That page does not appear
   - id: BR-0db7699
     status: active
-    title: Escribir no da derecho a leer
+    title: Writing does not grant the right to read
     rule: >-
-      Cuando un agente escribe en un lugar que su token no deja leer, la respuesta confirma lo que hizo y le da los ids
-      de lo que escribió, pero no le devuelve el título ni lo que la página dice. Lo que una fila responde en sus
-      columnas pide además leer colecciones en ese lugar, aunque la fila se abra como página.
+      When an agent writes in a place its token does not allow reading, the response confirms what it did and gives it the
+      ids of what it wrote, but does not return the title or what the page says. What a row answers in its columns
+      additionally requires reading collections in that place, even if the row is opened as a page.
     why: >-
-      Un token que solo escribe se da para dejar cosas, no para mirar. Si la respuesta a cada escritura trajera la
-      página escrita, bastaría con escribir algo para leerla entera, y el permiso de lectura no cerraría nada.
+      A token that only writes is given to leave things, not to look. If the response to each write brought back the
+      written page, writing something would be enough to read it whole, and the read permission would close nothing.
     context: >-
-      Vale para las escrituras de bloques, de páginas y de filas. El aviso que recibe el agente le dice que no puede
-      leer lo escrito, para que no lo tome por un fallo.
+      It applies to writes of blocks, pages and rows. The notice the agent receives tells it that it cannot read what it
+      wrote, so that it does not mistake it for a failure.
     scenarios:
-      - title: Un token que solo escribe
-        given: Un token que escribe en una página pero no la lee
-        when: El agente agrega un párrafo
-        then: Recibe el id del párrafo y la confirmación, sin el texto de la página ni su título
-      - title: Las columnas de una fila
-        given: Un token que lee páginas pero no colecciones
-        when: El agente abre una fila de un tablero
-        then: Lee lo que la fila dice como página, sin sus valores de columna
+      - title: A token that only writes
+        given: A token that writes on a page but does not read it
+        when: The agent adds a paragraph
+        then: It receives the paragraph's id and the confirmation, without the page's text or its title
+      - title: The columns of a row
+        given: A token that reads pages but not collections
+        when: The agent opens a row of a board
+        then: It reads what the row says as a page, without its column values
   - id: BR-1779eb2
     status: active
-    title: Límites, vencimiento y nombre de los tokens
+    title: Limits, expiry and name of tokens
     rule: >-
-      Una persona puede tener como máximo 20 tokens vivos, y cada token puede hacer como máximo 120 llamadas por minuto
-      al servidor MCP. Un token nuevo vence por defecto a los 30 días; se puede elegir 90 días, un año, cualquier fecha
-      futura (vence cuando termina ese día, en la hora de quien la eligió) o sin vencimiento. Dos tokens vivos de la
-      misma persona no pueden llamarse igual, sin contar mayúsculas ni espacios de más, y el nombre no puede llevar
-      caracteres de control ni invisibles.
+      A person can have at most 20 live tokens, and each token can make at most 120 calls per minute to the MCP server. A
+      new token expires by default after 30 days; one can choose 90 days, one year, any future date (it expires when that
+      day ends, in the time of whoever chose it) or no expiry. Two live tokens of the same person cannot have the same
+      name, ignoring capitalization and extra spaces, and the name cannot carry control or invisible characters.
     why: >-
-      El nombre es lo que se lee al revocar. Dos nombres que se leen igual, o uno que con un carácter invisible se lee
-      como otro, hacen revocar el token equivocado.
+      The name is what is read when revoking. Two names that read the same, or one that reads as another because of an
+      invisible character, cause the wrong token to be revoked.
     context: >-
-      El tope y el nombre se revisan en la misma transacción que guarda el token, con la fila de la persona tomada:
-      pedir dos a la vez no salta ninguno de los dos. El servidor rechaza un vencimiento que no sea después de ahora.
-      Las mayúsculas se comparan igual en el portal y en el servidor, sin depender del idioma de la máquina. El carácter
-      que une los emojis compuestos se acepta, porque es parte del emoji. Además de las 120 por token, una misma
-      dirección puede hacer como máximo 600 llamadas por minuto al MCP, así probar llaves también tiene tope.
+      The cap and the name are checked in the same transaction that saves the token, with the person's row locked:
+      requesting two at once does not get past either check. The server rejects an expiry that is not after now.
+      Capitalization is compared the same way in the portal and on the server, without depending on the machine's
+      language. The character that joins composite emojis is accepted, because it is part of the emoji. In addition to the
+      120 per token, a single address can make at most 600 calls per minute to the MCP, so trying keys also has a cap.
     supersedes: BR-b1e9e21
     superseded_reason: >-
-      El nombre aceptaba caracteres invisibles o que dan vuelta el texto, con los que un token se hacía pasar por otro
-      en la lista, y comparaba mayúsculas según el idioma de cada máquina.
+      The name accepted invisible characters or ones that reverse the text, with which one token passed itself off as
+      another in the list, and compared capitalization according to each machine's language.
     scenarios:
-      - title: Pasar el tope de tokens
-        given: Una persona con 20 tokens vivos
-        when: Pide uno más
-        then: Se le dice que llegó al tope y no se crea
-      - title: Un nombre repetido
-        given: Un token vivo llamado «Claude del equipo»
-        when: La misma persona pide otro llamado «  claude DEL equipo »
-        then: Se le dice que el nombre ya está en uso
-      - title: Una fecha elegida
-        given: Una persona que elige el 15 de marzo
-        when: Crea el token
-        then: Vence cuando termina ese día, en su hora
-      - title: Un nombre que se hace pasar por otro
-        given: Un nombre con un carácter que da vuelta el texto
-        when: La persona pide el token
-        then: Se rechaza el nombre
+      - title: Going over the token cap
+        given: A person with 20 live tokens
+        when: They ask for one more
+        then: They are told they reached the cap and it is not created
+      - title: A repeated name
+        given: A live token called "Claude del equipo"
+        when: The same person asks for another called "  claude DEL equipo "
+        then: They are told the name is already in use
+      - title: A chosen date
+        given: A person who chooses March 15
+        when: They create the token
+        then: It expires when that day ends, in their time
+      - title: A name that passes itself off as another
+        given: A name with a character that reverses the text
+        when: The person asks for the token
+        then: The name is rejected
   - id: BR-35337c0
     status: active
-    title: Crear, cambiar y revocar un token queda en el registro
+    title: Creating, changing and revoking a token is recorded in the log
     rule: >-
-      Cada vez que se crea un token, se cambia lo que tiene dado o se revoca, queda en el registro del servidor quién lo
-      hizo, sobre qué token, en qué espacio de trabajo y, al crearlo o cambiarlo, qué permisos da en todos los espacios
-      y a cuántos lugares alcanzan sus reglas. Un intento de entrar con una llave que no sirve también queda, sin la
-      llave.
+      Every time a token is created, what it has been granted is changed or it is revoked, the server log records who did
+      it, on which token, in which workspace and, when creating or changing it, which permissions it grants in all spaces
+      and how many places its rules reach. An attempt to get in with a key that does not work is also recorded, without the
+      key.
     why: >-
-      Un token es una puerta abierta en nombre de una persona. Si se filtra o se usa mal, hay que poder responder cuándo
-      nació, quién le cambió el alcance y quién lo cerró; y alguien probando llaves tiene que notarse.
+      A token is an open door on behalf of a person. If it leaks or is misused, it must be possible to answer when it was
+      born, who changed its scope and who closed it; and someone trying keys has to be noticeable.
     context: >-
-      El registro nunca lleva el secreto, su hash ni el nombre o el correo de la persona: lleva ids. Si no se puede
-      anotar el último uso de un token, se cuenta en el registro y quien trajo el token igual entra.
+      The log never carries the secret, its hash or the person's name or email: it carries ids. If the last use of a token
+      cannot be noted, it is counted in the log and whoever brought the token gets in anyway.
   - id: BR-5e36ce0
     status: active
-    title: Un token nunca puede más que su dueño
+    title: A token can never do more than its owner
     rule: >-
-      Un token solo puede tener permisos que el rol de su dueño permite, y solo en espacios y páginas que su dueño ve.
-      Se revisa al crearlo, al cambiarlo y en cada llamada del agente, con el rol y los lugares que el dueño tiene en
-      ese momento.
+      A token can only have permissions that its owner's role allows, and only in spaces and pages that its owner sees. It
+      is checked when creating it, when changing it and on every call of the agent, with the role and the places the owner
+      has at that moment.
     why: >-
-      El token actúa en nombre de una persona. Si pudiera más que ella, crear un token sería una forma de saltarse los
-      permisos; y si su dueño pierde un acceso, el agente tiene que perderlo con él.
+      The token acts on behalf of a person. If it could do more than they can, creating a token would be a way of skipping
+      permissions; and if its owner loses an access, the agent has to lose it along with them.
     context: >-
-      Niveles Sin acceso, Solo lectura, Lectura y escritura, Completo o Personalizado, en todos los espacios, en un
-      espacio o en una página. Cómo se combinan lo dice la regla de la regla más cercana. El portal solo ofrece lo que
-      el dueño puede dar, pero la decisión es del servidor, y un permiso de escritura escondido en una regla de página
-      se rechaza igual que en cualquier otro lugar.
+      Levels No access, Read only, Read and write, Full or Custom, in all spaces, in one space or on one page. How they
+      combine is stated by the closest-rule rule. The portal only offers what the owner can give, but the decision belongs
+      to the server, and a write permission hidden in a page rule is rejected just as anywhere else.
     supersedes: BR-d14395a
     superseded_reason: >-
-      Decía que lo dado en un espacio se suma a lo dado en todos; ahora manda la regla más cercana, y además hay reglas
-      por página. El límite del dueño no cambió, pero ahora alcanza también a las páginas.
+      It said that what is given in a space is added to what is given in all of them; now the closest rule governs, and
+      there are also per-page rules. The owner's limit did not change, but it now reaches pages too.
     scenarios:
-      - title: Un cliente pide un token que escribe
-        given: Una persona con rol CLIENT, que solo puede leer
-        when: Pide un token con permiso de crear y editar páginas, en un espacio o en una página
-        then: El servidor lo rechaza y el token no se crea
-      - title: El dueño pierde el acceso a un espacio
-        given: Un token con lectura en un espacio restringido del que su dueño es miembro
-        when: Sacan al dueño del espacio y el agente vuelve a buscar
-        then: El agente ya no ve nada de ese espacio
-      - title: Nombrar una página ajena
-        given: Un administrador y la página del espacio privado de otra persona
-        when: El administrador pide un token con acceso a esa página
-        then: El servidor lo rechaza sin decir si la página existe
+      - title: A client asks for a token that writes
+        given: A person with the CLIENT role, who can only read
+        when: They ask for a token with permission to create and edit pages, in a space or on a page
+        then: The server rejects it and the token is not created
+      - title: The owner loses access to a space
+        given: A token with read access in a restricted space of which its owner is a member
+        when: The owner is removed from the space and the agent searches again
+        then: The agent no longer sees anything of that space
+      - title: Naming someone else's page
+        given: An administrator and the page of another person's private space
+        when: The administrator asks for a token with access to that page
+        then: The server rejects it without saying whether the page exists
   - id: BR-61079bd
     status: active
-    title: Lo que alguien escribió le llega al agente como palabras, nunca como estructura
+    title: What someone wrote reaches the agent as words, never as structure
     rule: >-
-      Cuando una página se entrega como Markdown —al agente o al exportarla—, lo que una persona escribió se escribe de
-      modo que se lea tal cual: un signo que se leería como formato, un comentario que se haría pasar por el ancla de un
-      bloque, el cierre de un bloque de código, una barra dentro de una celda o un paréntesis dentro de un enlace se
-      escriben escapados. Leído de vuelta, dice exactamente lo mismo. Al revés, lo que el agente escribe y la página no
-      guardaría —una etiqueta de HTML como texto, más estilos de los que unas palabras llevan, una etiqueta dentro de
-      otra igual— se rechaza diciendo qué corregir.
+      When a page is delivered as Markdown —to the agent or when exporting it—, what a person wrote is written so that it
+      reads as is: a sign that would be read as formatting, a comment that would pass itself off as a block's anchor, the
+      closing of a code block, a bar inside a cell or a parenthesis inside a link are written escaped. Read back, it says
+      exactly the same. In the other direction, what the agent writes and the page would not store —an HTML tag as text,
+      more styles than some words carry, a tag inside another of the same kind— is rejected, saying what to fix.
     why: >-
-      El agente nombra los bloques por las anclas que lee. Si las palabras de otra persona pudieran fabricar un ancla,
-      un atributo o el fin de un bloque, quien escribe en una página podría hacer que el agente cambie otro bloque del
-      que cree. Y un rechazo sin explicación hace que el agente reintente lo mismo.
+      The agent names blocks by the anchors it reads. If another person's words could fabricate an anchor, an attribute or
+      the end of a block, whoever writes on a page could make the agent change a different block from the one it thinks.
+      And a rejection without explanation makes the agent retry the same thing.
     context: >-
-      Vale igual para lo que entrega fetch y para la exportación a Markdown. Un bloque de código se encierra con más
-      acentos graves que los que lleva seguidos.
+      It applies equally to what fetch delivers and to the export to Markdown. A code block is enclosed with more
+      backticks than it carries in a row.
     scenarios:
-      - title: Un ancla falsa
-        given: Un párrafo que dice «<!-- block:otro -->»
-        when: El agente abre la página
-        then: Lee esas palabras como texto, no como el ancla de un bloque
-      - title: Una etiqueta como texto
-        given: Un agente que escribe «usa la etiqueta <b>»
-        when: Intenta guardarlo
-        then: Se le dice que la página no guarda etiquetas y que la nombre sin los signos
+      - title: A false anchor
+        given: A paragraph that says "<!-- block:otro -->"
+        when: The agent opens the page
+        then: It reads those words as text, not as a block's anchor
+      - title: A tag as text
+        given: An agent that writes "usa la etiqueta <b>"
+        when: It tries to save it
+        then: It is told that the page does not store tags and to name it without the signs
   - id: BR-71ebff5
     status: active
-    title: El agente edita páginas como una persona, con todo lo que ofrece el editor
+    title: The agent edits pages like a person, with everything the editor offers
     rule: >-
-      Un agente con permiso de escribir páginas puede hacer en ellas lo mismo que una persona desde el editor, por los
-      mismos caminos y con las mismas reglas. Puede crear páginas, escribir, cambiar, mover y quitar bloques de
-      cualquier tipo del menú de bloques. Puede dar formato al texto (negrita, cursiva, código, tachado, subrayado,
-      color y resaltado) y pintar un bloque entero. Puede cambiar una tabla celda por celda, agregarle y quitarle filas,
-      y comentar un bloque o unas palabras de él, o quitar un comentario. Puede cambiar el título, el emoji, la portada,
-      el bloqueo, la verificación y el dueño de una página, y moverla o duplicarla. Todo lo que escribe llega al momento
-      a quien tiene la página abierta. Lo que un bloque lleva y no es del agente —los comentarios de otras personas, sus
-      colores, los bloques que lleva adentro— no se pierde al cambiarlo.
+      An agent with permission to write pages can do in them the same as a person from the editor, through the same paths
+      and with the same rules. It can create pages, write, change, move and remove blocks of any type in the block menu. It
+      can format text (bold, italic, code, strikethrough, underline, color and highlight) and paint a whole block. It can
+      change a table cell by cell, add and remove rows, and comment on a block or on some words in it, or remove a
+      comment. It can change a page's title, emoji, cover, lock, verification and owner, and move or duplicate it.
+      Everything it writes reaches whoever has the page open instantly. What a block carries that does not belong to the
+      agent —other people's comments, its colors, the blocks it carries inside— is not lost when changing it.
     why: >-
-      El agente trabaja en páginas que también usan personas. Un cambio que de paso borra lo que otros dejaron no es
-      editar como una persona: es pisar.
+      The agent works on pages that people also use. A change that in passing deletes what others left is not editing like
+      a person: it is overwriting.
     context: >-
-      El agente no sube imágenes ni archivos, así que puede quitar una portada pero no poner una nueva. Un comentario
-      lleva el nombre de la persona dueña del token. Lo que no se toca de una tabla conserva su identidad, sus
-      comentarios y los enlaces que apuntan a sus celdas. Un bloque reemplazado entero conserva su id, sus comentarios y
-      sus colores, salvo que el nuevo traiga los suyos. Cambiar las palabras de una cita, un aviso o un desplegable las
-      parte en párrafos como al insertarlos, y se rechaza si el bloque lleva otros bloques adentro: esos se cambian uno
-      por uno. El título de un desplegable se cambia aparte de lo que guarda.
+      The agent does not upload images or files, so it can remove a cover but not set a new one. A comment carries the name
+      of the person who owns the token. What is not touched in a table keeps its identity, its comments and the links that
+      point to its cells. A block replaced whole keeps its id, its comments and its colors, unless the new one brings its
+      own. Changing the words of a quote, a callout or a toggle splits them into paragraphs as when inserting them, and it
+      is rejected if the block carries other blocks inside: those are changed one by one. A toggle's title is changed
+      separately from what it holds.
     supersedes: BR-e608867
     superseded_reason: >-
-      Reemplazar un bloque borraba los comentarios y los colores que llevaba, y cambiar las palabras de un aviso o un
-      desplegable borraba lo que tenía adentro. Ahora se conserva lo que no es del agente.
+      Replacing a block deleted the comments and colors it carried, and changing the words of a callout or a toggle
+      deleted what it had inside. Now what does not belong to the agent is kept.
     scenarios:
-      - title: Comentar unas palabras
-        given: Un párrafo con la frase «fecha de cierre»
-        when: El agente comenta esas palabras
-        then: Las palabras quedan marcadas con el comentario, y el comentario lleva el nombre del dueño del token
-      - title: Cambiar una celda
-        given: Una tabla con comentarios en otras celdas
-        when: El agente cambia una celda
-        then: Las demás celdas conservan su id y sus comentarios
-      - title: Página bloqueada
-        given: Una página bloqueada
-        when: El agente intenta escribir en ella
-        then: No se escribe nada y se le dice que una persona tiene que desbloquearla
-      - title: Reemplazar un bloque comentado
-        given: Un aviso amarillo con un comentario de otra persona
-        when: El agente lo reemplaza por un párrafo
-        then: El párrafo conserva el id, el comentario y el color amarillo
+      - title: Commenting on some words
+        given: A paragraph with the phrase "fecha de cierre"
+        when: The agent comments on those words
+        then: The words are marked with the comment, and the comment carries the name of the token's owner
+      - title: Changing a cell
+        given: A table with comments in other cells
+        when: The agent changes a cell
+        then: The other cells keep their id and their comments
+      - title: Locked page
+        given: A locked page
+        when: The agent tries to write on it
+        then: Nothing is written and it is told that a person has to unlock it
+      - title: Replacing a commented block
+        given: A yellow callout with a comment from another person
+        when: The agent replaces it with a paragraph
+        then: The paragraph keeps the id, the comment and the yellow color
   - id: BR-75580a6
     status: active
-    title: Lo que apunta a una página cerrada no la nombra
+    title: What points to a closed page does not name it
     rule: >-
-      Cuando el agente abre una página que puede leer, cada mención, subpágina, bloque sincronizado o colección que
-      apunta a una página que su token no alcanza aparece como una marca que no nombra nada, sin título ni id. Lo mismo
-      vale para los ancestros cerrados en la ruta de una página y para las páginas que la enlazan.
+      When the agent opens a page it can read, each mention, subpage, synced block or collection that points to a page its
+      token does not reach appears as a mark that names nothing, without a title or id. The same applies to closed
+      ancestors in a page's path and to the pages that link to it.
     why: >-
-      Un título ya es información. Si una página abierta dejara ver el nombre de otra cerrada, cerrar una página no
-      alcanzaría para que el agente no supiera de ella.
-    context: La marca conserva el id del bloque que la tenía, así el agente todavía puede señalar ese bloque.
+      A title is already information. If an open page let the name of a closed one be seen, closing a page would not be
+      enough for the agent not to know about it.
+    context: The mark keeps the id of the block that had it, so the agent can still point to that block.
     scenarios:
-      - title: Una mención a una página cerrada
-        given: Un token que cierra la página Sueldos y una página abierta que la menciona
-        when: El agente abre la página abierta
-        then: Ve una marca en lugar de la mención, sin el título ni el id de Sueldos
-      - title: Un ancestro cerrado
-        given: Un token que cierra una página y vuelve a abrir una de sus hijas
-        when: El agente abre una página bajo esa hija
-        then: La ruta muestra la hija abierta y, en lugar de la cerrada, un paso sin nombre
+      - title: A mention of a closed page
+        given: A token that closes the page Sueldos and an open page that mentions it
+        when: The agent opens the open page
+        then: It sees a mark in place of the mention, without the title or id of Sueldos
+      - title: A closed ancestor
+        given: A token that closes a page and reopens one of its children
+        when: The agent opens a page under that child
+        then: The path shows the open child and, in place of the closed one, a step with no name
   - id: BR-7cca1e0
     status: active
-    title: Un enlace a un bloque que ya no está entrega su página
+    title: A link to a block that is no longer there delivers its page
     rule: >-
-      Si el agente abre el enlace de un bloque que ya no está en su página, recibe la página tal como está ahora, con un
-      aviso de que el bloque ya no está. Si la página tampoco se puede ver, la respuesta es la de algo que no existe.
+      If the agent opens the link of a block that is no longer on its page, it receives the page as it is now, with a
+      notice that the block is no longer there. If the page cannot be seen either, the response is that of something that
+      does not exist.
     why: >-
-      Un enlace copiado hace días sigue diciendo dónde estaba la información. Contestar solo con un error dejaría al
-      agente sin nada, cuando lo que buscaba probablemente sigue en esa página, movido o reescrito.
+      A link copied days ago still says where the information was. Answering only with an error would leave the agent with
+      nothing, when what it was looking for probably is still on that page, moved or rewritten.
     scenarios:
-      - title: El bloque se borró
-        given: Un enlace a un bloque que alguien borró de su página
-        when: El agente lo abre
-        then: Recibe la página entera y el aviso de que el bloque ya no está
+      - title: The block was deleted
+        given: A link to a block that someone deleted from its page
+        when: The agent opens it
+        then: It receives the whole page and the notice that the block is no longer there
   - id: BR-9687ae3
     status: active
-    title: Manda el árbol de páginas de hoy
+    title: Today's page tree governs
     rule: >-
-      Las reglas por página se aplican con el árbol como está en el momento de cada llamada, no como estaba cuando se
-      dio el token. Una página que se saca de debajo de una página dada deja de estar dada; una que se mete debajo de
-      una página excluida queda excluida.
+      Per-page rules are applied with the tree as it is at the moment of each call, not as it was when the token was
+      given. A page that is taken out from under a given page stops being given; one that is put under an excluded page
+      becomes excluded.
     why: >-
-      El token actúa con lo que su dueño organiza. Si el árbol quedara congelado al dar el token, mover una página no
-      cambiaría quién la ve, y la lista de lo dado dejaría de describir lo que el agente alcanza.
+      The token acts with what its owner organizes. If the tree stayed frozen when the token was given, moving a page would
+      not change who sees it, and the list of what was given would stop describing what the agent reaches.
     context: >-
-      Caso a tener presente: borrar para siempre una página deja a sus hijas sin padre, y una hija que se restaura desde
-      la papelera queda en la raíz del espacio, donde ya no la alcanza la regla de la página borrada y manda la de su
-      espacio. Restaurar lo hace una persona que ve esa página. El recorrido del árbol corta ciclos con el camino ya
-      andado y no con una profundidad máxima, para que ninguna página profunda quede fuera de la exclusión que la cubre.
+      A case to keep in mind: deleting a page forever leaves its children without a parent, and a child restored from the
+      trash ends up at the root of the space, where the deleted page's rule no longer reaches it and its space's rule
+      governs. Restoring is done by a person who sees that page. The tree traversal cuts cycles using the path already
+      walked and not a maximum depth, so that no deep page is left out of the exclusion that covers it.
     scenarios:
-      - title: Sacar una página de lo dado
-        given: Un token con acceso a «Vacaciones» y a lo que cuelga de ella
-        when: Alguien mueve «Verano», que colgaba de «Vacaciones», a la raíz del espacio
-        then: El agente ya no puede leer «Verano»
-      - title: Meter una página en lo excluido
-        given: Un token que lee todo menos «RR. HH.»
-        when: Alguien mueve una página debajo de «RR. HH.»
-        then: El agente ya no la encuentra ni la puede leer
+      - title: Taking a page out of what was given
+        given: A token with access to "Vacaciones" and to what hangs from it
+        when: Someone moves "Verano", which hung from "Vacaciones", to the root of the space
+        then: The agent can no longer read "Verano"
+      - title: Putting a page into what is excluded
+        given: A token that reads everything except "RR. HH."
+        when: Someone moves a page under "RR. HH."
+        then: The agent no longer finds it nor can read it
   - id: BR-9ee3326
     status: active
-    title: Bloquear, verificar y dar dueño a una página piden su propio permiso
+    title: Locking, verifying and assigning an owner to a page require their own permission
     rule: >-
-      Bloquear o desbloquear una página, responder por ella como verificada y darle un dueño son actos de confianza
-      sobre la página, separados de escribir en ella. Un token solo puede hacerlos si tiene el permiso de gestionar
-      páginas en esa página, según la regla más cercana. Poder escribir la página no alcanza. Si un pedido mezcla esos
-      cambios con otros que el token sí puede hacer, como cambiar el título, no se cambia nada y el agente recibe el
-      motivo. Solo puede dar este permiso quien puede escribir, y lo trae el nivel de acceso completo, no el de lectura
-      y escritura.
+      Locking or unlocking a page, vouching for it as verified and giving it an owner are acts of trust over the page,
+      separate from writing on it. A token can only do them if it has the permission to manage pages on that page, according
+      to the closest rule. Being able to write the page is not enough. If a request mixes those changes with others that the
+      token can do, such as changing the title, nothing is changed and the agent receives the reason. Only whoever can write
+      can give this permission, and it comes with the full access level, not with read and write.
     why: >-
-      Un bloqueo, una verificación o un dueño dicen a los demás que la página está cuidada y por quién. Si cualquier
-      token que escribe pudiera hacerlo, un agente podría bloquear páginas por error o dar por verificada información
-      que nadie revisó, en nombre de una persona.
+      A lock, a verification or an owner tell others that the page is looked after and by whom. If any token that writes
+      could do it, an agent could lock pages by mistake or mark as verified information that nobody reviewed, on behalf of a
+      person.
     context: >-
-      El permiso se guarda como los demás permisos del token, por lugar. Una regla puesta en una página que no lo
-      incluye lo quita en esa página aunque el token lo tenga en todo el espacio.
+      The permission is stored like the token's other permissions, per place. A rule placed on a page that does not include
+      it removes it on that page even if the token has it across the whole space.
     scenarios:
-      - title: Token que solo escribe
-        given: Un token que puede escribir una página pero no gestionarla
-        when: El agente pide bloquearla y cambiarle el título en el mismo pedido
-        then: No se cambia nada y se le explica que falta el permiso de gestionar páginas
-      - title: Regla de la página
-        given: Un token que puede gestionar páginas en todo el espacio, con una regla en una página que no lo incluye
-        when: El agente pide verificar esa página
-        then: Se rechaza y la página queda sin verificar
+      - title: Token that only writes
+        given: A token that can write a page but not manage it
+        when: The agent asks to lock it and change its title in the same request
+        then: Nothing is changed and it is explained that the permission to manage pages is missing
+      - title: Page rule
+        given: A token that can manage pages across the whole space, with a rule on a page that does not include it
+        when: The agent asks to verify that page
+        then: It is rejected and the page stays unverified
   - id: BR-adf07ee
     status: active
-    title: En cada página manda la regla más cercana
+    title: On each page the closest rule governs
     rule: >-
-      Un token tiene reglas por lugar: en todos los espacios, en un espacio o en una página (que incluye todo lo que
-      cuelga de ella). Para decidir qué puede en una página se sube desde la página por sus ancestros y se usa la
-      primera regla que aparece; si ninguna página tiene, la de su espacio; si tampoco, la de todos los espacios; si no
-      hay ninguna, nada. La regla más cercana decide sola, sin sumarse a las de arriba. Una regla sin permisos («sin
-      acceso») excluye el lugar.
+      A token has rules per place: in all spaces, in one space or on one page (which includes everything that hangs from
+      it). To decide what it can do on a page, one goes up from the page through its ancestors and uses the first rule that
+      appears; if no page has one, that of its space; if not, that of all spaces; if there is none, nothing. The closest
+      rule decides on its own, without adding to those above. A rule without permissions ("no access") excludes the place.
     why: >-
-      Tiene que poder decirse «solo esta página», «todo menos esto», «todo menos esto pero sí esta parte» y «escribir en
-      todo pero solo leer en Finanzas» con una sola regla que se pueda auditar: cada página responde a una regla, y se
-      puede mostrar cuál.
+      It must be possible to say "only this page", "everything except this", "everything except this but yes this part" and
+      "write everywhere but only read in Finance" with a single rule that can be audited: each page answers to one rule,
+      and which one can be shown.
     context: >-
-      Leer, buscar y listar espacios aplican exactamente la misma regla, en el servidor; por el camino que dijera más es
-      por donde se filtraría. Sobre la regla más cercana siguen valiendo los dos límites de siempre: el dueño tiene que
-      ver la página hoy, y el token no pasa de lo que el rol del dueño permite hoy. Un token hecho solo de exclusiones
-      no se puede crear. Tampoco se puede nombrar, ni para cerrarlo, un espacio o una página que el dueño no ve, ni una
-      página en la papelera.
+      Reading, searching and listing spaces apply exactly the same rule, on the server; whichever path said more is where it
+      would leak. On top of the closest rule the two usual limits still hold: the owner has to see the page today, and the
+      token does not go beyond what the owner's role allows today. A token made only of exclusions cannot be created. Nor
+      can a space or a page that the owner does not see be named, not even to close it, nor a page in the trash.
     scenarios:
-      - title: Todo menos un árbol
-        given: Un token que lee en todos los espacios y tiene «RR. HH.» sin acceso
-        when: El agente busca o lee «Sueldos», que cuelga de «RR. HH.»
-        then: No lo encuentra ni lo puede leer, a cualquier profundidad
-      - title: Reabrir adentro de lo excluido
-        given: El mismo token, con «RR. HH./Vacaciones» en solo lectura
-        when: El agente lee «Vacaciones» o una página que cuelga de ella
-        then: La lee, y «RR. HH.» y «Sueldos» siguen cerradas
-      - title: Solo una página
-        given: Un token con una sola regla, en la página «Vacaciones»
-        when: El agente lista espacios y busca
-        then: Ve el espacio de «Vacaciones» y encuentra solo esa página y lo que cuelga de ella
+      - title: Everything except a tree
+        given: A token that reads in all spaces and has "RR. HH." with no access
+        when: The agent searches for or reads "Sueldos", which hangs from "RR. HH."
+        then: It does not find it nor can it read it, at any depth
+      - title: Reopening inside what is excluded
+        given: The same token, with "RR. HH./Vacaciones" as read only
+        when: The agent reads "Vacaciones" or a page that hangs from it
+        then: It reads it, and "RR. HH." and "Sueldos" stay closed
+      - title: Only one page
+        given: A token with a single rule, on the page "Vacaciones"
+        when: The agent lists spaces and searches
+        then: It sees the space of "Vacaciones" and finds only that page and what hangs from it
   - id: BR-c448895
     status: active
-    title: Un reintento del agente no crea dos veces lo mismo
+    title: An agent retry does not create the same thing twice
     rule: >-
-      Al crear una página, una fila, una colección, una vista, un comentario, una copia o bloques nuevos, el agente
-      puede darle al pedido un id propio. Si con el mismo token llega otro pedido con ese id, no se hace de nuevo. Si el
-      primero ya se hizo, se le dice al agente que no se repitió y en qué página quedó. Si todavía corre, se le pide
-      esperar y leer la página. Si lleva más de diez minutos sin terminar, no se sabe si se hizo: se le pide leer la
-      página y, si no está lo que pidió, mandarlo con un id nuevo. Un id ya usado para otra herramienta se rechaza
-      diciendo para cuál se usó. Un pedido que se negó o falló no reserva su id, y el agente puede volver a intentarlo
-      con él.
+      When creating a page, a row, a collection, a view, a comment, a copy or new blocks, the agent can give the request an
+      id of its own. If with the same token another request arrives with that id, it is not done again. If the first was
+      already done, the agent is told it was not repeated and on which page it ended up. If it is still running, it is
+      asked to wait and read the page. If it has gone more than ten minutes without finishing, it is not known whether it
+      was done: it is asked to read the page and, if what it requested is not there, to send it with a new id. An id already
+      used for another tool is rejected, saying which one it was used for. A request that was refused or failed does not
+      reserve its id, and the agent can try again with it.
     why: >-
-      Cuando la respuesta se pierde en el camino, el agente no sabe si su pedido se hizo y lo manda otra vez. Sin un id,
-      cada reintento deja una página o un comentario repetido que alguien tiene que encontrar y borrar a mano. Liberar
-      el id de un pedido que quedó sin cerrar podía duplicarlo, porque la escritura pudo hacerse aunque su cierre no se
-      anotara.
+      When the response is lost on the way, the agent does not know whether its request was done and sends it again.
+      Without an id, each retry leaves a repeated page or comment that someone has to find and delete by hand. Releasing
+      the id of a request that was left unfinished could duplicate it, because the write may have been done even if its
+      closing was not recorded.
     context: >-
-      El id es opcional y vale solo para el token que lo mandó: otro token puede usar el mismo id sin chocar. Dos
-      pedidos con el mismo id que llegan a la vez los separa la base de datos, no una lectura previa, así que solo uno
-      escribe.
+      The id is optional and valid only for the token that sent it: another token can use the same id without clashing. Two
+      requests with the same id that arrive at the same time are told apart by the database, not by a prior read, so only
+      one writes.
     supersedes: BR-85c1bbf
     scenarios:
-      - title: Reintento de algo que ya se creó
-        given: Un agente creó una página con el id de pedido "pedido-1"
-        when: Manda otra vez el mismo pedido con el mismo id
-        then: No se crea otra página, y la respuesta dice que no se repitió y cuál es la página
-      - title: Dos reintentos al mismo tiempo
-        given: Un agente manda dos veces a la vez el mismo pedido con el mismo id
-        when: Las dos llamadas llegan juntas
-        then: Se crea una sola página, y la otra llamada recibe que el pedido está en curso
-      - title: El mismo id en otro token
-        given: Un token ya usó el id "pedido-x"
-        when: Otro token crea una página con el id "pedido-x"
-        then: La página se crea, porque el id solo vale dentro de cada token
-      - title: Un pedido que quedó sin cerrar
-        given: Un pedido con id lleva más de diez minutos sin terminar
-        when: El agente lo reintenta con el mismo id
-        then: No se hace de nuevo; se le pide leer la página y usar un id nuevo si lo pedido no está
-      - title: El mismo id para otra cosa
-        given: Un agente creó una página con el id "pedido-1"
-        when: Usa el id "pedido-1" para comentar un bloque
-        then: El comentario no se hace y la respuesta dice que ese id ya se usó en create_page
+      - title: Retry of something already created
+        given: An agent created a page with the request id "pedido-1"
+        when: It sends the same request again with the same id
+        then: No other page is created, and the response says it was not repeated and which page it is
+      - title: Two retries at the same time
+        given: An agent sends the same request twice at once with the same id
+        when: Both calls arrive together
+        then: Only one page is created, and the other call is told that the request is in progress
+      - title: The same id on another token
+        given: A token already used the id "pedido-x"
+        when: Another token creates a page with the id "pedido-x"
+        then: The page is created, because the id is only valid within each token
+      - title: A request left unfinished
+        given: A request with an id has gone more than ten minutes without finishing
+        when: The agent retries it with the same id
+        then: It is not done again; it is asked to read the page and use a new id if what was requested is not there
+      - title: The same id for something else
+        given: An agent created a page with the id "pedido-1"
+        when: It uses the id "pedido-1" to comment on a block
+        then: The comment is not made and the response says that id was already used in create_page
   - id: BR-cef231d
     status: active
-    title: Toda escritura de un agente queda anotada, termine como termine
+    title: Every agent write is recorded, however it ends
     rule: >-
-      Cada vez que un agente intenta escribir en Neuma queda una anotación con quién es su dueño, con qué token entró,
-      qué herramienta usó, sobre qué página y qué pidió, y si se hizo, se rechazó o falló. Sin esa anotación no hay
-      escritura.
+      Each time an agent tries to write in Neuma, a record is left of who its owner is, which token it came in with, which
+      tool it used, on which page and what it requested, and whether it was done, rejected or failed. Without that record
+      there is no write.
     why: >-
-      Un agente actúa en nombre de una persona y a su velocidad. Para responder qué cambió, quién lo pidió y qué intentó
-      sin lograrlo hace falta el rastro completo, incluidos los intentos rechazados, que son los que muestran un token
-      mal configurado o un agente que insiste.
+      An agent acts on behalf of a person and at its own speed. To answer what changed, who requested it and what it tried
+      without succeeding, the complete trail is needed, including rejected attempts, which are the ones that reveal a
+      badly configured token or an agent that insists.
     context: >-
-      La anotación no guarda llaves hacia la página ni hacia el token, para seguir diciendo qué pasó aunque ya no
-      existan.
+      The record does not keep keys toward the page or the token, so that it can keep saying what happened even if they no
+      longer exist.
     supersedes: BR-65519fe
     scenarios:
-      - title: Una opción que no existe
-        given: Un token que puede escribir en un tablero
-        when: El agente crea una fila con un estado que el tablero no tiene
-        then: No se crea nada, el agente recibe las opciones que sí existen y la anotación queda como rechazada
-      - title: Una fila bloqueada
-        given: Una fila que una persona bloqueó contra cambios
-        when: El agente intenta cambiarla
-        then: Se le dice que una persona tiene que desbloquearla y la anotación queda como rechazada
+      - title: An option that does not exist
+        given: A token that can write on a board
+        when: The agent creates a row with a status that the board does not have
+        then: Nothing is created, the agent receives the options that do exist and the record is left as rejected
+      - title: A locked row
+        given: A row that a person locked against changes
+        when: The agent tries to change it
+        then: It is told that a person has to unlock it and the record is left as rejected
   - id: BR-d015a0e
     status: active
-    title: El agente escribe en una colección como una persona, por los mismos nombres y las mismas reglas
+    title: The agent writes in a collection like a person, with the same names and the same rules
     rule: >-
-      El agente nombra columnas, opciones, personas y vistas como las ve la gente, sin importar mayúsculas ni acentos, y
-      Neuma las traduce a lo que guarda. Lo que no calza se rechaza entero antes de escribir, diciendo qué sí vale. Las
-      escrituras pasan por los mismos servicios que usa el portal, con sus validaciones, sus candados y sus reglas de
-      vistas.
+      The agent names columns, options, people and views as people see them, regardless of capitalization or accents, and
+      Neuma translates them into what it stores. What does not match is rejected whole before writing, saying what is
+      valid. Writes go through the same services the portal uses, with their validations, their locks and their view rules.
     why: >-
-      Un agente que adivina claves internas escribe valores que el tablero no muestra. Uno que pasara por otro camino
-      que el portal podría dejar una colección en un estado que el portal no permite, como sin vistas o con dos vistas
-      por defecto.
+      An agent that guesses internal keys writes values that the board does not show. One that went through a different path
+      than the portal could leave a collection in a state that the portal does not allow, such as with no views or with two
+      default views.
     context: >-
-      Renombrar o quitar una opción reescribe las filas que la tenían. Una columna nueva recibe la clave que le daría el
-      portal. La última vista de una colección no se quita, y exactamente una es con la que se abre.
+      Renaming or removing an option rewrites the rows that had it. A new column receives the key the portal would give it.
+      A collection's last view is not removed, and exactly one is the one it opens with.
     supersedes: BR-1dca2a0
     scenarios:
-      - title: Mover una tarea
-        given: Un tablero con la columna Estado y las opciones Por hacer y Hecho
-        when: El agente cambia el estado de una tarea a «hecho»
-        then: La tarea queda en Hecho, escrito como lo tiene el tablero
-      - title: La última vista
-        given: Una colección con una sola vista
-        when: El agente pide quitarla
-        then: Se rechaza explicando que una colección conserva al menos una vista
+      - title: Moving a task
+        given: A board with the Estado column and the options Por hacer and Hecho
+        when: The agent changes a task's status to "hecho"
+        then: The task ends up in Hecho, written the way the board has it
+      - title: The last view
+        given: A collection with a single view
+        when: The agent asks to remove it
+        then: It is rejected, explaining that a collection keeps at least one view
   - id: BR-d2011f8
     status: active
-    title: Lo que una página va a dibujar se revisa antes de guardarlo
+    title: What a page is going to draw is checked before it is saved
     rule: >-
-      Antes de guardar un diagrama o una fórmula que escribe un agente, el sistema comprueba que se pueda dibujar tal
-      como lo dibujará la página. Revisa que el diagrama se pueda leer, que cada ícono que nombra exista entre los que
-      la página dibuja y que en un diagrama de arquitectura cada grupo contenga algo y ningún elemento quede fuera del
-      grupo al que apunta su sangría. En una fórmula revisa que se pueda componer. Si algo falla, no se guarda nada y el
-      agente recibe el motivo exacto con el número de bloque, para corregirlo y volver a intentar.
+      Before saving a diagram or a formula that an agent writes, the system checks that it can be drawn just as the page
+      will draw it. It checks that the diagram can be read, that each icon it names exists among those the page draws and
+      that in an architecture diagram each group contains something and no element is left outside the group its
+      indentation points to. In a formula it checks that it can be typeset. If something fails, nothing is saved and the
+      agent receives the exact reason with the block number, to fix it and try again.
     why: >-
-      Un diagrama roto o con íconos que no existen, guardado en silencio, solo lo descubre después la persona que abre
-      la página. Rechazarlo en el momento, con el motivo, deja que el agente lo corrija solo.
+      A broken diagram or one with icons that do not exist, saved silently, is only discovered afterwards by the person who
+      opens the page. Rejecting it at the moment, with the reason, lets the agent fix it on its own.
     context: >-
-      La revisión ocurre en el servidor, nunca en el navegador. Si el revisor de diagramas no responde a tiempo o se
-      cae, la escritura no se hace, el fallo queda registrado y el revisor se vuelve a levantar para la siguiente. Nunca
-      se da por bueno un diagrama que no se pudo revisar. El registro de fallos guarda un motivo corto, nunca lo que el
-      agente escribió.
+      The check happens on the server, never in the browser. If the diagram checker does not respond in time or goes down,
+      the write is not done, the failure is recorded and the checker is brought back up for the next one. A diagram that
+      could not be checked is never taken as good. The failure log keeps a short reason, never what the agent wrote.
     scenarios:
-      - title: Diagrama que no se puede leer
-        given: Un agente que escribe un diagrama con un error de sintaxis
-        when: Intenta guardarlo en una página
-        then: No se guarda nada y recibe el error con la línea y el número de bloque
-      - title: Ícono inexistente
-        given: Un diagrama que nombra un ícono que la página no tiene
-        when: El agente intenta guardarlo
-        then: Se rechaza nombrando el ícono y cómo encontrar uno que exista
+      - title: Diagram that cannot be read
+        given: An agent that writes a diagram with a syntax error
+        when: It tries to save it on a page
+        then: Nothing is saved and it receives the error with the line and the block number
+      - title: Nonexistent icon
+        given: A diagram that names an icon the page does not have
+        when: The agent tries to save it
+        then: It is rejected naming the icon and how to find one that exists
   - id: BR-dc7a320
     status: active
-    title: En una colección, cada fila responde a su propia regla
+    title: In a collection, each row answers to its own rule
     rule: >-
-      Leer, filtrar o cambiar las filas de una colección se decide fila por fila con la regla más cercana del token; una
-      regla puesta en una fila manda sobre la de su colección. Leer una colección pide collections:read, cambiar sus
-      filas collections:write y cambiar sus columnas o vistas collections:configure, cada uno en el lugar donde está
-      hoy. Una fila también es una página, y crearla, renombrarla, moverla dentro o fuera de una colección o duplicarla
-      pide collections:write aunque el agente lo haga como página.
+      Reading, filtering or changing a collection's rows is decided row by row with the token's closest rule; a rule placed
+      on a row governs over that of its collection. Reading a collection requires collections:read, changing its rows
+      collections:write and changing its columns or views collections:configure, each one in the place where it is today. A
+      row is also a page, and creating it, renaming it, moving it into or out of a collection or duplicating it requires
+      collections:write even if the agent does it as a page.
     why: >-
-      Si las herramientas de páginas no pidieran lo mismo que las de colecciones, un token que solo escribe páginas
-      cambiaría filas por la puerta de al lado.
-    context: Lo que una fila dice como página, su contenido, sigue pidiendo poder escribir páginas.
+      If the page tools did not require the same as the collection tools, a token that only writes pages would change rows
+      through the next door.
+    context: What a row says as a page, its content, still requires being able to write pages.
     supersedes: BR-ff39e6a
     scenarios:
-      - title: Un token que solo escribe páginas no crea una fila
-        given: Un token con permiso para escribir páginas y sin collections:write en una colección
-        when: El agente crea una página dentro de esa colección
-        then: Se rechaza diciendo que cambiar filas pide collections:write, y no se crea nada
-      - title: Mover una página a una colección es agregar una fila
-        given: Un token sin collections:write en la colección de destino
-        when: El agente mueve una página dentro de esa colección
-        then: Se rechaza y la página queda donde estaba
+      - title: A token that only writes pages does not create a row
+        given: A token with permission to write pages and without collections:write on a collection
+        when: The agent creates a page inside that collection
+        then: It is rejected saying that changing rows requires collections:write, and nothing is created
+      - title: Moving a page into a collection is adding a row
+        given: A token without collections:write on the destination collection
+        when: The agent moves a page into that collection
+        then: It is rejected and the page stays where it was
   - id: BR-e3b419d
     status: active
-    title: El token se ve una sola vez
+    title: The token is seen only once
     rule: >-
-      El secreto de un token se muestra completo una sola vez, al crearlo. El servidor guarda solo su hash; en las
-      listas se ve su nombre y su comienzo, nunca el resto.
-    why: Un secreto que se puede volver a leer se puede filtrar desde la base o desde la pantalla de cualquiera.
+      A token's secret is shown in full only once, when it is created. The server stores only its hash; in lists its name
+      and its beginning are seen, never the rest.
+    why: A secret that can be read again can leak from the database or from anyone's screen.
     context: >-
-      Si se pierde, se revoca y se crea otro. Los tokens empiezan con un prefijo propio para que un escáner de secretos
-      los reconozca si se pegan donde no deben.
+      If it is lost, it is revoked and another is created. Tokens start with a prefix of their own so that a secret scanner
+      recognizes them if they are pasted where they should not be.
     scenarios:
-      - title: Crear un token
-        given: Una persona en su cuenta
-        when: Crea un token
-        then: Ve el token completo y la configuración para su agente, y al cerrar el panel ya no lo puede volver a ver
+      - title: Creating a token
+        given: A person in their account
+        when: They create a token
+        then: They see the full token and the configuration for their agent, and on closing the panel they can no longer see it again
   - id: BR-e40f5c7
     status: active
-    title: El agente ve lo mismo por cada camino
+    title: The agent sees the same through every path
     rule: >-
-      Buscar, abrir y recorrer el árbol responden con la misma regla del token: lo que no se puede abrir tampoco aparece
-      en la búsqueda ni en el árbol, y un enlace o un id de una página o un bloque que el agente no puede ver se
-      contesta igual que uno que no existe. Lo mismo al escribir: cambiar, comentar, mover, duplicar, mandar a la
-      papelera o restaurar algo que el token no alcanza, o llevar algo hacia un lugar que no alcanza, se contesta igual
-      que si el lugar no existiera, y no cambia nada.
+      Searching, opening and walking the tree respond with the same token rule: what cannot be opened does not appear in
+      the search or in the tree either, and a link or an id of a page or a block that the agent cannot see is answered the
+      same as one that does not exist. The same when writing: changing, commenting, moving, duplicating, sending to the
+      trash or restoring something the token does not reach, or taking something to a place it does not reach, is answered
+      the same as if the place did not exist, and changes nothing.
     why: >-
-      Por el camino que conteste distinto se filtra lo que el token no debe ver: una respuesta que dice «no tienes
-      permiso» confirma que la página existe.
+      Through whichever path answers differently, what the token must not see leaks: a response that says "you do not have
+      permission" confirms that the page exists.
     context: >-
-      La búsqueda devuelve bloques con su página y su sección. Abrir acepta un enlace copiado del portal, un id de
-      página o un id de bloque. Recorrer el árbol lista las páginas de un nivel con cuántas tiene debajo, contando solo
-      las que el agente puede ver. Cada herramienta que escribe se prueba contra un lugar cerrado y contra uno que no
-      existe, y las dos respuestas tienen que ser iguales letra por letra.
+      Search returns blocks with their page and their section. Opening accepts a link copied from the portal, a page id or a
+      block id. Walking the tree lists the pages of one level with how many it has below, counting only those the agent can
+      see. Each tool that writes is tested against a closed place and against one that does not exist, and the two responses
+      have to be identical letter for letter.
     supersedes: BR-5fc8214
     superseded_reason: >-
-      Hablaba solo de leer. Escribir sobre un lugar cerrado, o llevar algo hacia él, también tiene que contestarse igual
-      que un lugar que no existe.
+      It spoke only of reading. Writing over a closed place, or taking something to it, also has to be answered the same as
+      a place that does not exist.
     scenarios:
-      - title: El id de un bloque de una página cerrada
-        given: Un token que no alcanza la página de Sueldos
-        when: El agente abre un bloque de esa página por su id
-        then: Se le contesta lo mismo que por un id que no existe
-      - title: Mover hacia una página cerrada
-        given: Un token que escribe en todo el espacio salvo en la página de Sueldos
-        when: El agente mueve una página abierta debajo de Sueldos
-        then: Se le contesta lo mismo que si Sueldos no existiera, y las dos páginas quedan como estaban
+      - title: The id of a block on a closed page
+        given: A token that does not reach the Sueldos page
+        when: The agent opens a block of that page by its id
+        then: It is answered the same as for an id that does not exist
+      - title: Moving to a closed page
+        given: A token that writes in the whole space except on the Sueldos page
+        when: The agent moves an open page under Sueldos
+        then: It is answered the same as if Sueldos did not exist, and both pages stay as they were
   - id: BR-e782bed
     status: active
-    title: Quien administra ve y revoca todos los tokens
+    title: Whoever administers sees and revokes all tokens
     rule: >-
-      Quien administra el espacio de trabajo ve todos los tokens vivos, con quién lo creó, qué puede hacer y cuándo se
-      usó, y puede revocar cualquiera. No ve ningún secreto, y de los lugares que él mismo no ve (espacios, y páginas de
-      esos espacios) solo se muestra cuántos son, sin nombre ni título.
+      Whoever administers the workspace sees all live tokens, with who created them, what they can do and when they were
+      used, and can revoke any of them. They see no secret, and of the places they themselves do not see (spaces, and pages
+      of those spaces) only how many there are is shown, without name or title.
     why: >-
-      Un agente conectado es una puerta abierta a la información de la empresa; alguien tiene que poder ver cuáles hay y
-      cerrarlas, sin que eso le dé acceso a lo que no le corresponde.
+      A connected agent is an open door to the company's information; someone has to be able to see which ones there are and
+      close them, without that giving access to what does not correspond to them.
     supersedes: BR-b9dbfcb
     superseded_reason: >-
-      Con las reglas por página, lo que se oculta a quien administra ya no son solo espacios: también las páginas de los
-      espacios que no ve, con su título.
+      With per-page rules, what is hidden from whoever administers is no longer only spaces: also the pages of the spaces
+      they do not see, with their title.
     scenarios:
-      - title: Un token con un espacio privado ajeno
-        given: Un token de otra persona con reglas en su espacio privado y en una página de ese espacio
-        when: Quien administra abre la página de tokens de agentes
-        then: Ve el token y cuántos lugares tiene que no ve, pero no el nombre del espacio ni el título de la página
-      - title: Revocar desde administración
-        given: Un token vivo de otra persona
-        when: Quien administra lo revoca
-        then: El agente deja de entrar en su siguiente llamada
+      - title: A token with someone else's private space
+        given: A token of another person with rules in their private space and on a page of that space
+        when: Whoever administers opens the agent tokens page
+        then: They see the token and how many places it has that they do not see, but not the space's name or the page's title
+      - title: Revoking from administration
+        given: A live token of another person
+        when: Whoever administers revokes it
+        then: The agent stops getting in on its next call
   - id: BR-fabc7c6
     status: active
-    title: Lo que alcanza a un árbol de páginas pide permiso en todo el árbol
+    title: What reaches a page tree requires permission across the whole tree
     rule: >-
-      Cuando un agente hace algo que alcanza también a las páginas que cuelgan de una, como mandarla a la papelera,
-      moverla o copiarla con sus hijas, el token necesita el permiso en esa página y en cada página de abajo que tenga
-      su propia regla. Si alguna de abajo no lo permite, no se hace nada y se nombra esa página. Mandar a la papelera y
-      restaurar piden su propio permiso, distinto del de escribir. Mover pide poder escribir donde está la página y
-      donde va, y copiar pide poder escribir junto a la original. Nada se borra para siempre desde un agente, y lo que
-      manda a la papelera se puede restaurar.
+      When an agent does something that also reaches the pages hanging from one, such as sending it to the trash, moving it
+      or copying it with its children, the token needs the permission on that page and on every page below it that has its
+      own rule. If any below does not allow it, nothing is done and that page is named. Sending to the trash and restoring
+      require their own permission, distinct from that of writing. Moving requires being able to write where the page is and
+      where it goes, and copying requires being able to write next to the original. Nothing is deleted forever from an
+      agent, and what it sends to the trash can be restored.
     why: >-
-      Una regla que cierra una página a un token no debe poder saltarse actuando sobre la página de arriba. Si se
-      pudiera, el token terminaría haciendo con la página cerrada lo que su regla prohíbe, y una copia podría sacar a la
-      luz una página que el token no puede leer.
+      A rule that closes a page to a token must not be bypassable by acting on the page above. If it could be, the token
+      would end up doing with the closed page what its rule forbids, and a copy could bring to light a page the token cannot
+      read.
     context: >-
-      Solo importan las páginas de abajo que tienen una regla propia; las demás heredan la de arriba, que ya se revisó
-      en la página misma. Una página en la papelera que el token no alcanza se contesta igual que una que no existe.
+      Only the pages below that have a rule of their own matter; the others inherit the one above, which was already checked
+      on the page itself. A page in the trash that the token does not reach is answered the same as one that does not exist.
     scenarios:
-      - title: Hija protegida
-        given: Un token que puede mandar páginas a la papelera en todo el espacio, salvo una página que cuelga de otra
-        when: El agente manda a la papelera la página de arriba
-        then: No se manda nada a la papelera y se le nombra la página protegida
-      - title: Restaurar con las hijas
-        given: Una página que se fue a la papelera con su hija
-        when: El agente la restaura pidiendo también sus hijas
-        then: Vuelven las dos
+      - title: Protected child
+        given: A token that can send pages to the trash across the whole space, except one page that hangs from another
+        when: The agent sends the page above to the trash
+        then: Nothing is sent to the trash and the protected page is named
+      - title: Restoring with the children
+        given: A page that went to the trash with its child
+        when: The agent restores it also asking for its children
+        then: Both come back
   - id: BR-1dca2a0
     status: superseded
-    title: El agente escribe en una colección como una persona, por los mismos nombres y las mismas reglas
+    title: The agent writes in a collection like a person, with the same names and the same rules
     rule: >-
-      El agente nombra columnas, opciones, personas y vistas como las ve la gente, sin importar mayúsculas ni acentos, y
-      Company Brain las traduce a lo que guarda. Lo que no calza se rechaza entero antes de escribir, diciendo qué sí
-      vale. Las escrituras pasan por los mismos servicios que usa el portal, con sus validaciones, sus candados y sus
-      reglas de vistas.
+      The agent names columns, options, people and views as people see them, regardless of capitalization or accents, and
+      Company Brain translates them into what it stores. What does not match is rejected whole before writing, saying what
+      is valid. Writes go through the same services the portal uses, with their validations, their locks and their view
+      rules.
     why: >-
-      Un agente que adivina claves internas escribe valores que el tablero no muestra. Uno que pasara por otro camino
-      que el portal podría dejar una colección en un estado que el portal no permite, como sin vistas o con dos vistas
-      por defecto.
+      An agent that guesses internal keys writes values that the board does not show. One that went through a different path
+      than the portal could leave a collection in a state that the portal does not allow, such as with no views or with two
+      default views.
     context: >-
-      Renombrar o quitar una opción reescribe las filas que la tenían. Una columna nueva recibe la clave que le daría el
-      portal. La última vista de una colección no se quita, y exactamente una es con la que se abre.
+      Renaming or removing an option rewrites the rows that had it. A new column receives the key the portal would give it.
+      A collection's last view is not removed, and exactly one is the one it opens with.
     superseded_by: BR-d015a0e
     scenarios:
-      - title: Mover una tarea
-        given: Un tablero con la columna Estado y las opciones Por hacer y Hecho
-        when: El agente cambia el estado de una tarea a «hecho»
-        then: La tarea queda en Hecho, escrito como lo tiene el tablero
-      - title: La última vista
-        given: Una colección con una sola vista
-        when: El agente pide quitarla
-        then: Se rechaza explicando que una colección conserva al menos una vista
+      - title: Moving a task
+        given: A board with the Estado column and the options Por hacer and Hecho
+        when: The agent changes a task's status to "hecho"
+        then: The task ends up in Hecho, written the way the board has it
+      - title: The last view
+        given: A collection with a single view
+        when: The agent asks to remove it
+        then: It is rejected, explaining that a collection keeps at least one view
   - id: BR-5fc8214
     status: superseded
-    title: El agente ve lo mismo por cada camino
+    title: The agent sees the same through every path
     rule: >-
-      Buscar, abrir y recorrer el árbol responden con la misma regla del token: lo que no se puede abrir tampoco aparece
-      en la búsqueda ni en el árbol, y un enlace o un id de una página o un bloque que el agente no puede ver se
-      contesta igual que uno que no existe.
+      Searching, opening and walking the tree respond with the same token rule: what cannot be opened does not appear in
+      the search or in the tree either, and a link or an id of a page or a block that the agent cannot see is answered the
+      same as one that does not exist.
     why: >-
-      Si un camino dijera más que otro, por ahí se filtraría lo que el token cierra: un id sacado de un resultado, un
-      enlace pegado en la conversación o un conteo de subpáginas bastarían para saber que algo existe.
+      If one path said more than another, what the token closes would leak through it: an id taken from a result, a link
+      pasted into the conversation or a count of subpages would be enough to know that something exists.
     context: >-
-      La búsqueda devuelve bloques con su página y su sección. Abrir acepta un enlace copiado del portal, un id de
-      página o un id de bloque. Recorrer el árbol lista las páginas de un nivel con cuántas tiene debajo, contando solo
-      las que el agente puede ver.
+      Search returns blocks with their page and their section. Opening accepts a link copied from the portal, a page id or a
+      block id. Walking the tree lists the pages of one level with how many it has below, counting only those the agent can
+      see.
     superseded_by: BR-e40f5c7
     superseded_reason: >-
-      Hablaba solo de leer. Escribir sobre un lugar cerrado, o llevar algo hacia él, también tiene que contestarse igual
-      que un lugar que no existe.
+      It spoke only of reading. Writing over a closed place, or taking something to it, also has to be answered the same as
+      a place that does not exist.
     scenarios:
-      - title: El id de un bloque de una página cerrada
-        given: Un token que lee todo menos una página
-        when: El agente abre un bloque de esa página por su id o por su enlace
-        then: Recibe la misma respuesta que por un id que no existe
-      - title: Una subpágina cerrada
-        given: Un token que cierra una subpágina de una página que sí puede leer
-        when: El agente lista las páginas bajo la página abierta
-        then: No ve la subpágina cerrada ni se la cuenta
+      - title: The id of a block on a closed page
+        given: A token that reads everything except one page
+        when: The agent opens a block of that page by its id or by its link
+        then: It receives the same response as for an id that does not exist
+      - title: A closed subpage
+        given: A token that closes a subpage of a page it can read
+        when: The agent lists the pages under the open page
+        then: It does not see the closed subpage nor is it counted
   - id: BR-65519fe
     status: superseded
-    title: Toda escritura de un agente queda anotada, termine como termine
+    title: Every agent write is recorded, however it ends
     rule: >-
-      Cada vez que un agente intenta escribir en Company Brain queda una anotación con quién es su dueño, con qué token
-      entró, qué herramienta usó, sobre qué página y qué pidió, y si se hizo, se rechazó o falló. Sin esa anotación no
-      hay escritura.
+      Each time an agent tries to write in Company Brain, a record is left of who its owner is, which token it came in with,
+      which tool it used, on which page and what it requested, and whether it was done, rejected or failed. Without that
+      record there is no write.
     why: >-
-      Un agente actúa en nombre de una persona y a su velocidad. Para responder qué cambió, quién lo pidió y qué intentó
-      sin lograrlo hace falta el rastro completo, incluidos los intentos rechazados, que son los que muestran un token
-      mal configurado o un agente que insiste.
+      An agent acts on behalf of a person and at its own speed. To answer what changed, who requested it and what it tried
+      without succeeding, the complete trail is needed, including rejected attempts, which are the ones that reveal a
+      badly configured token or an agent that insists.
     context: >-
-      La anotación no guarda llaves hacia la página ni hacia el token, para seguir diciendo qué pasó aunque ya no
-      existan.
+      The record does not keep keys toward the page or the token, so that it can keep saying what happened even if they no
+      longer exist.
     superseded_by: BR-cef231d
     scenarios:
-      - title: Una opción que no existe
-        given: Un token que puede escribir en un tablero
-        when: El agente crea una fila con un estado que el tablero no tiene
-        then: No se crea nada, el agente recibe las opciones que sí existen y la anotación queda como rechazada
-      - title: Una fila bloqueada
-        given: Una fila que una persona bloqueó contra cambios
-        when: El agente intenta cambiarla
-        then: Se le dice que una persona tiene que desbloquearla y la anotación queda como rechazada
+      - title: An option that does not exist
+        given: A token that can write on a board
+        when: The agent creates a row with a status that the board does not have
+        then: Nothing is created, the agent receives the options that do exist and the record is left as rejected
+      - title: A locked row
+        given: A row that a person locked against changes
+        when: The agent tries to change it
+        then: It is told that a person has to unlock it and the record is left as rejected
   - id: BR-85c1bbf
     status: superseded
-    title: Un reintento del agente no crea dos veces lo mismo
+    title: An agent retry does not create the same thing twice
     rule: >-
-      Al crear una página, una fila, una colección, una vista, un comentario, una copia o bloques nuevos, el agente
-      puede darle al pedido un id propio. Si con el mismo token llega otro pedido con ese id, no se hace de nuevo. Si el
-      primero ya se hizo, se le dice al agente que no se repitió y en qué página quedó. Si todavía corre, se le pide
-      esperar y leer la página. Un pedido que se negó o falló no reserva su id, y el agente puede volver a intentarlo
-      con él. Un pedido que lleva más de diez minutos sin terminar se da por perdido, se anota como fallido y su id
-      vuelve a quedar libre.
+      When creating a page, a row, a collection, a view, a comment, a copy or new blocks, the agent can give the request an
+      id of its own. If with the same token another request arrives with that id, it is not done again. If the first was
+      already done, the agent is told it was not repeated and on which page it ended up. If it is still running, it is
+      asked to wait and read the page. A request that was refused or failed does not reserve its id, and the agent can try
+      again with it. A request that has gone more than ten minutes without finishing is considered lost, is recorded as
+      failed and its id becomes free again.
     why: >-
-      Cuando la respuesta se pierde en el camino, el agente no sabe si su pedido se hizo y lo manda otra vez. Sin un id,
-      cada reintento deja una página o un comentario repetido que alguien tiene que encontrar y borrar a mano.
+      When the response is lost on the way, the agent does not know whether its request was done and sends it again.
+      Without an id, each retry leaves a repeated page or comment that someone has to find and delete by hand.
     context: >-
-      El id es opcional y vale solo para el token que lo mandó: otro token puede usar el mismo id sin chocar. Dos
-      pedidos con el mismo id que llegan a la vez los separa la base de datos, no una lectura previa, así que solo uno
-      escribe.
+      The id is optional and valid only for the token that sent it: another token can use the same id without clashing. Two
+      requests with the same id that arrive at the same time are told apart by the database, not by a prior read, so only
+      one writes.
     superseded_by: BR-c448895
     scenarios:
-      - title: Reintento de algo que ya se creó
-        given: Un agente creó una página con el id de pedido "pedido-1"
-        when: Manda otra vez el mismo pedido con el mismo id
-        then: No se crea otra página, y la respuesta dice que no se repitió y cuál es la página
-      - title: Dos reintentos al mismo tiempo
-        given: Un agente manda dos veces a la vez el mismo pedido con el mismo id
-        when: Las dos llamadas llegan juntas
-        then: Se crea una sola página, y la otra llamada recibe que el pedido está en curso
-      - title: El mismo id en otro token
-        given: Un token ya usó el id "pedido-x"
-        when: Otro token crea una página con el id "pedido-x"
-        then: La página se crea, porque el id solo vale dentro de cada token
-      - title: Un pedido abandonado
-        given: Un pedido con id lleva más de diez minutos sin terminar porque el servidor se cayó
-        when: El agente lo reintenta con el mismo id
-        then: El pedido viejo queda anotado como fallido y el nuevo se hace
+      - title: Retry of something already created
+        given: An agent created a page with the request id "pedido-1"
+        when: It sends the same request again with the same id
+        then: No other page is created, and the response says it was not repeated and which page it is
+      - title: Two retries at the same time
+        given: An agent sends the same request twice at once with the same id
+        when: Both calls arrive together
+        then: Only one page is created, and the other call is told that the request is in progress
+      - title: The same id on another token
+        given: A token already used the id "pedido-x"
+        when: Another token creates a page with the id "pedido-x"
+        then: The page is created, because the id is only valid within each token
+      - title: An abandoned request
+        given: A request with an id has gone more than ten minutes without finishing because the server went down
+        when: The agent retries it with the same id
+        then: The old request is recorded as failed and the new one is done
   - id: BR-b1e9e21
     status: superseded
-    title: Límites, vencimiento y nombre de los tokens
+    title: Limits, expiry and name of tokens
     rule: >-
-      Una persona puede tener como máximo 20 tokens vivos, y cada token puede hacer como máximo 120 llamadas por minuto
-      al servidor MCP. Un token nuevo vence por defecto a los 30 días; se puede elegir 90 días, un año, cualquier fecha
-      futura (vence cuando termina ese día, en la hora de quien la eligió) o sin vencimiento. Dos tokens vivos de la
-      misma persona no pueden llamarse igual, sin contar mayúsculas ni espacios de más, y el nombre no puede llevar
-      caracteres de control.
+      A person can have at most 20 live tokens, and each token can make at most 120 calls per minute to the MCP server. A
+      new token expires by default after 30 days; one can choose 90 days, one year, any future date (it expires when that
+      day ends, in the time of whoever chose it) or no expiry. Two live tokens of the same person cannot have the same
+      name, ignoring capitalization and extra spaces, and the name cannot carry control characters.
     why: >-
-      Un tope acota el daño de una fuga y el costo de un agente descontrolado; un vencimiento por defecto hace que un
-      token olvidado deje de servir solo. Dos tokens que se leen igual en la lista se confunden al revocar uno.
+      A cap bounds the damage of a leak and the cost of an agent running out of control; a default expiry makes a forgotten
+      token stop working on its own. Two tokens that read the same in the list get confused when revoking one.
     context: >-
-      El tope y el nombre se revisan en la misma transacción que guarda el token, con la fila de la persona tomada:
-      pedir dos a la vez no salta ninguno de los dos. El servidor rechaza un vencimiento que no sea después de ahora.
+      The cap and the name are checked in the same transaction that saves the token, with the person's row locked:
+      requesting two at once does not get past either check. The server rejects an expiry that is not after now.
     supersedes: BR-b1fcc3a
     superseded_by: BR-1779eb2
     superseded_reason: >-
-      El nombre aceptaba caracteres invisibles o que dan vuelta el texto, con los que un token se hacía pasar por otro
-      en la lista, y comparaba mayúsculas según el idioma de cada máquina.
+      The name accepted invisible characters or ones that reverse the text, with which one token passed itself off as
+      another in the list, and compared capitalization according to each machine's language.
     scenarios:
-      - title: Pasar el tope de tokens
-        given: Una persona con 20 tokens vivos
-        when: Pide otro
-        then: El servidor lo rechaza y el portal le dice que revoque uno que no use
-      - title: Un nombre repetido
-        given: Un token vivo llamado «Claude del equipo»
-        when: La misma persona pide otro llamado «claude  DEL equipo»
-        then: El portal lo avisa en el campo antes de enviar, y el servidor lo rechaza si igual llega
-      - title: Una fecha elegida
-        given: Una persona que elige como último día el 15 de marzo
-        when: Crea el token
-        then: El token deja de servir cuando termina el 15 de marzo en su hora
+      - title: Going over the token cap
+        given: A person with 20 live tokens
+        when: They ask for another
+        then: The server rejects it and the portal tells them to revoke one they do not use
+      - title: A repeated name
+        given: A live token called "Claude del equipo"
+        when: The same person asks for another called "claude  DEL equipo"
+        then: The portal flags it in the field before sending, and the server rejects it if it arrives anyway
+      - title: A chosen date
+        given: A person who chooses March 15 as the last day
+        when: They create the token
+        then: The token stops working when March 15 ends in their time
   - id: BR-b1fcc3a
     status: superseded
-    title: Límites de los tokens
+    title: Token limits
     rule: >-
-      Una persona puede tener como máximo 20 tokens vivos, y cada token puede hacer como máximo 120 llamadas por minuto
-      al servidor MCP. Un token nuevo vence por defecto a los 30 días; se puede elegir 90 días, un año o sin
-      vencimiento.
+      A person can have at most 20 live tokens, and each token can make at most 120 calls per minute to the MCP server. A
+      new token expires by default after 30 days; one can choose 90 days, one year or no expiry.
     why: >-
-      Un tope acota el daño de una fuga y el costo de un agente descontrolado; un vencimiento por defecto hace que un
-      token olvidado deje de servir solo.
+      A cap bounds the damage of a leak and the cost of an agent running out of control; a default expiry makes a forgotten
+      token stop working on its own.
     superseded_by: BR-b1e9e21
     superseded_reason: >-
-      El vencimiento dejó de ser solo un plazo fijo: se puede elegir cualquier fecha futura, y los nombres de los tokens
-      vivos de una persona pasaron a ser únicos.
+      The expiry stopped being just a fixed period: any future date can be chosen, and the names of a person's live tokens
+      became unique.
     scenarios:
-      - title: Pasar el tope de tokens
-        given: Una persona con 20 tokens vivos
-        when: Pide otro
-        then: El servidor lo rechaza y el portal le dice que revoque uno que no use
-      - title: Un agente que llama de más
-        given: Un token que ya hizo 120 llamadas en el último minuto
-        when: Hace otra
-        then: El servidor la rechaza hasta que pase el minuto, sin afectar a otros tokens
+      - title: Going over the token cap
+        given: A person with 20 live tokens
+        when: They ask for another
+        then: The server rejects it and the portal tells them to revoke one they do not use
+      - title: An agent that calls too much
+        given: A token that already made 120 calls in the last minute
+        when: It makes another
+        then: The server rejects it until the minute passes, without affecting other tokens
   - id: BR-b9dbfcb
     status: superseded
-    title: Quien administra ve y revoca todos los tokens
+    title: Whoever administers sees and revokes all tokens
     rule: >-
-      Quien administra el espacio de trabajo ve todos los tokens vivos, con quién lo creó, qué puede hacer y cuándo se
-      usó, y puede revocar cualquiera. No ve ningún secreto, y de los espacios que él mismo no ve solo se muestra
-      cuántos son.
+      Whoever administers the workspace sees all live tokens, with who created them, what they can do and when they were
+      used, and can revoke any of them. They see no secret, and of the spaces they themselves do not see only how many
+      there are is shown.
     why: >-
-      Un agente conectado es una puerta abierta a la información de la empresa; alguien tiene que poder ver cuáles hay y
-      cerrarlas, sin que eso le dé acceso a lo que no le corresponde.
+      A connected agent is an open door to the company's information; someone has to be able to see which ones there are and
+      close them, without that giving access to what does not correspond to them.
     superseded_by: BR-e782bed
     superseded_reason: >-
-      Con las reglas por página, lo que se oculta a quien administra ya no son solo espacios: también las páginas de los
-      espacios que no ve, con su título.
+      With per-page rules, what is hidden from whoever administers is no longer only spaces: also the pages of the spaces
+      they do not see, with their title.
     scenarios:
-      - title: Un token con un espacio privado ajeno
-        given: Un token de otra persona con acceso a su espacio privado
-        when: Quien administra abre la página de tokens de agentes
-        then: Ve el token y que tiene un espacio que no ve, pero no el nombre de ese espacio
-      - title: Revocar desde administración
-        given: Un token vivo de otra persona
-        when: Quien administra lo revoca
-        then: El agente deja de entrar en su siguiente llamada
+      - title: A token with someone else's private space
+        given: A token of another person with access to their private space
+        when: Whoever administers opens the agent tokens page
+        then: They see the token and that it has a space they do not see, but not that space's name
+      - title: Revoking from administration
+        given: A live token of another person
+        when: Whoever administers revokes it
+        then: The agent stops getting in on its next call
   - id: BR-d14395a
     status: superseded
-    title: Un token nunca puede más que su dueño
+    title: A token can never do more than its owner
     rule: >-
-      Un token solo puede tener permisos que el rol de su dueño permite y solo en espacios que su dueño ve. Se revisa al
-      crearlo, al cambiarlo y en cada llamada del agente, con el rol y los espacios que el dueño tiene en ese momento.
+      A token can only have permissions that its owner's role allows and only in spaces that its owner sees. It is checked
+      when creating it, when changing it and on every call of the agent, with the role and the spaces the owner has at that
+      moment.
     why: >-
-      El token actúa en nombre de una persona. Si pudiera más que ella, crear un token sería una forma de saltarse los
-      permisos; y si su dueño pierde un acceso, el agente tiene que perderlo con él.
+      The token acts on behalf of a person. If it could do more than they can, creating a token would be a way of skipping
+      permissions; and if its owner loses an access, the agent has to lose it along with them.
     context: >-
-      Permisos por espacio o para todos los espacios, con niveles Solo lectura, Lectura y escritura, Completo o
-      Personalizado. Lo dado en un espacio se suma a lo dado en todos. El portal solo ofrece lo que el dueño puede dar,
-      pero la decisión es del servidor.
+      Permissions per space or for all spaces, with levels Read only, Read and write, Full or Custom. What is given in a
+      space is added to what is given in all of them. The portal only offers what the owner can give, but the decision
+      belongs to the server.
     superseded_by: BR-5e36ce0
     superseded_reason: >-
-      Decía que lo dado en un espacio se suma a lo dado en todos; ahora manda la regla más cercana, y además hay reglas
-      por página. El límite del dueño no cambió, pero ahora alcanza también a las páginas.
+      It said that what is given in a space is added to what is given in all of them; now the closest rule governs, and
+      there are also per-page rules. The owner's limit did not change, but it now reaches pages too.
     scenarios:
-      - title: Un cliente pide un token que escribe
-        given: Una persona con rol CLIENT, que solo puede leer
-        when: Pide un token con permiso de crear y editar páginas
-        then: El servidor lo rechaza y el token no se crea
-      - title: El dueño pierde el acceso a un espacio
-        given: Un token con lectura en un espacio restringido del que su dueño es miembro
-        when: Sacan al dueño del espacio y el agente vuelve a buscar
-        then: El agente ya no ve nada de ese espacio
+      - title: A client asks for a token that writes
+        given: A person with the CLIENT role, who can only read
+        when: They ask for a token with permission to create and edit pages
+        then: The server rejects it and the token is not created
+      - title: The owner loses access to a space
+        given: A token with read access in a restricted space of which its owner is a member
+        when: The owner is removed from the space and the agent searches again
+        then: The agent no longer sees anything of that space
   - id: BR-e608867
     status: superseded
-    title: El agente edita páginas como una persona, con todo lo que ofrece el editor
+    title: The agent edits pages like a person, with everything the editor offers
     rule: >-
-      Un agente con permiso de escribir páginas puede hacer en ellas lo mismo que una persona desde el editor, por los
-      mismos caminos y con las mismas reglas. Puede crear páginas, escribir, cambiar, mover y quitar bloques de
-      cualquier tipo del menú de bloques. Puede dar formato al texto (negrita, cursiva, código, tachado, subrayado,
-      color y resaltado) y pintar un bloque entero. Puede cambiar una tabla celda por celda, agregarle y quitarle filas,
-      y comentar un bloque o unas palabras de él, o quitar un comentario. Puede cambiar el título, el emoji, la portada,
-      el bloqueo, la verificación y el dueño de una página, y moverla o duplicarla. Todo lo que escribe llega al momento
-      a quien tiene la página abierta.
+      An agent with permission to write pages can do in them the same as a person from the editor, through the same paths
+      and with the same rules. It can create pages, write, change, move and remove blocks of any type in the block menu. It
+      can format text (bold, italic, code, strikethrough, underline, color and highlight) and paint a whole block. It can
+      change a table cell by cell, add and remove rows, and comment on a block or on some words in it, or remove a
+      comment. It can change a page's title, emoji, cover, lock, verification and owner, and move or duplicate it.
+      Everything it writes reaches whoever has the page open instantly.
     why: >-
-      Un agente que solo lee, o que escribe texto plano, obliga a una persona a terminar el trabajo a mano. Si puede lo
-      mismo que una persona y bajo las mismas reglas, se le puede encargar la tarea completa sin abrir una puerta que la
-      persona no tiene.
+      An agent that only reads, or that writes plain text, forces a person to finish the work by hand. If it can do the same
+      as a person and under the same rules, it can be entrusted with the complete task without opening a door that the
+      person does not have.
     context: >-
-      El agente no sube imágenes ni archivos, así que puede quitar una portada pero no poner una nueva. Un comentario
-      lleva el nombre de la persona dueña del token. Lo que no se toca de una tabla conserva su identidad, sus
-      comentarios y los enlaces que apuntan a sus celdas.
+      The agent does not upload images or files, so it can remove a cover but not set a new one. A comment carries the name
+      of the person who owns the token. What is not touched in a table keeps its identity, its comments and the links that
+      point to its cells.
     superseded_by: BR-71ebff5
     superseded_reason: >-
-      Reemplazar un bloque borraba los comentarios y los colores que llevaba, y cambiar las palabras de un aviso o un
-      desplegable borraba lo que tenía adentro. Ahora se conserva lo que no es del agente.
+      Replacing a block deleted the comments and colors it carried, and changing the words of a callout or a toggle
+      deleted what it had inside. Now what does not belong to the agent is kept.
     scenarios:
-      - title: Comentar unas palabras
-        given: Un agente con permiso de escribir en una página
-        when: Comenta un bloque citando unas palabras que el bloque dice
-        then: El comentario queda en el bloque firmado por la persona dueña del token, y esas palabras quedan marcadas
-      - title: Cambiar una celda
-        given: Una página con una tabla que tiene comentarios en sus celdas
-        when: El agente cambia el texto de una celda
-        then: Solo cambia esa celda y las demás conservan su identidad y sus comentarios
-      - title: Página bloqueada
-        given: Una página bloqueada
-        when: El agente intenta escribir en ella
-        then: No se escribe nada y se le explica que la página está bloqueada
+      - title: Commenting on some words
+        given: An agent with permission to write on a page
+        when: It comments on a block quoting some words that the block says
+        then: The comment stays on the block signed by the person who owns the token, and those words are marked
+      - title: Changing a cell
+        given: A page with a table that has comments in its cells
+        when: The agent changes the text of a cell
+        then: Only that cell changes and the others keep their identity and their comments
+      - title: Locked page
+        given: A locked page
+        when: The agent tries to write on it
+        then: Nothing is written and it is explained that the page is locked
   - id: BR-ff39e6a
     status: superseded
-    title: En una colección, cada fila responde a su propia regla
+    title: In a collection, each row answers to its own rule
     rule: >-
-      Leer, filtrar o cambiar las filas de una colección se decide fila por fila con la regla más cercana del token: una
-      regla puesta en una fila manda sobre la de su colección. Leer una colección pide collections:read, cambiar sus
-      filas collections:write y cambiar sus columnas o vistas collections:configure, cada uno en el lugar donde está
-      hoy.
+      Reading, filtering or changing a collection's rows is decided row by row with the token's closest rule: a rule placed
+      on a row governs over that of its collection. Reading a collection requires collections:read, changing its rows
+      collections:write and changing its columns or views collections:configure, each one in the place where it is today.
     why: >-
-      Un tablero abierto puede tener una fila cerrada, por ejemplo una tarea con información sensible. Si la colección
-      decidiera por todas sus filas, consultar el tablero entregaría lo que el token cierra.
+      An open board can have a closed row, for example a task with sensitive information. If the collection decided for all
+      its rows, querying the board would deliver what the token closes.
     context: >-
-      Una consulta cuenta solo las filas que el token deja leer. A un token que solo lee no se le ofrecen herramientas
-      que escriben.
+      A query counts only the rows the token allows reading. A token that only reads is not offered tools that write.
     superseded_by: BR-dc7a320
     scenarios:
-      - title: Una fila cerrada en un tablero abierto
-        given: Un token que lee y escribe en un tablero, salvo en una de sus filas
-        when: El agente consulta el tablero o intenta cambiar esa fila
-        then: La fila no aparece ni se cuenta, y cambiarla se contesta igual que si no existiera
-      - title: Un token que solo escribe filas
-        given: Un token con collections:read y collections:write, sin collections:configure
-        when: El agente se conecta
-        then: Puede crear y cambiar filas, pero no se le ofrecen las herramientas de columnas ni de vistas
+      - title: A closed row on an open board
+        given: A token that reads and writes on a board, except on one of its rows
+        when: The agent queries the board or tries to change that row
+        then: The row neither appears nor is counted, and changing it is answered the same as if it did not exist
+      - title: A token that only writes rows
+        given: A token with collections:read and collections:write, without collections:configure
+        when: The agent connects
+        then: It can create and change rows, but it is not offered the column or view tools

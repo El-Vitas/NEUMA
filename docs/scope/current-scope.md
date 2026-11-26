@@ -48,7 +48,7 @@ Remaining files: none for the current scope.
 
 Status: pages are `Block` rows of type `page`; editor over blocks, versioning, trash, live editing and attachment primitives delivered. `Page` and `Page.content` no longer exist.
 
-Remaining files and changes: none recorded here. Staging and state of the block model live in `docs/superpowers/plans/2026-10-19-todo-es-un-bloque.md`.
+Remaining files and changes: none recorded here. Staging and state of the block model live in `docs/superpowers/plans/2026-10-19-everything-is-a-block.md`.
 
 ### `databases`
 
@@ -68,7 +68,7 @@ Remaining files: none for the currently accepted minimum. Timeline is part of th
 
 Status: delivered. Introduced by ADR-008, rebuilt on blocks by ADR-021 and ADR-022.
 
-Owns the mention node, the `BlockLink` graph and the backlinks read. The transaction that changes a block reconciles its outgoing links, so a mention shows up in «Vinculado desde» when the transaction commits; there is no projection worker. Reads filter by the requesting user's access to blocks before counting, so the graph never discloses the existence of unreadable pages. Backlinks list mentions only; subpage, collection and synced-block links are stored but not listed. Execution detail: `docs/superpowers/plans/2026-10-19-todo-es-un-bloque.md`, stage 5.
+Owns the mention node, the `BlockLink` graph and the backlinks read. The transaction that changes a block reconciles its outgoing links, so a mention shows up in "Linked from" when the transaction commits; there is no projection worker. Reads filter by the requesting user's access to blocks before counting, so the graph never discloses the existence of unreadable pages. Backlinks list mentions only; subpage, collection and synced-block links are stored but not listed. Execution detail: `docs/superpowers/plans/2026-10-19-everything-is-a-block.md`, stage 5.
 
 ### `blocks`
 
@@ -80,7 +80,7 @@ Owns the `Block` row, permission inheritance, the transaction pipeline and the l
 - `POST /api/v1/transactions` applies `{ transactions: [{ id, operations }] }` with the commands `set`, `update`, `listAfter`, `listBefore`, `listRemove`, `applyText` and `setPermission`. Each client transaction is one Postgres transaction; a retried transaction id returns the stored result (`BlockTransaction`).
 - `/api/v1/blocks/live` is the WebSocket for versions and presence. A client mints a short-lived token with `POST /api/v1/blocks/live/token`, subscribes per page, and may send `transactions` and `sync` requests over the same socket. Postgres `NOTIFY block_versions` drives the fan-out, and each subscriber receives only the blocks it can read.
 
-Block rows are written through the pipeline; the only direct write is the deferred forever-deletion of trashed pages (ADR-017). Execution detail: `docs/superpowers/plans/2026-10-19-todo-es-un-bloque.md`.
+Block rows are written through the pipeline; the only direct write is the deferred forever-deletion of trashed pages (ADR-017). Execution detail: `docs/superpowers/plans/2026-10-19-everything-is-a-block.md`.
 
 ### `mcp`
 

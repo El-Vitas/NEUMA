@@ -32,5 +32,5 @@ The gate's `typecheck` task must resolve `tsc` to TS7 (verify with `tsc --versio
 - Created: 2026-07-10
 - Approved by: El-Vitas
 - Revisit when: typescript-eslint ships TS 7 support (TS 7.1 stable API).
-- Modified: 2026-10-11 — Revisado al actualizar a TypeScript 7.0.2 y 6.0.2: typescript-eslint 8.71.1 sigue exigiendo `typescript >=4.8.4 <6.1.0`, así que la decisión sigue vigente.
-- Modified: 2026-10-19 — dependency-cruiser también necesita TS 6, y en una instalación limpia Bun puede dejarle TS 7 en la copia compartida del store. Cuando eso pasa, no ve los `import type` y reporta archivos huérfanos falsos. `tooling/depcruise.typescript6.mjs` le apunta el TS 6 del proyecto; se borra cuando dependency-cruiser soporte TS 7.
+- Modified: 2026-10-11 — Reviewed when upgrading to TypeScript 7.0.2 and 6.0.2: typescript-eslint 8.71.1 still requires `typescript >=4.8.4 <6.1.0`, so the decision still holds.
+- Modified: 2026-10-19 — dependency-cruiser also needs TS 6, and on a clean install Bun may leave it with TS 7 in the shared copy in the store. When that happens, it does not see `import type` and reports false orphan files. `tooling/depcruise.typescript6.mjs` points it at the project's TS 6; it gets deleted once dependency-cruiser supports TS 7.

@@ -1,133 +1,131 @@
 id: FEA-COL
-name: Escritura en vivo
+name: Live writing
 purpose: >-
-  Define cómo varias personas escriben la misma página a la vez y qué ocurre cuando la conexión en vivo no está
-  disponible.
+  Defines how several people write the same page at once and what happens when the live connection is not available.
 scope: collaboration
 rules:
   - id: BR-0606cda
     status: active
-    title: El texto de cada bloque lo guarda el servidor, una sola vez
+    title: The text of each block is stored by the server, only once
     rule: >-
-      Cada bloque guarda su propio texto, y el servidor es el único que guarda el estado de edición de ese texto. Un
-      navegador recibe ese estado al abrir la página y lo continúa; nunca arma uno por su cuenta. Un bloque con texto
-      que todavía no tiene estado de edición lo recibe del servidor la primera vez que alguien lo edita en vivo.
+      Each block stores its own text, and the server is the only one that stores the editing state of that text. A
+      browser receives that state when opening the page and continues it; it never builds one on its own. A block with
+      text that does not yet have an editing state receives it from the server the first time someone edits it live.
     why: >-
-      Si cada navegador armara su propia copia del texto al encontrarlo vacío, dos personas que abren la página a la vez
-      lo escribirían dos veces, y el bloque quedaría con su texto duplicado.
+      If each browser built its own copy of the text upon finding it empty, two people opening the page at the same time
+      would write it twice, and the block would end up with its text duplicated.
     supersedes: BR-1e9a26a
     scenarios:
-      - title: Dos personas abren a la vez una página que nadie había abierto
-        given: Una página cuyos bloques nunca se editaron en vivo
-        when: Dos personas la abren al mismo tiempo y escriben en el mismo bloque
-        then: Las dos ven el texto una sola vez, con lo que escribió cada una
+      - title: Two people open at the same time a page nobody had opened
+        given: A page whose blocks were never edited live
+        when: Two people open it at the same time and write in the same block
+        then: Both see the text only once, with what each one wrote
   - id: BR-7ee2df8
     status: active
-    title: La página se sigue escribiendo sin conexión en vivo
+    title: The page can still be written without a live connection
     rule: >-
-      La escritura en vivo permite que varias personas trabajen la misma página a la vez y vean quién está presente. Si
-      esa conexión no se puede establecer, la página se sigue escribiendo y guardando; lo único que se pierde es ver a
-      los demás en el momento.
+      Live writing lets several people work on the same page at once and see who is present. If that connection cannot be
+      established, the page can still be written and saved; the only thing lost is seeing the others in the moment.
     why: >-
-      La conexión en vivo es una comodidad, no la condición para trabajar. Un servidor reiniciándose no puede dejar a
-      nadie sin poder escribir.
+      The live connection is a convenience, not the condition for working. A server restarting cannot leave anyone
+      unable to write.
   - id: BR-8f11b30
     status: active
-    title: Todo cambio entra por el mismo camino y corta una versión por racha
+    title: Every change comes in through the same path and cuts one version per streak
     rule: >-
-      Todo lo que cambia una página entra por el mismo camino, lo escriba una persona en el editor, la API o un agente,
-      y se guarda solo en los bloques que toca. Quien tiene la página abierta ve el cambio sin recargar. Una racha de
-      edición de una persona corta una sola versión de la página, sin importar cuántos navegadores la tengan abierta, y
-      guardar lo que no cambió no corta ninguna.
+      Everything that changes a page comes in through the same path, whether a person writes it in the editor, the API or
+      an agent, and it is stored only in the blocks it touches. Whoever has the page open sees the change without
+      reloading. A person's editing streak cuts a single version of the page, no matter how many browsers have it open,
+      and saving what did not change cuts none.
     why: >-
-      Si un cambio pudiera llegar a lo guardado por un costado, quien tiene la página abierta no se enteraría y su
-      próxima escritura lo pisaría. Y si cada navegador abierto cortara su propia versión, el mismo cambio quedaría
-      varias veces en el historial.
+      If a change could reach what is stored from the side, whoever has the page open would not find out and their next
+      write would overwrite it. And if each open browser cut its own version, the same change would end up several times
+      in the history.
     supersedes: BR-585748e
     scenarios:
-      - title: Un agente agrega un bloque mientras alguien tiene la página abierta
-        given: Una persona tiene la página abierta y escribiendo
-        when: Un agente agrega un bloque al final
-        then: La persona ve el bloque aparecer sin recargar, y la página guardada tiene lo de ambos
-      - title: Dos personas escriben en la misma página
-        given: Dos personas tienen la página abierta
-        when: Una escribe una palabra y se detiene
-        then: Se corta una sola versión, no una por cada navegador
+      - title: An agent adds a block while someone has the page open
+        given: A person has the page open and is writing
+        when: An agent adds a block at the end
+        then: The person sees the block appear without reloading, and the stored page has what both did
+      - title: Two people write on the same page
+        given: Two people have the page open
+        when: One writes a word and stops
+        then: A single version is cut, not one per browser
   - id: BR-bacaeed
     status: active
-    title: Cada persona escribe con su nombre visible
+    title: Each person writes with their name visible
     rule: >-
-      Quien entra a escribir en vivo se anuncia con su nombre para el resto, y ese nombre se actualiza si cambia sin
-      necesidad de reconectar.
+      Whoever joins to write live announces themselves to the others with their name, and that name is updated if it
+      changes without needing to reconnect.
     why: >-
-      Ver quién más está en la página es lo que evita pisarse el trabajo, y un participante sin nombre no dice nada a
-      nadie.
+      Seeing who else is on the page is what prevents overwriting each other's work, and a participant without a name
+      tells nobody anything.
   - id: BR-be93570
     status: active
-    title: Una página bloqueada no se escribe en vivo
+    title: A locked page is not written live
     rule: >-
-      Una página bloqueada se puede leer en vivo, pero el servidor rechaza todo lo que intente escribirla, venga del
-      editor, de otra página o de un agente.
+      A locked page can be read live, but the server rejects anything that tries to write it, whether it comes from the
+      editor, from another page or from an agent.
     why: >-
-      El editor ya no deja escribir en una página bloqueada, pero eso ocurre en el navegador. Un bloqueo que solo
-      respeta la pantalla lo esquiva cualquiera que hable directo con el servidor.
+      The editor no longer allows writing on a locked page, but that happens in the browser. A lock that only the screen
+      respects is sidestepped by anyone who talks directly to the server.
   - id: BR-d7afef8
     status: active
-    title: Una conexión rechazada no interrumpe la escritura
+    title: A rejected connection does not interrupt writing
     rule: >-
-      Que la conexión en vivo sea rechazada no puede mostrarse como un fallo del sistema ni interrumpir a quien está
-      escribiendo. La página lo refleja en su estado de conexión y sigue funcionando.
+      The live connection being rejected cannot be shown as a system failure nor interrupt whoever is writing. The page
+      reflects it in its connection state and keeps working.
     why: >-
-      Abrir una página mientras el servidor se reinicia es algo cotidiano, y presentarlo como un error hace dudar de si
-      lo escrito se perdió.
+      Opening a page while the server restarts is an everyday occurrence, and presenting it as an error makes people
+      doubt whether what they wrote was lost.
   - id: BR-d985817
     status: active
-    title: Un corte provoca una sola reconexión
+    title: One drop causes a single reconnection
     rule: >-
-      Un corte de la conexión en vivo provoca un solo intento de reconexión, con una espera que crece entre intentos y
-      un máximo de intentos. Al agotarlos, la página avisa que dejó de intentarlo.
+      A drop of the live connection causes a single reconnection attempt, with a wait that grows between attempts and a
+      maximum number of attempts. When they run out, the page warns that it stopped trying.
     why: >-
-      El mismo corte se conoce por más de una vía, y tratar cada aviso como un corte distinto abre varias sesiones
-      compitiendo y gasta los intentos al doble de velocidad de lo que se le dijo a la persona.
+      The same drop is known through more than one route, and treating each notice as a different drop opens several
+      competing sessions and burns the attempts at twice the speed the person was told.
     scenarios:
-      - title: Un corte avisado varias veces
-        given: Una página conectada en vivo
-        when: La conexión se cae y el sistema se entera por más de una vía
-        then: Se programa una sola reconexión y el estado de la página lo dice una sola vez
+      - title: A drop reported several times
+        given: A page connected live
+        when: The connection goes down and the system finds out through more than one route
+        then: A single reconnection is scheduled and the page's state says so only once
   - id: BR-1e9a26a
     status: superseded
-    title: El documento en vivo lo siembra el servidor, una sola vez
+    title: The live document is seeded by the server, only once
     rule: >-
-      La primera vez que alguien abre una página, el servidor arma su documento en vivo con lo que la página tiene
-      guardado. Ningún navegador lo siembra por su cuenta.
+      The first time someone opens a page, the server builds its live document from what the page has stored. No browser
+      seeds it on its own.
     why: >-
-      Si cada navegador sembraba el documento al encontrarlo vacío, dos personas que abrían la página a la vez lo
-      escribían dos veces, y la página quedaba con todo su contenido duplicado.
+      If each browser seeded the document upon finding it empty, two people opening the page at the same time wrote it
+      twice, and the page ended up with all its content duplicated.
     superseded_by: BR-0606cda
     scenarios:
-      - title: Dos personas abren a la vez una página que nadie había abierto
-        given: Una página que nunca se abrió en vivo
-        when: Dos personas la abren al mismo tiempo
-        then: Las dos ven el contenido una sola vez
+      - title: Two people open at the same time a page nobody had opened
+        given: A page that was never opened live
+        when: Two people open it at the same time
+        then: Both see the content only once
   - id: BR-585748e
     status: superseded
-    title: La página se guarda desde su documento en vivo
+    title: The page is stored from its live document
     rule: >-
-      El contenido de una página se guarda a partir de su documento en vivo, cada vez que el servidor lo persiste. Todo
-      lo que cambia el contenido desde fuera del editor —quien escribe sin conexión en vivo, los bloques que se mueven a
-      otra página, lo que escribe un agente— entra a ese documento, nunca directo a lo guardado. Un cambio corta una
-      sola versión, sin importar cuántas personas tengan la página abierta, y guardar lo que no cambió no corta ninguna.
+      A page's content is stored from its live document, every time the server persists it. Everything that changes the
+      content from outside the editor —whoever writes without a live connection, blocks that are moved to another page,
+      what an agent writes— goes into that document, never directly into what is stored. A change cuts a single version,
+      no matter how many people have the page open, and saving what did not change cuts none.
     why: >-
-      Lo guardado y lo que se ve en vivo son dos copias del mismo texto. Si algo escribe en una sin pasar por la otra,
-      la siguiente vez que se guarda la otra pisa lo escrito. Y si cada navegador abierto guardaba su copia, el mismo
-      cambio quedaba dos veces en el historial.
+      What is stored and what is seen live are two copies of the same text. If something writes to one without going
+      through the other, the next time the other is saved it overwrites what was written. And if each open browser stored
+      its copy, the same change ended up twice in the history.
     superseded_by: BR-8f11b30
     scenarios:
-      - title: Un agente agrega un bloque mientras alguien tiene la página abierta
-        given: Una persona tiene la página abierta y escribiendo
-        when: Un agente agrega un bloque al final
-        then: La persona ve el bloque aparecer sin recargar, y la página guardada tiene lo de ambos
-      - title: Dos personas escriben en la misma página
-        given: Dos personas tienen la página abierta
-        when: Una escribe una palabra
-        then: Se corta una sola versión, no una por cada navegador
+      - title: An agent adds a block while someone has the page open
+        given: A person has the page open and is writing
+        when: An agent adds a block at the end
+        then: The person sees the block appear without reloading, and the stored page has what both did
+      - title: Two people write on the same page
+        given: Two people have the page open
+        when: One writes a word
+        then: A single version is cut, not one per browser

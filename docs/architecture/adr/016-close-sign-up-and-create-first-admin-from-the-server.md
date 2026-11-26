@@ -1,38 +1,38 @@
-# 016: Cerrar el registro y crear el primer administrador desde el servidor
+# 016: Close sign-up and create the first administrator from the server
 
 **Status:** Accepted
 **Date:** 2026-10-11
 
 ## Context
 
-`POST /api/v1/users` era público: venía de la plantilla inicial, con dos reglas que lo describían (BR-012, «al registrarse, el usuario se crea como CLIENT», y BR-013, «el registro inicia sesión»). Un CLIENT puede leer los espacios `PUBLIC_INTERNAL`. Comprobado el 2026-10-11 en desarrollo: una cuenta creada sin sesión listó los espacios internos y encontró sus páginas en la búsqueda. Además, el diálogo de administración «Nuevo usuario» del portal usaba ese mismo pedido público, sin rol y sin token.
+`POST /api/v1/users` was public: it came from the starter template, with two rules describing it (BR-012, "on sign-up, the user is created as CLIENT", and BR-013, "sign-up logs the user in"). A CLIENT can read `PUBLIC_INTERNAL` spaces. Verified on 2026-10-11 in development: an account created without a session listed the internal spaces and found their pages in search. In addition, the portal's "New user" admin dialog used that same public request, with no role and no token.
 
-En una instalación nueva tampoco había forma de llegar a ser administrador sin editar la base a mano.
+On a fresh installation there was also no way to become an administrator without editing the database by hand.
 
 ## Alternatives Considered
 
-- **Registro abierto y la primera cuenta queda como administrador.** PRO: no hace falta ningún paso extra. CON: hay una carrera al desplegar (quien llegue primero se queda con el sistema) y el conocimiento interno sigue abierto a cualquiera. Rechazada.
-- **Crear el primer administrador al arrancar, desde variables de entorno.** PRO: es automático. CON: la contraseña queda en el entorno del contenedor y en la configuración del despliegue, y hay que acordarse de quitarla. Rechazada.
-- **Registro por invitación.** PRO: es lo más completo para sumar gente. CON: requiere enlaces de un solo uso, su vencimiento y una pantalla nueva. Queda para cuando haga falta.
-- **Cerrar el registro y crear el primer administrador con un comando en el servidor.** PRO: solo quien opera el servidor puede hacerlo, la puerta se cierra sola cuando ya existe un administrador y la contraseña no queda guardada en ninguna parte. CON: es un paso manual en cada instalación nueva.
+- **Open sign-up, and the first account becomes administrator.** PRO: no extra step is needed. CON: there is a race at deployment (whoever arrives first takes over the system) and internal knowledge remains open to anyone. Rejected.
+- **Create the first administrator at startup, from environment variables.** PRO: it is automatic. CON: the password stays in the container environment and in the deployment configuration, and someone has to remember to remove it. Rejected.
+- **Invitation-based sign-up.** PRO: it is the most complete way to add people. CON: it requires single-use links, their expiry and a new screen. Left for when it is needed.
+- **Close sign-up and create the first administrator with a command on the server.** PRO: only whoever operates the server can do it, the door closes by itself once an administrator exists and the password is not stored anywhere. CON: it is a manual step on every new installation.
 
 ## Decision
 
-- `POST /api/v1/users` exige sesión y el permiso de crear usuarios, que solo tiene ADMIN. El rol se indica siempre y la respuesta es la cuenta creada, sin sesión.
-- `bun run admin:create --email <correo> --name <nombre>`, con la contraseña por la entrada estándar, crea un ADMIN solo si no existe ninguno. Usa la misma validación y el mismo servicio que la API. Si la entrada es una terminal, se niega en vez de mostrar lo que se escribe.
-- El portal elimina la vista de registro, que ya no tenía ruta. El diálogo «Nuevo usuario» envía el pedido con la sesión del administrador y deja elegir el rol con botones de opción, empezando por CLIENT.
-- BR-012 y BR-013 quedan reemplazadas por BR-6925d74 y BR-5198703.
+- `POST /api/v1/users` requires a session and the permission to create users, which only ADMIN has. The role is always specified and the response is the created account, without a session.
+- `bun run admin:create --email <email> --name <name>`, with the password through standard input, creates an ADMIN only if none exists. It uses the same validation and the same service as the API. If the input is a terminal, it refuses instead of echoing what is typed.
+- The portal removes the sign-up view, which no longer had a route. The "New user" dialog sends the request with the administrator's session and lets them choose the role with radio buttons, starting with CLIENT.
+- BR-012 and BR-013 are replaced by BR-6925d74 and BR-5198703.
 
 ## Consequences
 
-- Positivas: nadie entra sin que un administrador lo decida; una instalación nueva tiene un camino documentado para su primer administrador.
-- Negativas: quien opera la instalación tiene que ejecutar un comando la primera vez. Si se pierde el acceso de todos los administradores, la recuperación sigue siendo editar la base.
+- Positive: nobody gets in unless an administrator decides so; a fresh installation has a documented path for its first administrator.
+- Negative: whoever operates the installation has to run a command the first time. If all administrators lose access, recovery is still editing the database.
 
 ## Governance
 
-Un endpoint que crea identidades o da acceso no se marca como público. Las pruebas de integración de usuarios verifican el 401 sin sesión, el 403 sin el permiso y que el comando se niega cuando ya existe un administrador.
+An endpoint that creates identities or grants access is not marked as public. The users integration tests verify the 401 without a session, the 403 without the permission, and that the command refuses when an administrator already exists.
 
 ## Notes
 
-- Author: El-Vitas, con Claude
+- Author: El-Vitas, with Claude
 - Created: 2026-10-11
