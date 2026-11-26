@@ -1,6 +1,11 @@
-# Neuma
+# NEUMA
 
 **English** · [Español](./README.es.md)
+
+[![CI](https://github.com/El-Vitas/neuma/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/El-Vitas/neuma/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
+![MCP server](https://img.shields.io/badge/MCP-server-111111)
 
 **Neural Enterprise Unified Memory & Agents.** The company brain: every block is a neuron, every link a synapse, and agents think with it.
 
@@ -8,11 +13,11 @@
   <img src="docs/media/neuma-en.webp" alt="An agent searches NEUMA for the pricing decision, writes the draft email on Camila's page citing the source and marks the task as done." width="960">
 </p>
 
-Neuma is an organization's internal memory. Everything is a block, even the page: spaces with pages that several people edit live, collections with views, full-text search and backlinks. AI agents work in it like one more person, through an MCP server with the same permissions as the application.
+NEUMA is an organization's internal memory. Everything is a block, even the page: spaces with pages that several people edit live, collections with views, full-text search and backlinks. AI agents work in it like one more person, through an MCP server with the same permissions as the application.
 
-**Agents first.** Neuma is designed for AI agents before people. It is not enough for an agent to be able to do what a person does: Neuma invents tools, algorithms and structures built around how an agent works, with precise, citable context, changes since its last visit and actions that can be previewed. The portal exists and is used, but the product is a memory that agents think with (see "Product Principle: Agent First" in `AGENTS.md`).
+**Agents first.** NEUMA is designed for AI agents before people. It is not enough for an agent to be able to do what a person does: NEUMA invents tools, algorithms and structures built around how an agent works, with precise, citable context, changes since its last visit and actions that can be previewed. The portal exists and is used, but the product is a memory that agents think with (see "Product Principle: Agent First" in `AGENTS.md`).
 
-For agents, Neuma is a unified memory architecture (*Neural Enterprise Unified Memory Architecture*): every piece of knowledge has a stable id that can be cited, is linked to others and is found with a search, and each agent only sees what the person who owns its token can read.
+For agents, NEUMA is a unified memory architecture (*Neural Enterprise Unified Memory Architecture*): every piece of knowledge has a stable id that can be cited, is linked to others and is found with a search, and each agent only sees what the person who owns its token can read.
 
 The name also comes from neumes, the first musical notation: small signs that, together, form the chant. Here every block is a neume.
 
@@ -25,6 +30,34 @@ Each deployment serves a single organization, and only people for whom an admini
 - **Collections.** A page can carry a property schema, and its child pages are seen as a table, board, list, gallery or calendar.
 - **Search and backlinks.** PostgreSQL full-text search by page and by block, and the "Linked from" section. Both come from the blocks and are up to date as soon as the change is confirmed.
 - **Agents.** An MCP server at `/api/v1/mcp` with limited-scope access tokens. Every action of an agent is audited.
+
+## How it works
+
+```mermaid
+flowchart LR
+  person["Person in the portal<br/>Next.js, IndexedDB cache"] -->|REST and live channel| services
+  agent["AI agent"] -->|MCP with a scoped token| services
+  subgraph backend["Backend: NestJS on Fastify and Bun"]
+    services["One set of services<br/>permissions, versions, audit"]
+  end
+  services --> db[("PostgreSQL 18<br/>blocks and full-text search")]
+  services -->|change notices| person
+```
+
+The person and the agent go through the same services, so an agent can never do what the owner of its token could not.
+
+## Engineering decisions
+
+Every decision is written down as an ADR in `docs/architecture/adr/`, with the alternatives that were rejected. These are the ones that shape the product:
+
+- **Everything is a block, even the page** ([ADR 021](docs/architecture/adr/021-everything-is-a-block.md)). Permissions, moves, links, versions and trash are solved once for every block, instead of once for pages and again for their content. Search and backlinks are read from the blocks, so they are current as soon as a change is confirmed.
+- **Views are database queries** ([ADR 025](docs/architecture/adr/025-views-as-reducer-queries.md)). A table, board or calendar is a query that PostgreSQL answers with a key cursor, so a large collection is paged instead of cut off.
+- **Live change notices per collection** ([ADR 026](docs/architecture/adr/026-collection-change-notices.md)). When someone moves a card, everyone looking at that collection sees it without reloading, once the server has checked that they can read it.
+- **The page tree loads on demand** ([ADR 030](docs/architecture/adr/030-page-tree-on-demand.md)). In a space with 12,000 pages, opening a page used to download a 40 MB document with the whole space. Now it fetches only the branch on screen.
+- **Sessions can be revoked** ([ADR 018](docs/architecture/adr/018-revoke-sessions-with-a-token-version.md)). Signing out or changing the password ends every open session, through a version number on the account instead of a list of tokens.
+- **Each integration test run gets its own database** ([ADR 011](docs/architecture/adr/011-isolate-integration-tests-by-database.md)), so the tests run against a real PostgreSQL without stepping on each other.
+
+The conventions are enforced, not only written. Custom ESLint rules, GritQL plugins and dependency-cruiser check module boundaries and file layout. CI runs format, lint, types, the test suites and a gitleaks scan over the whole history, with actions pinned by SHA and images by digest.
 
 ## Structure
 

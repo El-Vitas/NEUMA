@@ -1,6 +1,11 @@
-# Neuma
+# NEUMA
 
 [English](./README.md) · **Español**
+
+[![CI](https://github.com/El-Vitas/neuma/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/El-Vitas/neuma/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
+![MCP server](https://img.shields.io/badge/MCP-server-111111)
 
 **Neural Enterprise Unified Memory & Agents.** El cerebro de la empresa: cada bloque es una neurona, cada enlace una sinapsis, y los agentes piensan con él.
 
@@ -8,11 +13,11 @@
   <img src="docs/media/neuma-es.webp" alt="Un agente busca en NEUMA la decisión de precios, escribe el borrador del correo en la página de Camila citando la fuente y marca la tarea como lista." width="960">
 </p>
 
-Neuma es la memoria interna de una organización. Todo es un bloque, incluso la página: espacios con páginas que se editan en vivo entre varias personas, colecciones con vistas, búsqueda de texto completo y retroenlaces. Los agentes de IA trabajan en ella como una persona más, a través de un servidor MCP con los mismos permisos que la aplicación.
+NEUMA es la memoria interna de una organización. Todo es un bloque, incluso la página: espacios con páginas que se editan en vivo entre varias personas, colecciones con vistas, búsqueda de texto completo y retroenlaces. Los agentes de IA trabajan en ella como una persona más, a través de un servidor MCP con los mismos permisos que la aplicación.
 
-**Primero los agentes.** Neuma se diseña antes para agentes de IA que para personas. No basta con que un agente pueda hacer lo mismo que una persona: Neuma inventa herramientas, algoritmos y estructuras pensadas para cómo trabaja un agente, con contexto preciso y citable, cambios desde su última visita y acciones que se pueden previsualizar. El portal existe y se usa, pero el producto es una memoria con la que los agentes piensan (ver «Product Principle: Agent First» en `AGENTS.md`).
+**Primero los agentes.** NEUMA se diseña antes para agentes de IA que para personas. No basta con que un agente pueda hacer lo mismo que una persona: NEUMA inventa herramientas, algoritmos y estructuras pensadas para cómo trabaja un agente, con contexto preciso y citable, cambios desde su última visita y acciones que se pueden previsualizar. El portal existe y se usa, pero el producto es una memoria con la que los agentes piensan (ver «Product Principle: Agent First» en `AGENTS.md`).
 
-Para los agentes, Neuma es una arquitectura de memoria unificada (*Neural Enterprise Unified Memory Architecture*): cada conocimiento tiene un id estable que se puede citar, se enlaza con otros y se encuentra con una búsqueda, y cada agente solo ve lo que puede leer la persona dueña de su token.
+Para los agentes, NEUMA es una arquitectura de memoria unificada (*Neural Enterprise Unified Memory Architecture*): cada conocimiento tiene un id estable que se puede citar, se enlaza con otros y se encuentra con una búsqueda, y cada agente solo ve lo que puede leer la persona dueña de su token.
 
 El nombre también viene de los neumas, la primera notación musical: signos pequeños que, juntos, forman el canto. Aquí cada bloque es un neuma.
 
@@ -25,6 +30,34 @@ Cada despliegue atiende a una sola organización, y solo entran las personas a l
 - **Colecciones.** Una página puede llevar un esquema de propiedades, y sus páginas hijas se ven como tabla, tablero, lista, galería o calendario.
 - **Búsqueda y retroenlaces.** Búsqueda de texto completo en PostgreSQL por página y por bloque, y la sección «Vinculado desde». Las dos salen de los bloques y están al día apenas se confirma el cambio.
 - **Agentes.** Servidor MCP en `/api/v1/mcp` con tokens de acceso de alcance limitado. Cada acción de un agente queda auditada.
+
+## Cómo funciona
+
+```mermaid
+flowchart LR
+  person["Persona en el portal<br/>Next.js, caché en IndexedDB"] -->|REST y canal en vivo| services
+  agent["Agente de IA"] -->|MCP con un token de alcance limitado| services
+  subgraph backend["Backend: NestJS sobre Fastify y Bun"]
+    services["Un solo conjunto de servicios<br/>permisos, versiones, auditoría"]
+  end
+  services --> db[("PostgreSQL 18<br/>bloques y búsqueda de texto completo")]
+  services -->|avisos de cambios| person
+```
+
+La persona y el agente pasan por los mismos servicios, así que un agente nunca puede hacer lo que no podría la persona dueña de su token.
+
+## Decisiones de ingeniería
+
+Cada decisión queda escrita como ADR en `docs/architecture/adr/`, con las alternativas que se descartaron. Estas son las que dan forma al producto:
+
+- **Todo es un bloque, incluso la página** ([ADR 021](docs/architecture/adr/021-everything-is-a-block.md)). Permisos, movimientos, enlaces, versiones y papelera se resuelven una sola vez para todos los bloques, en vez de una vez para las páginas y otra para su contenido. La búsqueda y los retroenlaces se leen de los bloques, así que están al día apenas se confirma un cambio.
+- **Las vistas son consultas a la base** ([ADR 025](docs/architecture/adr/025-views-as-reducer-queries.md)). Una tabla, un tablero o un calendario es una consulta que PostgreSQL responde con un cursor por clave, así que una colección grande se pagina en vez de cortarse.
+- **Avisos de cambios en vivo por colección** ([ADR 026](docs/architecture/adr/026-collection-change-notices.md)). Cuando alguien mueve una tarjeta, todos los que miran esa colección lo ven sin recargar, después de que el servidor comprueba que pueden leerla.
+- **El árbol de páginas se carga a pedido** ([ADR 030](docs/architecture/adr/030-page-tree-on-demand.md)). En un espacio de 12.000 páginas, abrir una página descargaba un documento de 40 MB con el espacio entero. Ahora trae solo la rama que se ve.
+- **Las sesiones se pueden revocar** ([ADR 018](docs/architecture/adr/018-revoke-sessions-with-a-token-version.md)). Cerrar sesión o cambiar la contraseña termina todas las sesiones abiertas, con un número de versión en la cuenta en vez de una lista de tokens.
+- **Cada ejecución de las pruebas de integración tiene su propia base** ([ADR 011](docs/architecture/adr/011-isolate-integration-tests-by-database.md)), así que las pruebas corren contra un PostgreSQL real sin pisarse.
+
+Las convenciones se hacen cumplir, no solo se escriben. Reglas propias de ESLint, plugins de GritQL y dependency-cruiser revisan los límites entre módulos y la organización de archivos. El CI corre formato, lint, tipos, las pruebas y un escaneo de gitleaks sobre todo el historial, con las acciones fijadas por SHA y las imágenes por digest.
 
 ## Estructura
 
