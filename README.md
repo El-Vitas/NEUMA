@@ -9,9 +9,7 @@
 
 **Neural Enterprise Unified Memory & Agents.** The company brain: every block is a neuron, every link a synapse, and agents think with it.
 
-<p align="center">
-  <img src="docs/media/neuma-en.webp" alt="An agent searches NEUMA for the pricing decision, writes the draft email on Camila's page citing the source and marks the task as done." width="960">
-</p>
+https://github.com/user-attachments/assets/86762689-74af-40d6-b593-8a1d1f256126
 
 NEUMA is an organization's internal memory. Everything is a block, even the page: spaces with pages that several people edit live, collections with views, full-text search and backlinks. AI agents work in it like one more person, through an MCP server with the same permissions as the application.
 
